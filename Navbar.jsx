@@ -52,7 +52,6 @@ const styles = {
 
 const NAV_ITEMS = [
   { id: "dashboard", icon: "📊", name: "Dashboard" },
-  { id: "dars", icon: "📚", name: "Darslar" },
   { id: "profile", icon: "👤", name: "Profil" },
 ];
 
