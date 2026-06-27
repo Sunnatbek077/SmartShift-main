@@ -32,34 +32,6 @@ npm run lint       # ESLint tekshiruvi
 npm test           # Vitest testlari
 
 
-## Loyiha tuzilishi
-
-
-├── App.jsx                  — Asosiy routing va global state
-├── LandingPage.jsx           — Marketing/landing sahifa
-├── LoginPage.jsx              — Professor / Student / Vazirlik kirish
-├── Dashboard.jsx               — Talaba bosh sahifasi
-├── DarsPage.jsx                 — Dars o'tish (video, lab, quiz, vazifa)
-├── TeacherPanel.jsx              — Professor paneli
-├── AdminPanel.jsx                  — Admin boshqaruvi
-├── MinistryPanel.jsx                — Vazirlik hisobot paneli
-├── ProfilePage.jsx                    — Talaba profili
-├── AIChat.jsx / AIVideoPlayer.jsx       — AI komponentlari
-├── BiometricRegistrationModal.jsx        — Biometrik ro'yxatdan o'tish
-├── constants/                              — Fanlar, mavzular, savollar
-├── auth.js                                  — Autentifikatsiya (login, admin, ministry)
-├── supabase.js                                — Bulutli saqlash wrapper
-└── global.css                                  — Global stillar (light/dark tema)
-
-
-## Kirish rollari
-
-| Rol | Kirish usuli | Standart parol |
-|---|---|---|
-| Talaba / Professor | Login + parol (Supabase) | — |
-| Admin | Login logotipini 5 marta bosish | 123 |
-| Vazirlik | "VAZIRLIK" tugmasi | 456 |
-
 > ⚠️ Standart parollarni production muhitida albatta o'zgartiring.
 
 ## Muhit o'zgaruvchilari
