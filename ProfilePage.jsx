@@ -3,7 +3,7 @@
 // Real ma'lumotlar + tahrirlash + statistikalar + yutuqlar
 // ============================================================
 import { useState, useEffect } from "react";
-import { COLORS, FANS, FANS_7, USER_PROFILE, TOPICS_MAP, TOPICS_MAP_7 } from "./index";
+import { COLORS, FANS, FANS_7, FANS_1KURS, USER_PROFILE, TOPICS_MAP, TOPICS_MAP_7, TOPICS_MAP_1KURS } from "./index";
 import { storage } from "./supabase";
 import { getStudentResults } from "./auth";
 
@@ -35,8 +35,9 @@ export default function ProfilePage({ currentUser }) {
   const initials = displayName.split(" ").map(w => w[0] || "").join("").slice(0, 2).toUpperCase() || "AT";
   const displayClass = currentUser?.class_name || "";
   const displayUsername = currentUser?.username ? `@${currentUser.username}` : "";
+  const is1Kurs = displayClass.toString().trim().startsWith("1");
   const is7Sinf = displayClass.toString().trim().startsWith("7");
-  const defaultFans = is7Sinf ? FANS_7 : FANS;
+  const defaultFans = is1Kurs ? FANS_1KURS : (is7Sinf ? FANS_7 : FANS);
 
   // === Tahrirlash rejimi ===
   const [isEditing, setIsEditing] = useState(false);
@@ -63,6 +64,9 @@ export default function ProfilePage({ currentUser }) {
 
   // === Custom fanlar ===
   const [customSubjects, setCustomSubjects] = useState([]);
+
+  // === Fanlar bo'yicha haqiqiy progress (DB asosida) ===
+  const [subjectsWithProgress, setSubjectsWithProgress] = useState([]);
 
   // === Uyga vazifalar ===
   const [homeworks, setHomeworks] = useState([]);
@@ -105,7 +109,7 @@ export default function ProfilePage({ currentUser }) {
 
       const completedLessonsSet = new Set();
       const testsCompletedCount = Object.keys(progressObj).length;
-      const combinedTopicsMap = { ...TOPICS_MAP, ...TOPICS_MAP_7 };
+      const combinedTopicsMap = { ...TOPICS_MAP, ...TOPICS_MAP_7, ...TOPICS_MAP_1KURS };
 
       let customSubs = [];
       if (displayClass) {
@@ -114,7 +118,7 @@ export default function ProfilePage({ currentUser }) {
           if (saved) customSubs = JSON.parse(saved);
         } catch (e) {}
       }
-      const allSubs = [...(displayClass?.toString().startsWith("7") ? FANS_7 : FANS), ...customSubs];
+      const allSubs = [...defaultFans, ...customSubs];
 
       // Load all customized topics in parallel
       const topicsByFan = {};
@@ -127,22 +131,30 @@ export default function ProfilePage({ currentUser }) {
         } catch (e) {}
       }));
 
-      allSubs.forEach((fan) => {
+      const updatedSubs = allSubs.map((fan) => {
         const topicsArray = topicsByFan[fan.id] || combinedTopicsMap[fan.id] || [];
+        const totalTopics = topicsArray.length || fan.topics || 1;
+        let completedInFan = 0;
 
         topicsArray.forEach((topic) => {
           const quizKey = `${fan.id}_${topic.id}`;
           const hasQuiz = progressObj[quizKey] !== undefined;
-          const hasOral = dbResults.some(r => 
-            String(r.topic_id) === String(topic.id) || 
+          const hasOral = dbResults.some(r =>
+            String(r.topic_id) === String(topic.id) ||
             (r.topic_name === topic.name && r.fan_id === fan.id)
           );
 
           if (hasQuiz || hasOral) {
+            completedInFan++;
             completedLessonsSet.add(`${fan.id}_${topic.id}`);
           }
         });
+
+        const progressPercent = Math.min(100, Math.round((completedInFan / totalTopics) * 100));
+        return { ...fan, topics: totalTopics, progress: progressPercent };
       });
+
+      setSubjectsWithProgress(updatedSubs);
 
       let calculatedTotalScore = 0;
       let totalPercentageSum = 0;
@@ -367,7 +379,7 @@ export default function ProfilePage({ currentUser }) {
 
   const earnedBadges = computeBadges();
   const earnedCount = earnedBadges.filter(b => b.earned).length;
-  const activeFans = [...defaultFans, ...customSubjects];
+  const activeFans = subjectsWithProgress.length > 0 ? subjectsWithProgress : [...defaultFans, ...customSubjects];
 
   if (loading) {
     return (
