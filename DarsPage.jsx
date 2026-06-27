@@ -376,6 +376,21 @@ export default function DarsPage({ fan, onBack }) {
 
   const currentTopic = topics.find((t) => t.id === selectedTopicId);
 
+  // Mavzu bo'yicha qaysi qadamlar (Kirish/Video/Lab/...) ko'rilganini saqlash —
+  // lesson progress foizi shu real "ko'rilgan qadamlar" asosida hisoblanadi
+  useEffect(() => {
+    if (!fanId || !selectedTopicId) return;
+    const key = `lesson_steps_${fanId}_${selectedTopicId}`;
+    let visited = [];
+    try {
+      visited = JSON.parse(localStorage.getItem(key) || "[]");
+    } catch (e) {}
+    if (!visited.includes(lessonStep)) {
+      visited = [...visited, lessonStep];
+      storage.set(key, JSON.stringify(visited));
+    }
+  }, [fanId, selectedTopicId, lessonStep]);
+
   useEffect(() => {
     if (topics.length > 0) {
       setSelectedTopicId(topics[0].id);

@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { COLORS, FANS, FANS_7, FANS_1KURS, USER_PROFILE, TOPICS_MAP, TOPICS_MAP_7, TOPICS_MAP_1KURS } from "./index";
 import { storage } from "./supabase";
 import { getStudentResults } from "./auth";
+import { computeTopicProgress, loadVisitedStepsMap, getTopicQuizScorePercent } from "./lessonProgress";
 
 const getGradeKey = (className) => {
   const match = String(className || "").match(/^\d+/);
@@ -131,26 +132,29 @@ export default function ProfilePage({ currentUser }) {
         } catch (e) {}
       }));
 
+      // Har bir mavzu uchun ko'rilgan dars bosqichlarini yuklash
+      const visitedStepsByFan = {};
+      await Promise.all(allSubs.map(async (fan) => {
+        const topicsArray = topicsByFan[fan.id] || combinedTopicsMap[fan.id] || [];
+        visitedStepsByFan[fan.id] = await loadVisitedStepsMap(storage, fan.id, topicsArray.map(t => t.id));
+      }));
+
       const updatedSubs = allSubs.map((fan) => {
         const topicsArray = topicsByFan[fan.id] || combinedTopicsMap[fan.id] || [];
         const totalTopics = topicsArray.length || fan.topics || 1;
-        let completedInFan = 0;
 
+        let progressSum = 0;
         topicsArray.forEach((topic) => {
-          const quizKey = `${fan.id}_${topic.id}`;
-          const hasQuiz = progressObj[quizKey] !== undefined;
-          const hasOral = dbResults.some(r =>
-            String(r.topic_id) === String(topic.id) ||
-            (r.topic_name === topic.name && r.fan_id === fan.id)
-          );
-
-          if (hasQuiz || hasOral) {
-            completedInFan++;
+          const quizScorePercent = getTopicQuizScorePercent(fan.id, topic.id, topic.name, progressObj, dbResults);
+          const visited = visitedStepsByFan[fan.id]?.[topic.id] || [];
+          const topicProgress = computeTopicProgress(visited, quizScorePercent);
+          progressSum += topicProgress;
+          if (topicProgress >= 100) {
             completedLessonsSet.add(`${fan.id}_${topic.id}`);
           }
         });
 
-        const progressPercent = Math.min(100, Math.round((completedInFan / totalTopics) * 100));
+        const progressPercent = topicsArray.length > 0 ? Math.round(progressSum / topicsArray.length) : 0;
         return { ...fan, topics: totalTopics, progress: progressPercent };
       });
 

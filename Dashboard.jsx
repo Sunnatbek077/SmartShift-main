@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { COLORS, FANS, FANS_7, FANS_1KURS, USER_PROFILE, AI_RECOMMENDATIONS, TOPICS_MAP, TOPICS_MAP_7, TOPICS_MAP_1KURS } from "./index";
 import { storage } from "./supabase";
 import { getStudentResults } from "./auth";
+import { computeTopicProgress, loadVisitedStepsMap, getTopicQuizScorePercent } from "./lessonProgress";
 
 const getGradeKey = (className) => {
   const match = String(className || "").match(/^\d+/);
@@ -29,13 +30,6 @@ const ds = {
   },
 };
 
-const STATS = [
-  { icon: "📚", val: USER_PROFILE.totalLessons, label: "O'tilgan darslar", change: "+3 bu hafta", color: COLORS.primary },
-  { icon: "⏱", val: USER_PROFILE.totalHours, label: "O'qish soatlari", change: "+8 bu hafta", color: COLORS.accent },
-  { icon: "🏆", val: USER_PROFILE.totalScore.toLocaleString(), label: "Umumiy ball", change: "+150 bu hafta", color: COLORS.orange },
-  { icon: "🔥", val: USER_PROFILE.streak, label: "Kunlik streak", change: `Eng yaxshi: ${USER_PROFILE.bestStreak} kun`, color: COLORS.red },
-];
-
 export default function Dashboard({ onFanSelect, currentUser }) {
   // Guruh bo'yicha fanlar tanlash
   const className = currentUser?.class_name || "";
@@ -58,6 +52,7 @@ export default function Dashboard({ onFanSelect, currentUser }) {
     completedLessons: 0,
     studyHours: 0,
     totalScore: 0,
+    avgScore: 0,
     streak: 0,
     bestStreak: 0
   });
@@ -115,7 +110,7 @@ export default function Dashboard({ onFanSelect, currentUser }) {
         }
       } catch (e) {}
 
-      // 4. Calculate progress per subject
+      // 4. Calculate progress per subject (har bir mavzu LESSON_STEPS bosqichlari + quiz balliga qarab)
       const completedLessonsSet = new Set();
       const combinedTopicsMap = { ...TOPICS_MAP, ...TOPICS_MAP_7 };
 
@@ -130,27 +125,29 @@ export default function Dashboard({ onFanSelect, currentUser }) {
         } catch (e) {}
       }));
 
+      // Har bir mavzu uchun ko'rilgan dars bosqichlarini yuklash
+      const visitedStepsByFan = {};
+      await Promise.all(allSubs.map(async (fan) => {
+        const topicsArray = topicsByFan[fan.id] || combinedTopicsMap[fan.id] || [];
+        visitedStepsByFan[fan.id] = await loadVisitedStepsMap(storage, fan.id, topicsArray.map(t => t.id));
+      }));
+
       const updatedSubs = allSubs.map((fan) => {
         const topicsArray = topicsByFan[fan.id] || combinedTopicsMap[fan.id] || [];
-
         const totalTopics = topicsArray.length || fan.topics || 1;
-        let completedInFan = 0;
 
+        let progressSum = 0;
         topicsArray.forEach((topic) => {
-          const quizKey = `${fan.id}_${topic.id}`;
-          const hasQuiz = progressObj[quizKey] !== undefined;
-          const hasOral = dbResults.some(r => 
-            String(r.topic_id) === String(topic.id) || 
-            (r.topic_name === topic.name && r.fan_id === fan.id)
-          );
-
-          if (hasQuiz || hasOral) {
-            completedInFan++;
+          const quizScorePercent = getTopicQuizScorePercent(fan.id, topic.id, topic.name, progressObj, dbResults);
+          const visited = visitedStepsByFan[fan.id]?.[topic.id] || [];
+          const topicProgress = computeTopicProgress(visited, quizScorePercent);
+          progressSum += topicProgress;
+          if (topicProgress >= 100) {
             completedLessonsSet.add(`${fan.id}_${topic.id}`);
           }
         });
 
-        const progressPercent = Math.min(100, Math.round((completedInFan / totalTopics) * 100));
+        const progressPercent = topicsArray.length > 0 ? Math.round(progressSum / topicsArray.length) : 0;
 
         return {
           ...fan,
@@ -161,10 +158,16 @@ export default function Dashboard({ onFanSelect, currentUser }) {
 
       // Calculate total score: sum of all quiz scores + best oral scores
       let calculatedTotalScore = 0;
+      let totalPercentageSum = 0;
+      let percentageCount = 0;
       Object.keys(progressObj).forEach(key => {
         const item = progressObj[key];
         if (item && typeof item.score === "number") {
           calculatedTotalScore += item.score;
+          if (typeof item.percentage === "number") {
+            totalPercentageSum += item.percentage;
+            percentageCount++;
+          }
         }
       });
 
@@ -175,7 +178,11 @@ export default function Dashboard({ onFanSelect, currentUser }) {
       });
       Object.values(oralScoreMap).forEach(score => {
         calculatedTotalScore += score;
+        totalPercentageSum += score;
+        percentageCount++;
       });
+
+      const avgScorePercent = percentageCount > 0 ? Math.round(totalPercentageSum / percentageCount) : 0;
 
       // Calculate study hours
       const totalLessonsCompleted = completedLessonsSet.size;
@@ -189,6 +196,7 @@ export default function Dashboard({ onFanSelect, currentUser }) {
         completedLessons: totalLessonsCompleted,
         studyHours: studyHours,
         totalScore: calculatedTotalScore,
+        avgScore: avgScorePercent,
         streak: streakVal,
         bestStreak: bestStreakVal
       });
@@ -351,13 +359,6 @@ export default function Dashboard({ onFanSelect, currentUser }) {
   const displayName = currentUser?.full_name || USER_PROFILE.name;
   const guruhLabel = currentUser?.class_name ? `${currentUser.class_name} guruh` : "";
 
-  const statsList = [
-    { icon: "📚", val: statsData.completedLessons, label: "O'tilgan darslar", change: "+3 bu hafta", color: COLORS.primary },
-    { icon: "⏱", val: statsData.studyHours, label: "O'qish soatlari", change: "+8 bu hafta", color: COLORS.accent },
-    { icon: "🏆", val: statsData.totalScore.toLocaleString(), label: "Umumiy ball", change: "+150 bu hafta", color: COLORS.orange },
-    { icon: "🔥", val: statsData.streak, label: "Kunlik streak", change: `Eng yaxshi: ${statsData.bestStreak} kun`, color: COLORS.red },
-  ];
-
   return (
     <div style={{ paddingBottom: 80, minHeight: "100vh", background: "var(--bg)", color: "var(--text)", padding: 32 }}>
       {/* Header */}
@@ -389,8 +390,8 @@ export default function Dashboard({ onFanSelect, currentUser }) {
         </div>
         <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 16, padding: 24 }}>
           <div style={{ color: "var(--muted)", fontSize: 14, marginBottom: 8 }}>O'rtacha ball</div>
-          <div style={{ fontSize: 36, fontWeight: 800 }}>{statsData.totalScore || 71}</div>
-          <div style={{ color: "#10B981", fontSize: 14, marginTop: 4 }}>Yaxshi natija</div>
+          <div style={{ fontSize: 36, fontWeight: 800 }}>{statsData.avgScore}%</div>
+          <div style={{ color: "#10B981", fontSize: 14, marginTop: 4 }}>{statsData.avgScore >= 60 ? "Yaxshi natija" : "Ko'proq mashq qiling"}</div>
         </div>
         <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 16, padding: 24 }}>
           <div style={{ color: "var(--muted)", fontSize: 14, marginBottom: 8 }}>Deadline</div>
@@ -405,23 +406,19 @@ export default function Dashboard({ onFanSelect, currentUser }) {
         <div>
           <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 20, color: "var(--text)" }}>Fanlarim</h2>
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            {subjectsWithProgress.map((fan, idx) => {
-              const profs = ["Prof. Karimov", "Prof. Rahimov", "Prof. Saidova", "Prof. Aliyev"];
-              const prof = profs[idx % profs.length];
-              return (
-                <div key={fan.id} onClick={() => onFanSelect(fan)} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 16, padding: 20, display: "flex", alignItems: "center", gap: 20, cursor: "pointer", transition: "all 0.2s" }} onMouseEnter={e => e.currentTarget.style.borderColor = fan.color || "#3B82F6"} onMouseLeave={e => e.currentTarget.style.borderColor = "var(--border)"}>
-                  <div style={{ width: 56, height: 56, background: "var(--surface)", borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>{fan.icon || "📚"}</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 4, color: "var(--text)" }}>{fan.name}</div>
-                    <div style={{ fontSize: 14, color: "var(--muted)" }}>{prof}</div>
-                  </div>
-                  <div style={{ textAlign: "right" }}>
-                    <div style={{ fontSize: 22, fontWeight: 800, color: fan.color || "#3B82F6" }}>{fan.progress || Math.floor(Math.random()*40 + 40)}%</div>
-                    <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 2 }}>O'zlashtirish</div>
-                  </div>
+            {subjectsWithProgress.map((fan) => (
+              <div key={fan.id} onClick={() => onFanSelect(fan)} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 16, padding: 20, display: "flex", alignItems: "center", gap: 20, cursor: "pointer", transition: "all 0.2s" }} onMouseEnter={e => e.currentTarget.style.borderColor = fan.color || "#3B82F6"} onMouseLeave={e => e.currentTarget.style.borderColor = "var(--border)"}>
+                <div style={{ width: 56, height: 56, background: "var(--surface)", borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>{fan.icon || "📚"}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 4, color: "var(--text)" }}>{fan.name}</div>
+                  <div style={{ fontSize: 14, color: "var(--muted)" }}>{fan.topics || 0} mavzu</div>
                 </div>
-              );
-            })}
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: fan.color || "#3B82F6" }}>{fan.progress || 0}%</div>
+                  <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 2 }}>O'zlashtirish</div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
