@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ko'rsatkichli va Logarifmik Funksiyalar</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --exp:#4fc3f7;--log:#ffb300;--lin:#ff6b6b;
+  --bg:#07091a;--panel:rgba(5,7,20,0.92);
+  --border:rgba(255,255,255,0.08);
+  --text:#d8dff5;--dim:rgba(255,255,255,0.38);
+}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-family:'Segoe UI',Arial,sans-serif;color:var(--text);}
+
+/* Canvas orqa fonda to'liq ekran */
+#threeCanvas{
+  position:fixed;top:0;left:0;width:100%;height:100%;display:block;z-index:1;
+}
+
+/* Barcha UI panellar canvas ustida */
+#ui{position:fixed;top:0;left:0;width:100%;height:100%;z-index:10;pointer-events:none;}
+#ui *{pointer-events:auto;}
+
+/* HEADER */
+#hdr{
+  position:absolute;top:12px;left:50%;transform:translateX(-50%);
+  background:var(--panel);backdrop-filter:blur(14px);
+  border:1px solid var(--border);border-radius:50px;
+  padding:8px 26px;text-align:center;white-space:nowrap;
+}
+#hdr h1{font-size:.95rem;font-weight:300;letter-spacing:2px;}
+#hdr h1 b{color:var(--exp);font-weight:800;}
+#hdr p{font-size:.48rem;letter-spacing:4px;color:var(--dim);margin-top:1px;}
+
+/* LEFT PANEL */
+#leftPanel{
+  position:absolute;left:14px;top:50%;transform:translateY(-50%);
+  width:218px;background:var(--panel);backdrop-filter:blur(16px);
+  border:1px solid var(--border);border-radius:18px;
+  padding:14px 13px;display:flex;flex-direction:column;gap:9px;
+  box-shadow:0 16px 50px rgba(0,0,0,.7);max-height:90vh;overflow-y:auto;
+}
+.slbl{font-size:.5rem;letter-spacing:3px;color:var(--dim);text-transform:uppercase;display:block;margin-bottom:2px;}
+
+.fcrd{
+  border:1px solid rgba(255,255,255,.06);border-radius:11px;
+  padding:10px 12px;cursor:pointer;transition:all .22s;
+  background:rgba(255,255,255,.02);
+}
+.fcrd:hover{background:rgba(255,255,255,.055);}
+.fcrd.se{border-color:rgba(79,195,247,.45);background:rgba(79,195,247,.08);}
+.fcrd.sl{border-color:rgba(255,179,0,.45);background:rgba(255,179,0,.08);}
+.fcrd.sr{border-color:rgba(255,107,107,.45);background:rgba(255,107,107,.08);}
+
+.fcrd .ft{display:flex;align-items:center;gap:7px;margin-bottom:5px;}
+.fcrd .fd{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.fcrd .fn{font-size:.78rem;font-weight:700;}
+.fcrd .fm{font-family:'Courier New',monospace;font-size:1.08rem;font-weight:800;text-align:center;padding:4px 0;letter-spacing:1px;}
+.fm.ec{color:var(--exp);}
+.fm.lc{color:var(--log);}
+.fm.rc{color:var(--lin);}
+.fcrd .fdesc{font-size:.61rem;color:var(--dim);line-height:1.55;}
+.fcrd .fbeh{margin-top:6px;padding:4px 8px;background:rgba(255,255,255,.04);border-radius:7px;font-size:.59rem;color:var(--dim);}
+.fcrd .fbeh b{color:var(--text);font-family:'Courier New',monospace;}
+
+/* RIGHT PANEL */
+#rightPanel{
+  position:absolute;right:14px;top:50%;transform:translateY(-50%);
+  width:192px;display:flex;flex-direction:column;gap:9px;
+}
+.rpanel{
+  background:var(--panel);backdrop-filter:blur(14px);
+  border:1px solid var(--border);border-radius:16px;
+  padding:13px;box-shadow:0 16px 50px rgba(0,0,0,.7);
+}
+
+/* Slayder */
+.srow{margin-bottom:9px;}
+.srow:last-child{margin-bottom:0;}
+.srow label{font-size:.63rem;color:var(--dim);display:flex;justify-content:space-between;margin-bottom:5px;}
+.srow label b{color:var(--text);font-family:'Courier New',monospace;}
+input[type=range]{
+  width:100%;-webkit-appearance:none;appearance:none;
+  height:4px;border-radius:4px;background:rgba(255,255,255,.12);outline:none;cursor:pointer;
+}
+input[type=range].rx::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--exp);border:2px solid #fff;cursor:pointer;}
+input[type=range].rl::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--log);border:2px solid #fff;cursor:pointer;}
+
+/* Meters */
+.mrow{margin-bottom:8px;}
+.mrow:last-child{margin-bottom:0;}
+.mhd{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
+.mnm{font-size:.67rem;display:flex;align-items:center;gap:5px;}
+.mdt{width:7px;height:7px;border-radius:50%;}
+.mvl{font-size:.86rem;font-weight:800;font-variant-numeric:tabular-nums;}
+.mbar{height:4px;background:rgba(255,255,255,.08);border-radius:4px;overflow:hidden;}
+.mfill{height:100%;border-radius:4px;transition:width .07s;}
+.ef{background:linear-gradient(90deg,#01579b,#4fc3f7);}
+.lf{background:linear-gradient(90deg,#e65100,#ffb300);}
+.rf{background:linear-gradient(90deg,#b71c1c,#ff6b6b);}
+
+/* Xususiyatlar */
+.pitem{display:flex;gap:6px;margin-bottom:4px;padding:4px 7px;background:rgba(255,255,255,.03);border-radius:7px;font-size:.61rem;line-height:1.5;color:var(--dim);}
+.pitem b{color:var(--text);}
+
+/* Simmetriya tugmasi */
+#symBtn{
+  position:absolute;top:68px;left:50%;transform:translateX(-50%);
+  background:var(--panel);backdrop-filter:blur(10px);
+  border:1px solid var(--border);border-radius:50px;
+  color:var(--dim);font-family:inherit;font-size:.6rem;letter-spacing:1px;
+  padding:5px 16px;cursor:pointer;transition:all .2s;white-space:nowrap;
+}
+#symBtn:hover{border-color:rgba(255,255,255,.2);color:#fff;}
+#symBtn.on{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.18);color:#fff;}
+
+/* Bottom hint */
+#hint{
+  position:absolute;bottom:13px;left:50%;transform:translateX(-50%);
+  background:var(--panel);backdrop-filter:blur(10px);
+  border:1px solid var(--border);border-radius:50px;
+  padding:5px 18px;font-size:.57rem;letter-spacing:1.5px;color:var(--dim);
+  display:flex;gap:14px;white-space:nowrap;pointer-events:none;
+}
+
+@media(max-width:720px){
+  #leftPanel{display:none;}
+  #rightPanel{right:8px;top:auto;bottom:48px;transform:none;width:158px;}
+  #symBtn{top:56px;}
+}
+</style>
+</head>
+<body>
+
+<canvas id="threeCanvas"></canvas>
+
+<div id="ui">
+  <!-- HEADER -->
+  <div id="hdr">
+    <h1>📈 <b>Ko'rsatkichli</b> va Logarifmik Funksiyalar</h1>
+    <p>INTERAKTIV 3D GRAFIK LABORATORIYA</p>
+  </div>
+
+  <!-- SIMMETRIYA TUGMASI -->
+  <button id="symBtn" onclick="toggleSym()">🪞 Simmetriyani ko'rsat</button>
+
+  <!-- LEFT: Funksiya kartalar -->
+  <div id="leftPanel">
+    <span class="slbl">📐 Funksiyalar</span>
+
+    <div class="fcrd se" id="cExp" onclick="setMode('exp')">
+      <div class="ft">
+        <span class="fd" style="background:var(--exp);box-shadow:0 0 7px var(--exp);"></span>
+        <span class="fn" style="color:var(--exp);">Ko'rsatkichli</span>
+      </div>
+      <div class="fm ec">y = aˣ</div>
+      <div class="fdesc">Asos a > 0, a ≠ 1. O'zgaruvchi x ko'rsatkichda — tez o'suvchi funksiya.</div>
+      <div class="fbeh"><b>x→+∞</b> → y→+∞ &nbsp; <b>x→-∞</b> → y→0</div>
+    </div>
+
+    <div class="fcrd" id="cLog" onclick="setMode('log')">
+      <div class="ft">
+        <span class="fd" style="background:var(--log);box-shadow:0 0 7px var(--log);"></span>
+        <span class="fn" style="color:var(--log);">Logarifmik</span>
+      </div>
+      <div class="fm lc">y = logₐ(x)</div>
+      <div class="fdesc">aˣ ning teskari funksiyasi. Faqat x &gt; 0 da aniqlanadi. Sekin o'sadi.</div>
+      <div class="fbeh"><b>x=1</b> → y=0 &nbsp; <b>x=a</b> → y=1</div>
+    </div>
+
+    <div class="fcrd" id="cLin" onclick="setMode('lin')">
+      <div class="ft">
+        <span class="fd" style="background:var(--lin);box-shadow:0 0 7px var(--lin);"></span>
+        <span class="fn" style="color:var(--lin);">Chiziqli (simmetriya o'qi)</span>
+      </div>
+      <div class="fm rc">y = x</div>
+      <div class="fdesc">aˣ va logₐ(x) o'rtasidagi ko'zgu chizig'i — y=x bo'yicha simmetrik.</div>
+      <div class="fbeh"><b>45°</b> burchak, nishab = 1</div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div id="rightPanel">
+
+    <div class="rpanel">
+      <span class="slbl">🎛 Boshqarish</span>
+      <div class="srow">
+        <label>x qiymati: <b id="xLbl">0.00</b></label>
+        <input type="range" class="rx" id="xSlider" min="-3" max="3.5" step="0.05" value="0" oninput="onXSlide()">
+      </div>
+      <div class="srow">
+        <label>Asos a = <b id="aLbl">2.72</b></label>
+        <input type="range" class="rl" id="aSlider" min="1.2" max="5" step="0.05" value="2.718" oninput="onASlide()">
+      </div>
+    </div>
+
+    <div class="rpanel">
+      <span class="slbl">📊 Jonli Qiymatlar</span>
+      <div class="mrow">
+        <div class="mhd">
+          <span class="mnm"><span class="mdt" style="background:var(--exp);"></span>aˣ</span>
+          <span class="mvl" id="ev" style="color:var(--exp);">1.000</span>
+        </div>
+        <div class="mbar"><div class="mfill ef" id="eb" style="width:40%;"></div></div>
+      </div>
+      <div class="mrow">
+        <div class="mhd">
+          <span class="mnm"><span class="mdt" style="background:var(--log);"></span>logₐ(x)</span>
+          <span class="mvl" id="lv" style="color:var(--log);">—</span>
+        </div>
+        <div class="mbar"><div class="mfill lf" id="lb" style="width:50%;"></div></div>
+      </div>
+      <div class="mrow">
+        <div class="mhd">
+          <span class="mnm"><span class="mdt" style="background:var(--lin);"></span>y = x</span>
+          <span class="mvl" id="rv" style="color:var(--lin);">0.000</span>
+        </div>
+        <div class="mbar"><div class="mfill rf" id="rb" style="width:50%;"></div></div>
+      </div>
+    </div>
+
+    <div class="rpanel">
+      <span class="slbl">💡 Xususiyatlar</span>
+      <div id="propBox"></div>
+    </div>
+  </div>
+
+  <div id="hint">
+    <span>🖱 Aylantiring</span>
+    <span>🔍 Kattalashtiring</span>
+    <span>⬆ O'ng tugma: suring</span>
+  </div>
+</div>
+
+<!-- Three.js CDN (importmap ishlatmaymiz) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/controls/OrbitControls.js"></script>
+
+<script>
+(function(){
+'use strict';
+
+/* ── SAHNA ── */
+const canvas = document.getElementById('threeCanvas');
+const W = window.innerWidth, H = window.innerHeight;
+
+const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+renderer.setSize(W, H);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x07091a);
+scene.fog = new THREE.FogExp2(0x07091a, 0.038);
+
+const camera = new THREE.PerspectiveCamera(42, W/H, 0.05, 200);
+camera.position.set(4, 2.8, 9);
+camera.lookAt(0, 0.5, 0);
+
+/* ── ORBIT CONTROLS ── */
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.06;
+controls.target.set(0, 0.5, 0);
+controls.minDistance = 2;
+controls.maxDistance = 22;
+controls.update();
+
+/* ── YORITISH ── */
+scene.add(new THREE.AmbientLight(0x1a2244, 1.5));
+
+var sun = new THREE.DirectionalLight(0xfff5e0, 1.8);
+sun.position.set(7, 12, 8);
+sun.castShadow = true;
+sun.shadow.mapSize.width = 1024;
+sun.shadow.mapSize.height = 1024;
+scene.add(sun);
+
+var fill = new THREE.DirectionalLight(0x3366cc, 0.5);
+fill.position.set(-6, 2, -4);
+scene.add(fill);
+
+/* ── YULDUZLAR ── */
+(function(){
+  var g = new THREE.BufferGeometry();
+  var n = 2200, pos = new Float32Array(n*3);
+  for(var i=0;i<n;i++){
+    var r=70+Math.random()*50;
+    var th=Math.random()*Math.PI*2;
+    var ph=Math.acos(2*Math.random()-1);
+    pos[i*3]  =r*Math.sin(ph)*Math.cos(th);
+    pos[i*3+1]=r*Math.sin(ph)*Math.sin(th);
+    pos[i*3+2]=r*Math.cos(ph);
+  }
+  g.setAttribute('position', new THREE.BufferAttribute(pos,3));
+  scene.add(new THREE.Points(g, new THREE.PointsMaterial({color:0x8899dd,size:.14,transparent:true,opacity:.6})));
+})();
+
+/* ── ZAMIN ── */
+var groundGeo = new THREE.PlaneGeometry(14,14);
+var groundMat = new THREE.MeshStandardMaterial({color:0x0a0c22,roughness:.95,transparent:true,opacity:.4});
+var ground = new THREE.Mesh(groundGeo, groundMat);
+ground.rotation.x = -Math.PI/2;
+ground.position.y = -0.02;
+ground.receiveShadow = true;
+scene.add(ground);
+
+var grid = new THREE.GridHelper(12, 24, 0x2244aa, 0x112244);
+grid.position.y = -0.01;
+grid.material.transparent = true;
+grid.material.opacity = 0.1;
+scene.add(grid);
+
+/* ── O'QLAR ── */
+function mkAxis(len,col,dx,dy,dz){
+  var g=new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(dx<0?-len:0, dy<0?-len:0, dz<0?-len:0),
+    new THREE.Vector3(dx*len, dy*len, dz*len)
+  ]);
+  return new THREE.Line(g, new THREE.LineBasicMaterial({color:col,transparent:true,opacity:.4}));
+}
+scene.add(mkAxis(4.8, 0x4488ff, 1,0,0));
+scene.add(mkAxis(4.8, 0x4488ff, 0,1,0));
+scene.add(mkAxis(3,   0x4488ff, 0,0,1));
+
+// Manfiy o'qlar
+scene.add(mkAxis(-4, 0x2244aa, 1,0,0));
+scene.add(mkAxis(-4, 0x2244aa, 0,1,0));
+
+// Tick belgiler
+var tkMat = new THREE.LineBasicMaterial({color:0x3355aa,transparent:true,opacity:.3});
+for(var ti=-4;ti<=4;ti++){
+  if(ti===0) continue;
+  var tg=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(ti,-.09,0),new THREE.Vector3(ti,.09,0)]);
+  scene.add(new THREE.Line(tg, tkMat));
+  var tg2=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-.09,ti,0),new THREE.Vector3(.09,ti,0)]);
+  scene.add(new THREE.Line(tg2, tkMat));
+}
+
+/* ── GRAFIK CHIZIQLAR ── */
+var baseA = Math.E;
+var N = 180;
+
+function buildExpPts(a){
+  var pts=[];
+  for(var i=0;i<=N;i++){
+    var x=-4+(i/N)*8;
+    var y=Math.pow(a,x);
+    if(y>5.8||y<-0.05) continue;
+    pts.push(new THREE.Vector3(x,y,0));
+  }
+  return pts;
+}
+
+function buildLogPts(a){
+  var pts=[];
+  for(var i=1;i<=N;i++){
+    var x=(i/N)*5;
+    var y=Math.log(x)/Math.log(a);
+    if(y<-4||y>5.5) continue;
+    pts.push(new THREE.Vector3(x,y,0));
+  }
+  return pts;
+}
+
+function mkLine(pts, col, op){
+  op = op||1;
+  var g=new THREE.BufferGeometry().setFromPoints(pts);
+  return new THREE.Line(g, new THREE.LineBasicMaterial({color:col,transparent:true,opacity:op}));
+}
+
+var expLine = mkLine(buildExpPts(baseA), 0x4fc3f7);
+var logLine = mkLine(buildLogPts(baseA), 0xffb300);
+var linLine = mkLine([new THREE.Vector3(-4,-4,0),new THREE.Vector3(5,5,0)], 0xff6b6b, 0.85);
+scene.add(expLine, logLine, linLine);
+
+/* ── SIMMETRIYA GURUHI ── */
+var symGroup = new THREE.Group();
+scene.add(symGroup);
+var symOn = false;
+
+function buildSym(){
+  while(symGroup.children.length) symGroup.remove(symGroup.children[0]);
+  // aˣ ni y=x bo'yicha aks ettirish = logₐ(x) — ko'rsatish uchun mirror nuqtalar
+  for(var i=0;i<=N;i++){
+    var x=-3+(i/N)*6;
+    var y=Math.pow(baseA,x);
+    if(y>5||y<0.05) continue;
+    var sg=new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(x,y,0), new THREE.Vector3(y,x,0)
+    ]);
+    symGroup.add(new THREE.Line(sg, new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.08})));
+  }
+  // Ko'zgu grafik (aks)
+  var mirPts=[];
+  for(var j=0;j<=N;j++){
+    var xj=-3+(j/N)*6;
+    var yj=Math.pow(baseA,xj);
+    if(yj>5||yj<0.05) continue;
+    mirPts.push(new THREE.Vector3(yj,xj,0));
+  }
+  symGroup.add(mkLine(mirPts, 0xffb300, 0.28));
+}
+buildSym();
+symGroup.visible=false;
+
+/* ── HARAKATLANUVCHI NUQTA ── */
+var ptMat = new THREE.MeshStandardMaterial({
+  color:0x4fc3f7, emissive:0x4fc3f7,
+  emissiveIntensity:.9, roughness:.1, metalness:.05
+});
+var ptMesh = new THREE.Mesh(new THREE.SphereGeometry(.12,24,24), ptMat);
+ptMesh.castShadow = true;
+scene.add(ptMesh);
+
+// Nuqta yorug'ligi
+var ptLight = new THREE.PointLight(0x4fc3f7, 1.5, 4);
+scene.add(ptLight);
+
+// Proyeksiya chiziqlari (vertikal va gorizontal)
+var vGeo = new THREE.BufferGeometry();
+var hGeo = new THREE.BufferGeometry();
+var vLine = new THREE.Line(vGeo, new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.22,depthTest:false}));
+var hLine2 = new THREE.Line(hGeo, new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.22,depthTest:false}));
+scene.add(vLine, hLine2);
+
+// Glow sprite
+var gc2=document.createElement('canvas');gc2.width=gc2.height=64;
+var g2=gc2.getContext('2d');
+var rg=g2.createRadialGradient(32,32,0,32,32,32);
+rg.addColorStop(0,'rgba(79,195,247,.95)'); rg.addColorStop(1,'rgba(79,195,247,0)');
+g2.fillStyle=rg; g2.fillRect(0,0,64,64);
+var glTex=new THREE.CanvasTexture(gc2);
+var glSpr=new THREE.Sprite(new THREE.SpriteMaterial({map:glTex,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}));
+glSpr.scale.setScalar(1.1);
+scene.add(glSpr);
+
+/* ── UI ELEMENTLARI ── */
+var xSlider  = document.getElementById('xSlider');
+var aSlider  = document.getElementById('aSlider');
+var xLbl     = document.getElementById('xLbl');
+var aLbl     = document.getElementById('aLbl');
+var evEl=document.getElementById('ev'), ebEl=document.getElementById('eb');
+var lvEl=document.getElementById('lv'), lbEl=document.getElementById('lb');
+var rvEl=document.getElementById('rv'), rbEl=document.getElementById('rb');
+var cExp=document.getElementById('cExp'),cLog=document.getElementById('cLog'),cLin=document.getElementById('cLin');
+var propBox=document.getElementById('propBox');
+var symBtn=document.getElementById('symBtn');
+
+var activeMode='exp';
+var autoPlay=true;
+var autoT=0;
+
+var propData={
+  exp:[
+    ['📌','Aniqlanish sohasi: <b>x ∈ ℝ</b>'],
+    ['📌','Qiymatlar sohasi: <b>y &gt; 0</b>'],
+    ['📌','y o\'qini <b>(0, 1)</b> da kesadi'],
+    ['⬆️','Doimo <b>o\'suvchi</b> funksiya'],
+    ['⬇️','x→−∞ da <b>y→0</b> (asimptota)'],
+    ['⚡','tez o\'sadi: x=10 da y=e¹⁰≈22026'],
+  ],
+  log:[
+    ['📌','Aniqlanish sohasi: <b>x &gt; 0</b>'],
+    ['📌','Qiymatlar sohasi: <b>y ∈ ℝ</b>'],
+    ['📌','x o\'qini <b>(1, 0)</b> da kesadi'],
+    ['🪞','aˣ ga <b>y=x bo\'yicha simmetrik</b>'],
+    ['🐢','Sekin o\'sadi: x 10x bo\'lsa y 2.3 ga o\'sadi'],
+    ['🚫','x ≤ 0 da <b>aniqlanmagan</b>'],
+  ],
+  lin:[
+    ['📌','<b>y = x</b> — to\'g\'ri chiziq'],
+    ['📌','45° burchak, nishab = 1'],
+    ['🪞','aˣ va logₐ(x) uchun <b>simmetriya o\'qi</b>'],
+    ['🔄','aˣ ni y=x bo\'yicha aks ettirsak <b>logₐ(x)</b> hosil bo\'ladi'],
+  ]
+};
+
+function updateProps(m){
+  var d=propData[m];
+  propBox.innerHTML=d.map(function(r){
+    return '<div class="pitem"><span>'+r[0]+'</span><span>'+r[1]+'</span></div>';
+  }).join('');
+}
+
+window.setMode=function(m){
+  activeMode=m;
+  cExp.className='fcrd'; cLog.className='fcrd'; cLin.className='fcrd';
+  if(m==='exp'){ cExp.className='fcrd se'; ptMat.color.setHex(0x4fc3f7); ptMat.emissive.setHex(0x4fc3f7); ptLight.color.setHex(0x4fc3f7); glSpr.material.color.setHex(0x4fc3f7); }
+  else if(m==='log'){ cLog.className='fcrd sl'; ptMat.color.setHex(0xffb300); ptMat.emissive.setHex(0xffb300); ptLight.color.setHex(0xffb300); glSpr.material.color.setHex(0xffb300); }
+  else { cLin.className='fcrd sr'; ptMat.color.setHex(0xff6b6b); ptMat.emissive.setHex(0xff6b6b); ptLight.color.setHex(0xff6b6b); glSpr.material.color.setHex(0xff6b6b); }
+  updateProps(m);
+  autoPlay=true; autoT=0;
+};
+
+window.toggleSym=function(){
+  symOn=!symOn;
+  symGroup.visible=symOn;
+  symBtn.classList.toggle('on',symOn);
+  symBtn.textContent=symOn?'🪞 Simmetriyani yashir':'🪞 Simmetriyani ko\'rsat';
+};
+
+window.onXSlide=function(){
+  autoPlay=false;
+};
+
+window.onASlide=function(){
+  baseA=parseFloat(aSlider.value);
+  aLbl.textContent=baseA.toFixed(2);
+  scene.remove(expLine,logLine);
+  expLine=mkLine(buildExpPts(baseA),0x4fc3f7);
+  logLine=mkLine(buildLogPts(baseA),0xffb300);
+  scene.add(expLine,logLine);
+  buildSym();
+  symGroup.visible=symOn;
+};
+
+updateProps('exp');
+
+/* ── ANIMATSIYA ── */
+var clock=new THREE.Clock();
+
+function updateProj(px,py){
+  vGeo.setFromPoints([new THREE.Vector3(px,py,0),new THREE.Vector3(px,0,0)]);
+  hGeo.setFromPoints([new THREE.Vector3(px,py,0),new THREE.Vector3(0,py,0)]);
+  vGeo.computeBoundingSphere();
+  hGeo.computeBoundingSphere();
+}
+
+function animate(){
+  requestAnimationFrame(animate);
+  var dt=clock.getDelta();
+
+  if(autoPlay) autoT+=dt;
+
+  var px=0,py=0;
+
+  if(autoPlay){
+    if(activeMode==='exp'){
+      px=-2.8+((autoT*0.38)%5.6);
+      if(px>2.8) px=5.6-((autoT*0.38)%5.6)-2.8;
+      py=Math.min(Math.pow(baseA,px),5.4);
+    } else if(activeMode==='log'){
+      px=0.05+((autoT*0.15)%4.5);
+      if(px>4.5) px=9-((autoT*0.15)%4.5)-4.5+0.05;
+      py=Math.max(-3.8,Math.min(Math.log(Math.max(.001,px))/Math.log(baseA),5));
+    } else {
+      px=-3.2+((autoT*0.2)%6.4);
+      if(px>3.2) px=6.4-((autoT*0.2)%6.4)-3.2;
+      py=px;
+    }
+    xSlider.value=Math.max(-3,Math.min(3.5,px));
+    xLbl.textContent=px.toFixed(2);
+  } else {
+    px=parseFloat(xSlider.value);
+    xLbl.textContent=px.toFixed(2);
+    if(activeMode==='exp'){
+      py=Math.min(Math.pow(baseA,px),5.4);
+    } else if(activeMode==='log'){
+      var logx=Math.max(0.001,px);
+      py=Math.max(-3.8,Math.min(Math.log(logx)/Math.log(baseA),5));
+    } else {
+      py=px;
+    }
+  }
+
+  ptMesh.position.set(px,py,0);
+  ptLight.position.set(px,py,.6);
+  glSpr.position.set(px,py,0);
+  updateProj(px,py);
+
+  // UI qiymatlar
+  var expV=Math.pow(baseA,px);
+  var logV=px>0.001?Math.log(px)/Math.log(baseA):null;
+
+  evEl.textContent=expV<1000?expV.toFixed(3):'> 1000';
+  lvEl.textContent=logV!==null?logV.toFixed(3):'—';
+  rvEl.textContent=px.toFixed(3);
+
+  ebEl.style.width=Math.min(100,Math.max(2,(Math.min(expV,5.8)/5.8)*100))+'%';
+  lbEl.style.width=logV!==null?Math.min(100,Math.max(2,((logV+4)/9)*100))+'%':'50%';
+  rbEl.style.width=Math.min(100,Math.max(2,((px+4)/8)*100))+'%';
+
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+animate();
+
+window.addEventListener('resize',function(){
+  var w=window.innerWidth, h=window.innerHeight;
+  camera.aspect=w/h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w,h);
+});
+
+console.log('✅ Laboratoriya ishga tushdi');
+})();
+</script>
+</body>
+</html>

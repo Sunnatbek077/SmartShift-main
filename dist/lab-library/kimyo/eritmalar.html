@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Eritmalar va molar konsentratsiya | 3D vizualizatsiya</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', 'Poppins', system-ui, sans-serif;
+        }
+        .info-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(12px);
+            border-radius: 28px;
+            padding: 15px 22px;
+            color: #ffecb0;
+            border-left: 6px solid #44aaff;
+            z-index: 20;
+            pointer-events: none;
+            max-width: 380px;
+        }
+        .info-panel h1 {
+            margin: 0 0 5px;
+            font-size: 1.3rem;
+        }
+        .info-panel h1 span { color: #44aaff; }
+        .info-panel .formula {
+            font-family: monospace;
+            font-size: 0.9rem;
+            background: #2a2a3a;
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 30px;
+            margin: 5px 0;
+            color: #aaddff;
+        }
+        .controls-tip {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.5);
+            padding: 5px 12px;
+            border-radius: 18px;
+            font-size: 11px;
+            color: #ccc;
+            pointer-events: none;
+            z-index: 20;
+        }
+        .stats-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(8px);
+            border-radius: 24px;
+            padding: 12px 20px;
+            max-width: 400px;
+            z-index: 20;
+            pointer-events: none;
+            border-top: 2px solid #44aaff;
+            color: #ddd;
+            font-size: 13px;
+            font-family: 'Courier New', monospace;
+        }
+        .stats-panel .row {
+            display: flex;
+            justify-content: space-between;
+            padding: 2px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .stats-panel .label { color: #88aacc; }
+        .stats-panel .value { color: #ffaa66; font-weight: bold; }
+        
+        .control-panel {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.88);
+            backdrop-filter: blur(12px);
+            border-radius: 28px;
+            padding: 15px 22px;
+            z-index: 25;
+            pointer-events: auto;
+            text-align: center;
+            border-right: 3px solid #44aaff;
+            min-width: 280px;
+        }
+        .control-panel label {
+            display: block;
+            font-size: 12px;
+            margin: 6px 0 3px;
+            color: #ffdd99;
+        }
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+            background: #444;
+            height: 4px;
+            border-radius: 5px;
+        }
+        .value-display {
+            font-size: 13px;
+            font-weight: bold;
+            margin: 6px 0;
+            color: #44aaff;
+            font-family: monospace;
+        }
+        button {
+            background: #44aaff;
+            border: none;
+            color: white;
+            font-weight: bold;
+            padding: 6px 12px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-size: 11px;
+            margin-top: 6px;
+            transition: 0.1s;
+        }
+        button:hover {
+            background: #66ccff;
+            transform: scale(1.01);
+        }
+        .btn-group {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 4px;
+        }
+        .btn-group button {
+            flex: 1;
+            min-width: 50px;
+        }
+        .btn-green { background: #44ffaa; color: #1a2a1a; }
+        .btn-green:hover { background: #66ffcc; }
+        .btn-orange { background: #ffaa44; color: #1a1a2a; }
+        .btn-orange:hover { background: #ffcc66; }
+        .btn-purple { background: #aa66ff; color: white; }
+        .btn-purple:hover { background: #cc88ff; }
+        @media (max-width: 700px) {
+            .control-panel { min-width: 240px; padding: 10px 15px; }
+            .info-panel { font-size: 11px; max-width: 260px; }
+            .stats-panel { font-size: 11px; max-width: 280px; padding: 10px 14px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="info-panel">
+        <h1>🧪 <span>Eritmalar</span> va <span>Molar konsentratsiya</span></h1>
+        <div class="formula">C = n / V | mol/L | 1 M = 1 mol/L</div>
+        <p>📌 Eritma – erituvchi va erigan moddadan tashkil topgan bir jinsli sistema. Molar konsentratsiya – 1 litr eritmadagi modda miqdori (mol).</p>
+    </div>
+    
+    <div class="stats-panel" id="statsPanel">
+        <div class="row"><span class="label">🧪 Eritma</span><span class="value" id="solutionName">NaCl (tuz) eritmasi</span></div>
+        <div class="row"><span class="label">📊 Molar konsentratsiya (C)</span><span class="value" id="concDisplay">0.50 M</span></div>
+        <div class="row"><span class="label">🧂 Erigan modda (mol)</span><span class="value" id="moleDisplay">0.50 mol</span></div>
+        <div class="row"><span class="label">💧 Hajm (V)</span><span class="value" id="volDisplay">1.00 L</span></div>
+        <div class="row"><span class="label">🧪 Zarrachalar soni</span><span class="value" id="particleCount">50 ta</span></div>
+    </div>
+    
+    <div class="control-panel">
+        <label>🧪 Eritma turi:</label>
+        <div class="btn-group">
+            <button id="solNaCl" class="btn-green">NaCl (tuz)</button>
+            <button id="solSugar" class="btn-blue">C₁₂H₂₂O₁₁ (shakar)</button>
+            <button id="solHCl" class="btn-orange">HCl (kislota)</button>
+        </div>
+        
+        <label>📊 Konsentratsiya (M): <span id="concSliderVal">0.50</span> M</label>
+        <input type="range" id="concSlider" min="0" max="2" step="0.05" value="0.5">
+        
+        <label>💧 Hajm (L): <span id="volSliderVal">1.00</span> L</label>
+        <input type="range" id="volSlider" min="0.2" max="2.0" step="0.05" value="1.0">
+        
+        <div class="value-display" id="statusDisplay">NaCl eritmasi | C = 0.50 M</div>
+        <button id="resetViewBtn" style="background:#666; color:white; margin-top:8px;">🎯 Kamerani markazlashtirish</button>
+        <button id="resetBtn" style="background:#ff6644; color:white; margin-top:4px;">⟳ Qayta tiklash</button>
+    </div>
+    <div class="controls-tip">
+        🖱️ Aylantirish | Scroll: kattalashtirish
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+        
+        // --- SAHNA ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0a1030);
+        scene.fog = new THREE.FogExp2(0x0a1030, 0.006);
+        
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(4.5, 3.5, 8);
+        camera.lookAt(0, 0, 0);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        document.body.appendChild(renderer.domElement);
+        
+        const labelRenderer = new CSS2DRenderer();
+        labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        labelRenderer.domElement.style.position = 'absolute';
+        labelRenderer.domElement.style.top = '0px';
+        labelRenderer.domElement.style.left = '0px';
+        labelRenderer.domElement.style.pointerEvents = 'none';
+        document.body.appendChild(labelRenderer.domElement);
+        
+        // --- Boshqaruv ---
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.06;
+        controls.zoomSpeed = 1.0;
+        
+        // --- Yorug'lik ---
+        const ambient = new THREE.AmbientLight(0x404060);
+        scene.add(ambient);
+        const mainLight = new THREE.DirectionalLight(0xfff5e0, 1.0);
+        mainLight.position.set(3, 5, 2);
+        mainLight.castShadow = true;
+        scene.add(mainLight);
+        const fillLight = new THREE.PointLight(0x88aaff, 0.5);
+        fillLight.position.set(-1, 2, 3);
+        scene.add(fillLight);
+        
+        // --- Zamin ---
+        const gridHelper = new THREE.GridHelper(10, 20, 0x88aaff, 0x4466aa);
+        gridHelper.position.y = -1.5;
+        gridHelper.material.transparent = true;
+        gridHelper.material.opacity = 0.3;
+        scene.add(gridHelper);
+        
+        // --- Yulduzlar ---
+        const starGeo = new THREE.BufferGeometry();
+        const starCount = 1200;
+        const starPos = new Float32Array(starCount * 3);
+        for (let i = 0; i < starCount; i++) {
+            starPos[i*3] = (Math.random() - 0.5) * 200;
+            starPos[i*3+1] = (Math.random() - 0.5) * 70 + 5;
+            starPos[i*3+2] = (Math.random() - 0.5) * 120 - 60;
+        }
+        starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+        const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.08, transparent: true, opacity: 0.5 }));
+        scene.add(stars);
+        
+        // ========== 3D MODEL ==========
+        let mainGroup = null;
+        let soluteParticles = [];
+        let solventParticles = [];
+        let currentSolution = 'nacl';
+        let concentration = 0.5;
+        let volume = 1.0;
+        
+        // Eritma parametrlari
+        const solutions = {
+            nacl: {
+                name: 'NaCl (tuz)',
+                color: 0x44ffaa,
+                soluteColor: 0xffaa44,
+                solventColor: 0x44aaff,
+                formula: 'Na⁺ + Cl⁻'
+            },
+            sugar: {
+                name: 'C₁₂H₂₂O₁₁ (shakar)',
+                color: 0x44aaff,
+                soluteColor: 0x88ff88,
+                solventColor: 0x44aaff,
+                formula: 'C₁₂H₂₂O₁₁'
+            },
+            hcl: {
+                name: 'HCl (kislota)',
+                color: 0xffaa44,
+                soluteColor: 0xff6644,
+                solventColor: 0x44aaff,
+                formula: 'H⁺ + Cl⁻'
+            }
+        };
+        
+        function createSolution() {
+            if (mainGroup) scene.remove(mainGroup);
+            soluteParticles.forEach(p => scene.remove(p));
+            solventParticles.forEach(p => scene.remove(p));
+            soluteParticles = [];
+            solventParticles = [];
+            mainGroup = new THREE.Group();
+            
+            const sol = solutions[currentSolution];
+            const totalParticles = Math.floor(concentration * 100);
+            const soluteCount = totalParticles;
+            const solventCount = Math.floor((1 - concentration / 2) * 150);
+            
+            // Eritma idishi (shaffof kub)
+            const containerMat = new THREE.MeshStandardMaterial({
+                color: 0x88aaff,
+                transparent: true,
+                opacity: 0.08,
+                metalness: 0.1,
+                side: THREE.DoubleSide
+            });
+            const containerSize = 1.5 + volume * 0.3;
+            const container = new THREE.Mesh(new THREE.BoxGeometry(containerSize, containerSize, containerSize), containerMat);
+            container.castShadow = true;
+            mainGroup.add(container);
+            
+            // Chegaralar
+            const edgeMat = new THREE.LineBasicMaterial({ color: 0x44aaff, transparent: true, opacity: 0.15 });
+            const edgeGeo = new THREE.EdgesGeometry(container.geometry);
+            const edgeLine = new THREE.LineSegments(edgeGeo, edgeMat);
+            edgeLine.position.copy(container.position);
+            mainGroup.add(edgeLine);
+            
+            // Erituvchi (solvent) zarrachalari - kichik, ko'k
+            const solventMat = new THREE.MeshStandardMaterial({
+                color: sol.solventColor,
+                transparent: true,
+                opacity: 0.3
+            });
+            for (let i = 0; i < solventCount; i++) {
+                const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), solventMat);
+                const half = containerSize / 2 - 0.2;
+                sphere.position.set(
+                    (Math.random() - 0.5) * half * 2,
+                    (Math.random() - 0.5) * half * 2,
+                    (Math.random() - 0.5) * half * 2
+                );
+                sphere.userData = {
+                    vx: (Math.random() - 0.5) * 0.01,
+                    vy: (Math.random() - 0.5) * 0.01,
+                    vz: (Math.random() - 0.5) * 0.01
+                };
+                mainGroup.add(sphere);
+                solventParticles.push(sphere);
+            }
+            
+            // Erituvchi (solute) zarrachalari - kattaroq, rangli
+            const soluteMat = new THREE.MeshStandardMaterial({
+                color: sol.soluteColor,
+                emissive: 0x442200,
+                emissiveIntensity: 0.2
+            });
+            const size = currentSolution === 'nacl' ? 0.12 : 0.14;
+            for (let i = 0; i < soluteCount; i++) {
+                const sphere = new THREE.Mesh(new THREE.SphereGeometry(size, 12, 12), soluteMat);
+                const half = containerSize / 2 - 0.3;
+                sphere.position.set(
+                    (Math.random() - 0.5) * half * 2,
+                    (Math.random() - 0.5) * half * 2,
+                    (Math.random() - 0.5) * half * 2
+                );
+                sphere.userData = {
+                    vx: (Math.random() - 0.5) * 0.008,
+                    vy: (Math.random() - 0.5) * 0.008,
+                    vz: (Math.random() - 0.5) * 0.008,
+                    phase: Math.random() * Math.PI * 2
+                };
+                mainGroup.add(sphere);
+                soluteParticles.push(sphere);
+            }
+            
+            scene.add(mainGroup);
+            
+            // UI yangilash
+            const totalMol = concentration * volume;
+            document.getElementById('solutionName').textContent = sol.name;
+            document.getElementById('concDisplay').textContent = concentration.toFixed(2) + ' M';
+            document.getElementById('moleDisplay').textContent = totalMol.toFixed(3) + ' mol';
+            document.getElementById('volDisplay').textContent = volume.toFixed(2) + ' L';
+            document.getElementById('particleCount').textContent = soluteCount + ' ta';
+            document.getElementById('statusDisplay').textContent = `${sol.name} | C = ${concentration.toFixed(2)} M`;
+            document.getElementById('concSliderVal').textContent = concentration.toFixed(2);
+            document.getElementById('volSliderVal').textContent = volume.toFixed(2);
+        }
+        
+        function animateParticles() {
+            solventParticles.forEach(p => {
+                const data = p.userData;
+                p.position.x += data.vx;
+                p.position.y += data.vy;
+                p.position.z += data.vz;
+                const half = (1.5 + volume * 0.3) / 2 - 0.3;
+                if (Math.abs(p.position.x) > half) { p.position.x = Math.sign(p.position.x) * half; data.vx *= -0.8; }
+                if (Math.abs(p.position.y) > half) { p.position.y = Math.sign(p.position.y) * half; data.vy *= -0.8; }
+                if (Math.abs(p.position.z) > half) { p.position.z = Math.sign(p.position.z) * half; data.vz *= -0.8; }
+            });
+            
+            soluteParticles.forEach(p => {
+                const data = p.userData;
+                p.position.x += data.vx + Math.sin(Date.now() * 0.001 + data.phase) * 0.001;
+                p.position.y += data.vy + Math.cos(Date.now() * 0.0012 + data.phase) * 0.001;
+                p.position.z += data.vz + Math.sin(Date.now() * 0.0015 + data.phase) * 0.001;
+                const half = (1.5 + volume * 0.3) / 2 - 0.4;
+                if (Math.abs(p.position.x) > half) { p.position.x = Math.sign(p.position.x) * half; data.vx *= -0.8; }
+                if (Math.abs(p.position.y) > half) { p.position.y = Math.sign(p.position.y) * half; data.vy *= -0.8; }
+                if (Math.abs(p.position.z) > half) { p.position.z = Math.sign(p.position.z) * half; data.vz *= -0.8; }
+            });
+        }
+        
+        // ========== TUGMALAR ==========
+        document.getElementById('solNaCl').addEventListener('click', () => {
+            currentSolution = 'nacl';
+            createSolution();
+        });
+        document.getElementById('solSugar').addEventListener('click', () => {
+            currentSolution = 'sugar';
+            createSolution();
+        });
+        document.getElementById('solHCl').addEventListener('click', () => {
+            currentSolution = 'hcl';
+            createSolution();
+        });
+        
+        document.getElementById('concSlider').addEventListener('input', (e) => {
+            concentration = parseFloat(e.target.value);
+            createSolution();
+        });
+        
+        document.getElementById('volSlider').addEventListener('input', (e) => {
+            volume = parseFloat(e.target.value);
+            createSolution();
+        });
+        
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            concentration = 0.5;
+            volume = 1.0;
+            currentSolution = 'nacl';
+            document.getElementById('concSlider').value = '0.5';
+            document.getElementById('volSlider').value = '1.0';
+            createSolution();
+        });
+        
+        document.getElementById('resetViewBtn').addEventListener('click', () => {
+            camera.position.set(4.5, 3.5, 8);
+            controls.target.set(0, 0, 0);
+            controls.update();
+        });
+        
+        // ========== ANIMATSIYA ==========
+        function animate() {
+            animateParticles();
+            stars.rotation.y += 0.0003;
+            controls.update();
+            renderer.render(scene, camera);
+            labelRenderer.render(scene, camera);
+            requestAnimationFrame(animate);
+        }
+        
+        // Boshlash
+        createSolution();
+        animate();
+        
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+        console.log('Eritmalar va molar konsentratsiya | 3D vizualizatsiya');
+    </script>
+</body>
+</html>

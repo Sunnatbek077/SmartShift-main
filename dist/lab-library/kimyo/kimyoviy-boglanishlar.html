@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kimyoviy Bog'lanishlar 3D Vizualizatori</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0a1a;
+            color: #e0e0ff;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* TOP BAR */
+        #topBar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 20px;
+            background: rgba(10, 10, 30, 0.85);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            flex-shrink: 0;
+            z-index: 10;
+            backdrop-filter: blur(10px);
+        }
+        #topBar h1 {
+            font-size: 18px;
+            background: linear-gradient(135deg, #4488ff, #aa66ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
+        }
+        #topBar .info {
+            font-size: 12px;
+            color: #6688aa;
+        }
+
+        /* MAIN */
+        #main {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* 3D CANVAS */
+        #canvasWrap {
+            flex: 1;
+            position: relative;
+            background: #0a0a1a;
+        }
+        #canvasWrap canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* CONTROLS */
+        #controls {
+            width: 320px;
+            min-width: 320px;
+            background: rgba(10, 10, 30, 0.9);
+            border-left: 1px solid rgba(255, 255, 255, 0.06);
+            padding: 16px 18px;
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        #controls::-webkit-scrollbar {
+            width: 4px;
+        }
+        #controls::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+        }
+
+        .ctrl-section {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+            padding: 12px 14px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+        .ctrl-section h3 {
+            font-size: 12px;
+            color: #8899bb;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .bond-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .bond-btn {
+            padding: 8px 14px;
+            border: 2px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.03);
+            color: #8899bb;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s;
+            flex: 1;
+            min-width: 70px;
+            text-align: center;
+        }
+        .bond-btn:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.15);
+            color: #fff;
+        }
+        .bond-btn.active {
+            background: linear-gradient(135deg, #4488ff33, #aa66ff33);
+            border-color: #aa66ff66;
+            color: #ccddff;
+            box-shadow: 0 0 20px rgba(170, 102, 255, 0.08);
+        }
+        .bond-btn .icon {
+            font-size: 20px;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        /* INFO PANEL */
+        .info-box {
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 6px;
+            padding: 10px 12px;
+            font-size: 13px;
+            line-height: 1.6;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            min-height: 80px;
+            color: #aabbdd;
+        }
+        .info-box .title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #ccddff;
+        }
+        .info-box .highlight {
+            color: #ffaa66;
+        }
+        .info-box .tag {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+        .tag-covalent {
+            background: rgba(68, 136, 255, 0.2);
+            color: #4488ff;
+        }
+        .tag-ion {
+            background: rgba(255, 68, 68, 0.2);
+            color: #ff4444;
+        }
+        .tag-metal {
+            background: rgba(255, 170, 68, 0.2);
+            color: #ffaa44;
+        }
+        .tag-hydrogen {
+            background: rgba(68, 255, 136, 0.2);
+            color: #44ff88;
+        }
+        .tag-vdw {
+            background: rgba(255, 68, 255, 0.2);
+            color: #ff44ff;
+        }
+
+        /* LEGEND */
+        #legend {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            z-index: 5;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 8px;
+            padding: 10px 14px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(5px);
+            font-size: 11px;
+        }
+        #legend .leg-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 2px 0;
+        }
+        #legend .leg-color {
+            width: 18px;
+            height: 3px;
+            border-radius: 2px;
+        }
+        #legend .leg-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            #main {
+                flex-direction: column;
+            }
+            #controls {
+                width: 100%;
+                min-width: unset;
+                max-height: 45vh;
+                border-left: none;
+                border-top: 1px solid rgba(255, 255, 255, 0.06);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- TOP BAR -->
+    <div id="topBar">
+        <h1>⚗️ Kimyoviy Bog'lanishlar 3D</h1>
+        <span class="info">🖱 Sichqoncha bilan aylantirish | 🔬 4 turdagi bog'lanish</span>
+    </div>
+
+    <!-- MAIN -->
+    <div id="main">
+        <!-- 3D Canvas -->
+        <div id="canvasWrap">
+            <canvas id="cvs"></canvas>
+            <div id="legend">
+                <div class="leg-item"><span class="leg-dot" style="background:#ff4444;"></span> Atom A</div>
+                <div class="leg-item"><span class="leg-dot" style="background:#4488ff;"></span> Atom B</div>
+                <div class="leg-item"><span class="leg-color" style="background:#44ff88;"></span> Bog'lanish</div>
+                <div class="leg-item"><span class="leg-dot" style="background:#ffaa44;width:6px;height:6px;"></span> Elektron</div>
+            </div>
+        </div>
+
+        <!-- CONTROLS -->
+        <div id="controls">
+            <!-- Bog'lanish turlari -->
+            <div class="ctrl-section">
+                <h3>🔗 Bog'lanish turini tanlang</h3>
+                <div class="bond-buttons">
+                    <button class="bond-btn active" data-bond="covalent" onclick="selectBond('covalent')">
+                        <span class="icon">⚡</span>
+                        Kovalent
+                    </button>
+                    <button class="bond-btn" data-bond="ion" onclick="selectBond('ion')">
+                        <span class="icon">⚡</span>
+                        Ion
+                    </button>
+                    <button class="bond-btn" data-bond="metal" onclick="selectBond('metal')">
+                        <span class="icon">⚡</span>
+                        Metall
+                    </button>
+                    <button class="bond-btn" data-bond="hydrogen" onclick="selectBond('hydrogen')">
+                        <span class="icon">⚡</span>
+                        Vodorod
+                    </button>
+                </div>
+            </div>
+
+            <!-- Ma'lumot -->
+            <div class="ctrl-section">
+                <h3>📖 Bog'lanish haqida</h3>
+                <div class="info-box" id="infoBox">
+                    <div class="title" id="bondTitle">Kovalent Bog'lanish</div>
+                    <div id="bondDesc">Elektronlar ikkita atom o'rtasida umumiy bo'linadi. Qutbsiz va qutbli turlari mavjud.</div>
+                    <span class="tag tag-covalent" id="bondTag">Kovalent</span>
+                </div>
+            </div>
+
+            <!-- Xususiyatlar -->
+            <div class="ctrl-section">
+                <h3>📊 Xususiyatlar</h3>
+                <div class="info-box" id="propsBox" style="font-size:12px;min-height:60px;">
+                    <span id="propsText">• Elektronlar: umumiy<br>• Atomlar: nometal-nometal<br>• Erish harorati: o'rtacha</span>
+                </div>
+            </div>
+
+            <!-- Boshqaruv -->
+            <div class="ctrl-section">
+                <h3>🎮 Boshqaruv</h3>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                    <button class="bond-btn" onclick="toggleRotation()" style="flex:1;min-width:60px;padding:6px 10px;font-size:11px;">
+                        🔄 Aylantirish
+                    </button>
+                    <button class="bond-btn" onclick="toggleElectrons()" style="flex:1;min-width:60px;padding:6px 10px;font-size:11px;">
+                        ⚡ Elektronlar
+                    </button>
+                    <button class="bond-btn" onclick="resetCamera()" style="flex:1;min-width:60px;padding:6px 10px;font-size:11px;">
+                        🏠 Qayta tiklash
+                    </button>
+                </div>
+            </div>
+
+            <!-- Misol molekulalar -->
+            <div class="ctrl-section">
+                <h3>🧪 Misol molekulalar</h3>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                    <button class="bond-btn" onclick="loadExample('h2')" style="flex:1;min-width:50px;padding:4px 8px;font-size:11px;">H₂</button>
+                    <button class="bond-btn" onclick="loadExample('h2o')" style="flex:1;min-width:50px;padding:4px 8px;font-size:11px;">H₂O</button>
+                    <button class="bond-btn" onclick="loadExample('nacl')" style="flex:1;min-width:50px;padding:4px 8px;font-size:11px;">NaCl</button>
+                    <button class="bond-btn" onclick="loadExample('nh3')" style="flex:1;min-width:50px;padding:4px 8px;font-size:11px;">NH₃</button>
+                    <button class="bond-btn" onclick="loadExample('co2')" style="flex:1;min-width:50px;padding:4px 8px;font-size:11px;">CO₂</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- THREE.JS KODI -->
+    <!-- ============================================================ -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+        // ============================================================
+        // STATE
+        // ============================================================
+        const state = {
+            bondType: 'covalent',
+            rotating: true,
+            showElectrons: true,
+            examples: {
+                h2: { bond: 'covalent', atoms: ['H', 'H'], positions: [
+                        [-0.8, 0, 0],
+                        [0.8, 0, 0]
+                    ], bonds: [
+                        [0, 1, 1]
+                    ] },
+                h2o: { bond: 'covalent', atoms: ['O', 'H', 'H'], positions: [
+                        [0, 0, 0],
+                        [-0.7, -0.5, 0],
+                        [0.7, -0.5, 0]
+                    ], bonds: [
+                        [0, 1, 1],
+                        [0, 2, 1]
+                    ] },
+                nacl: { bond: 'ion', atoms: ['Na', 'Cl'], positions: [
+                        [-0.8, 0, 0],
+                        [0.8, 0, 0]
+                    ], bonds: [
+                        [0, 1, 1]
+                    ] },
+                nh3: { bond: 'covalent', atoms: ['N', 'H', 'H', 'H'], positions: [
+                        [0, 0.4, 0],
+                        [-0.6, -0.3, 0.5],
+                        [0.6, -0.3, 0.5],
+                        [0, -0.3, -0.6]
+                    ], bonds: [
+                        [0, 1, 1],
+                        [0, 2, 1],
+                        [0, 3, 1]
+                    ] },
+                co2: { bond: 'covalent', atoms: ['C', 'O', 'O'], positions: [
+                        [0, 0, 0],
+                        [-1.2, 0, 0],
+                        [1.2, 0, 0]
+                    ], bonds: [
+                        [0, 1, 2],
+                        [0, 2, 2]
+                    ] }
+            },
+            currentExample: null
+        };
+
+        // ============================================================
+        // THREE.JS SETUP
+        // ============================================================
+        const wrap = document.getElementById('canvasWrap');
+        const cvs = document.getElementById('cvs');
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0a0a1a);
+
+        const camera = new THREE.PerspectiveCamera(45, wrap.clientWidth / wrap.clientHeight, 0.1, 50);
+        camera.position.set(4, 3, 5);
+        camera.lookAt(0, 0, 0);
+
+        const renderer = new THREE.WebGLRenderer({
+            canvas: cvs,
+            antialias: true,
+            alpha: true
+        });
+        renderer.setSize(wrap.clientWidth, wrap.clientHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+
+        const labelRenderer = new CSS2DRenderer();
+        labelRenderer.setSize(wrap.clientWidth, wrap.clientHeight);
+        labelRenderer.domElement.style.position = 'absolute';
+        labelRenderer.domElement.style.top = '0';
+        labelRenderer.domElement.style.left = '0';
+        labelRenderer.domElement.style.pointerEvents = 'none';
+        wrap.appendChild(labelRenderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.08;
+        controls.autoRotate = false;
+        controls.target.set(0, 0, 0);
+        controls.minDistance = 2;
+        controls.maxDistance = 15;
+
+        // ============================================================
+        // LIGHTS
+        // ============================================================
+        const ambientLight = new THREE.AmbientLight(0x404060, 0.6);
+        scene.add(ambientLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+        dirLight.position.set(5, 10, 7);
+        dirLight.castShadow = true;
+        scene.add(dirLight);
+
+        const rimLight = new THREE.DirectionalLight(0x4488ff, 0.3);
+        rimLight.position.set(-5, -3, -5);
+        scene.add(rimLight);
+
+        // ============================================================
+        // GRID & AXES
+        // ============================================================
+        const gridHelper = new THREE.GridHelper(6, 6, 0x4488ff44, 0x2244aa33);
+        gridHelper.position.y = -1.5;
+        scene.add(gridHelper);
+
+        // ============================================================
+        // MOLECULE GROUP
+        // ============================================================
+        const moleculeGroup = new THREE.Group();
+        scene.add(moleculeGroup);
+
+        let electronParticles = [];
+        let bondMeshes = [];
+
+        // Atom colors
+        const atomColors = {
+            'H': 0x4488ff,
+            'O': 0xff4444,
+            'N': 0x44ff88,
+            'C': 0x888888,
+            'Na': 0xffaa44,
+            'Cl': 0x44ff44,
+            'Fe': 0xcc8844,
+            'Cu': 0xcc6633,
+            'default': 0x88aaff
+        };
+
+        const atomRadii = {
+            'H': 0.2,
+            'O': 0.3,
+            'N': 0.28,
+            'C': 0.32,
+            'Na': 0.35,
+            'Cl': 0.33,
+            'Fe': 0.35,
+            'Cu': 0.33,
+            'default': 0.25
+        };
+
+        const atomLabels = {
+            'H': 'H',
+            'O': 'O',
+            'N': 'N',
+            'C': 'C',
+            'Na': 'Na',
+            'Cl': 'Cl',
+            'Fe': 'Fe',
+            'Cu': 'Cu'
+        };
+
+        // ============================================================
+        // CREATE MOLECULE
+        // ============================================================
+        function createMolecule(bondType, exampleData) {
+            // Clear
+            while (moleculeGroup.children.length > 0) {
+                const child = moleculeGroup.children[0];
+                if (child.geometry) child.geometry.dispose();
+                if (child.material) child.material.dispose();
+                moleculeGroup.remove(child);
+            }
+            electronParticles = [];
+            bondMeshes = [];
+
+            const atomList = exampleData ? exampleData.atoms : getDefaultAtoms(bondType);
+            const positions = exampleData ? exampleData.positions : getDefaultPositions(bondType, atomList);
+            const bonds = exampleData ? exampleData.bonds : getDefaultBonds(bondType, atomList);
+
+            // Create atoms
+            const atomObjects = [];
+            atomList.forEach((type, i) => {
+                const pos = positions[i] || [0, 0, 0];
+                const color = atomColors[type] || atomColors.default;
+                const radius = atomRadii[type] || atomRadii.default;
+                const label = atomLabels[type] || type;
+
+                const geometry = new THREE.SphereGeometry(radius, 32, 32);
+                const material = new THREE.MeshPhysicalMaterial({
+                    color: color,
+                    metalness: 0.1,
+                    roughness: 0.3,
+                    clearcoat: 0.3,
+                    emissive: color,
+                    emissiveIntensity: 0.05,
+                });
+                const sphere = new THREE.Mesh(geometry, material);
+                sphere.position.set(pos[0], pos[1], pos[2]);
+                sphere.castShadow = true;
+                sphere.userData = { type, index: i, label };
+                moleculeGroup.add(sphere);
+                atomObjects.push(sphere);
+
+                // Glow
+                const glowGeom = new THREE.SphereGeometry(radius * 1.4, 16, 16);
+                const glowMat = new THREE.MeshBasicMaterial({
+                    color: color,
+                    transparent: true,
+                    opacity: 0.08,
+                });
+                const glow = new THREE.Mesh(glowGeom, glowMat);
+                glow.position.copy(sphere.position);
+                moleculeGroup.add(glow);
+
+                // Label
+                const div = document.createElement('div');
+                div.textContent = label;
+                div.style.color = '#fff';
+                div.style.fontSize = '12px';
+                div.style.fontWeight = '700';
+                div.style.textShadow = '0 0 15px rgba(0,0,0,0.9)';
+                div.style.background = 'rgba(0,0,0,0.3)';
+                div.style.padding = '1px 6px';
+                div.style.borderRadius = '4px';
+                div.style.border = '1px solid rgba(255,255,255,0.05)';
+                const labelObj = new CSS2DObject(div);
+                labelObj.position.set(pos[0], pos[1] + radius + 0.2, pos[2]);
+                moleculeGroup.add(labelObj);
+            });
+
+            // Create bonds
+            bonds.forEach((bond) => {
+                const [i, j, order] = bond;
+                const p1 = new THREE.Vector3(positions[i][0], positions[i][1], positions[i][2]);
+                const p2 = new THREE.Vector3(positions[j][0], positions[j][1], positions[j][2]);
+                const mid = new THREE.Vector3().addVectors(p1, p2).multiplyScalar(0.5);
+                const dir = new THREE.Vector3().copy(p2).sub(p1);
+                const length = dir.length();
+                dir.normalize();
+
+                const bondColor = getBondColor(bondType);
+
+                for (let k = 0; k < order; k++) {
+                    const offset = (k - (order - 1) / 2) * 0.06;
+                    const perp = new THREE.Vector3(-dir.y, dir.x, 0).normalize();
+                    if (perp.length() < 0.01) {
+                        perp.set(0, 0, 1);
+                    }
+                    const start = new THREE.Vector3().copy(p1).add(dir.clone().multiplyScalar(0.15));
+                    const end = new THREE.Vector3().copy(p2).add(dir.clone().multiplyScalar(-0.15));
+
+                    // Bond cylinder
+                    const bondGeom = new THREE.CylinderGeometry(0.04, 0.04, length * 0.7, 8);
+                    const bondMat = new THREE.MeshPhysicalMaterial({
+                        color: bondColor,
+                        emissive: bondColor,
+                        emissiveIntensity: 0.1,
+                        metalness: 0.2,
+                        roughness: 0.3,
+                    });
+                    const bondMesh = new THREE.Mesh(bondGeom, bondMat);
+                    const midPos = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
+                    bondMesh.position.copy(midPos);
+                    bondMesh.quaternion.setFromUnitVectors(
+                        new THREE.Vector3(0, 1, 0),
+                        dir
+                    );
+                    moleculeGroup.add(bondMesh);
+                    bondMeshes.push(bondMesh);
+
+                    // Glow around bond
+                    if (bondType === 'covalent') {
+                        const glowBond = new THREE.Mesh(
+                            new THREE.CylinderGeometry(0.07, 0.07, length * 0.7, 8),
+                            new THREE.MeshBasicMaterial({
+                                color: bondColor,
+                                transparent: true,
+                                opacity: 0.1,
+                            })
+                        );
+                        glowBond.position.copy(bondMesh.position);
+                        glowBond.quaternion.copy(bondMesh.quaternion);
+                        moleculeGroup.add(glowBond);
+                    }
+                }
+            });
+
+            // Create electrons (for covalent bonds)
+            if (state.showElectrons && bondType === 'covalent') {
+                bonds.forEach((bond) => {
+                    const [i, j, order] = bond;
+                    const p1 = new THREE.Vector3(positions[i][0], positions[i][1], positions[i][2]);
+                    const p2 = new THREE.Vector3(positions[j][0], positions[j][1], positions[j][2]);
+                    const mid = new THREE.Vector3().addVectors(p1, p2).multiplyScalar(0.5);
+                    const dir = new THREE.Vector3().copy(p2).sub(p1).normalize();
+
+                    for (let k = 0; k < order * 2; k++) {
+                        const angle = (k / (order * 2)) * Math.PI * 2;
+                        const radius = 0.12;
+                        const perp = new THREE.Vector3(-dir.y, dir.x, 0).normalize();
+                        if (perp.length() < 0.01) perp.set(0, 0, 1);
+                        const perp2 = new THREE.Vector3().crossVectors(dir, perp).normalize();
+
+                        const ePos = new THREE.Vector3()
+                            .copy(mid)
+                            .add(dir.clone().multiplyScalar((k / (order * 2) - 0.5) * 0.3))
+                            .add(perp.clone().multiplyScalar(Math.cos(angle) * radius))
+                            .add(perp2.clone().multiplyScalar(Math.sin(angle) * radius));
+
+                        const eGeom = new THREE.SphereGeometry(0.04, 8, 8);
+                        const eMat = new THREE.MeshBasicMaterial({
+                            color: 0xffaa44,
+                        });
+                        const electron = new THREE.Mesh(eGeom, eMat);
+                        electron.position.copy(ePos);
+                        electron.userData = {
+                            basePos: ePos.clone(),
+                            angle: angle,
+                            speed: 1 + Math.random() * 0.5,
+                            radius: radius,
+                            mid: mid.clone(),
+                            dir: dir.clone(),
+                            perp: perp.clone(),
+                            perp2: perp2.clone(),
+                            phase: Math.random() * Math.PI * 2
+                        };
+                        moleculeGroup.add(electron);
+                        electronParticles.push(electron);
+
+                        // Electron glow
+                        const eGlow = new THREE.Mesh(
+                            new THREE.SphereGeometry(0.08, 8, 8),
+                            new THREE.MeshBasicMaterial({
+                                color: 0xffaa44,
+                                transparent: true,
+                                opacity: 0.15,
+                            })
+                        );
+                        eGlow.position.copy(ePos);
+                        eGlow.userData.parent = electron;
+                        moleculeGroup.add(eGlow);
+                        electronParticles.push(eGlow);
+                    }
+                });
+            }
+
+            // For ionic bonds - show charge transfer
+            if (bondType === 'ion') {
+                const p1 = new THREE.Vector3(positions[0][0], positions[0][1], positions[0][2]);
+                const p2 = new THREE.Vector3(positions[1][0], positions[1][1], positions[1][2]);
+                const mid = new THREE.Vector3().addVectors(p1, p2).multiplyScalar(0.5);
+
+                // Arrow showing electron transfer
+                const dir = new THREE.Vector3().copy(p2).sub(p1).normalize();
+                const arrowLength = 0.4;
+                for (let k = 0; k < 6; k++) {
+                    const t = (k + 0.5) / 6;
+                    const pos = new THREE.Vector3().copy(p1).add(dir.clone().multiplyScalar(t * p1.distanceTo(p2)));
+                    const eGeom = new THREE.SphereGeometry(0.03, 6, 6);
+                    const eMat = new THREE.MeshBasicMaterial({
+                        color: 0xffaa44,
+                        transparent: true,
+                        opacity: 0.6 + Math.sin(t * Math.PI) * 0.3,
+                    });
+                    const electron = new THREE.Mesh(eGeom, eMat);
+                    electron.position.copy(pos);
+                    electron.userData = { t: t, speed: 0.5 + Math.random() * 0.3 };
+                    moleculeGroup.add(electron);
+                    electronParticles.push(electron);
+                }
+            }
+
+            // For metallic bond - show electron sea
+            if (bondType === 'metal') {
+                for (let i = 0; i < 40; i++) {
+                    const pos = new THREE.Vector3(
+                        (Math.random() - 0.5) * 2.5,
+                        (Math.random() - 0.5) * 1.5,
+                        (Math.random() - 0.5) * 1.5
+                    );
+                    const eGeom = new THREE.SphereGeometry(0.03, 6, 6);
+                    const eMat = new THREE.MeshBasicMaterial({
+                        color: 0xffaa44,
+                        transparent: true,
+                        opacity: 0.3 + Math.random() * 0.3,
+                    });
+                    const electron = new THREE.Mesh(eGeom, eMat);
+                    electron.position.copy(pos);
+                    electron.userData = {
+                        basePos: pos.clone(),
+                        speed: 0.5 + Math.random() * 0.5,
+                        phase: Math.random() * Math.PI * 2,
+                        amp: 0.2 + Math.random() * 0.3
+                    };
+                    moleculeGroup.add(electron);
+                    electronParticles.push(electron);
+                }
+            }
+
+            // For hydrogen bond
+            if (bondType === 'hydrogen') {
+                // Add water molecules with hydrogen bonds
+                const hPositions = [
+                    [0, 0, 0],
+                    [1.5, 0.5, 0],
+                    [-1.5, -0.5, 0.5],
+                    [1.5, -0.5, -0.5]
+                ];
+                hPositions.forEach((pos, idx) => {
+                    const oGeom = new THREE.SphereGeometry(0.25, 16, 16);
+                    const oMat = new THREE.MeshPhysicalMaterial({
+                        color: 0xff4444,
+                        metalness: 0.05,
+                        roughness: 0.3,
+                    });
+                    const o = new THREE.Mesh(oGeom, oMat);
+                    o.position.set(pos[0], pos[1], pos[2]);
+                    moleculeGroup.add(o);
+
+                    // H atoms
+                    for (let h = 0; h < 2; h++) {
+                        const angle = h * Math.PI * 2 / 2 + 0.5;
+                        const hPos = new THREE.Vector3(
+                            pos[0] + Math.cos(angle) * 0.35,
+                            pos[1] + Math.sin(angle) * 0.35 + 0.2,
+                            pos[2]
+                        );
+                        const hGeom = new THREE.SphereGeometry(0.15, 12, 12);
+                        const hMat = new THREE.MeshPhysicalMaterial({
+                            color: 0x4488ff,
+                            metalness: 0.05,
+                            roughness: 0.3,
+                        });
+                        const hAtom = new THREE.Mesh(hGeom, hMat);
+                        hAtom.position.copy(hPos);
+                        moleculeGroup.add(hAtom);
+
+                        // O-H bond
+                        const bondDir = new THREE.Vector3().copy(hPos).sub(o.position);
+                        const bondLen = bondDir.length();
+                        bondDir.normalize();
+                        const bondGeom = new THREE.CylinderGeometry(0.03, 0.03, bondLen * 0.7, 6);
+                        const bondMat = new THREE.MeshPhysicalMaterial({
+                            color: 0x44ff88,
+                            emissive: 0x44ff88,
+                            emissiveIntensity: 0.05,
+                        });
+                        const bondMesh = new THREE.Mesh(bondGeom, bondMat);
+                        const mid = new THREE.Vector3().addVectors(o.position, hPos).multiplyScalar(0.5);
+                        bondMesh.position.copy(mid);
+                        bondMesh.quaternion.setFromUnitVectors(
+                            new THREE.Vector3(0, 1, 0),
+                            bondDir
+                        );
+                        moleculeGroup.add(bondMesh);
+                        bondMeshes.push(bondMesh);
+                    }
+
+                    // Hydrogen bonds between molecules (dashed)
+                    if (idx > 0) {
+                        const prev = new THREE.Vector3(hPositions[idx - 1][0], hPositions[idx - 1][1], hPositions[idx - 1][
+                            2]);
+                        const curr = new THREE.Vector3(pos[0], pos[1], pos[2]);
+                        const mid = new THREE.Vector3().addVectors(prev, curr).multiplyScalar(0.5);
+                        const dir = new THREE.Vector3().copy(curr).sub(prev).normalize();
+                        const len = prev.distanceTo(curr);
+
+                        // Dashed line
+                        const dashMat = new THREE.MeshBasicMaterial({
+                            color: 0x44ff88,
+                            transparent: true,
+                            opacity: 0.2,
+                        });
+                        for (let d = 0; d < 10; d++) {
+                            const t = (d + 0.5) / 10;
+                            const pos = new THREE.Vector3().copy(prev).add(dir.clone().multiplyScalar(t * len));
+                            const dot = new THREE.Mesh(
+                                new THREE.SphereGeometry(0.03, 4, 4),
+                                dashMat
+                            );
+                            dot.position.copy(pos);
+                            moleculeGroup.add(dot);
+                        }
+                    }
+                });
+            }
+
+            // Store for animation
+            state.currentBondType = bondType;
+            state.currentExample = exampleData;
+        }
+
+        // ============================================================
+        // DEFAULT DATA
+        // ============================================================
+        function getDefaultAtoms(bondType) {
+            switch (bondType) {
+                case 'covalent':
+                    return ['H', 'H'];
+                case 'ion':
+                    return ['Na', 'Cl'];
+                case 'metal':
+                    return ['Fe', 'Cu', 'Fe', 'Cu'];
+                case 'hydrogen':
+                    return ['O', 'H', 'H'];
+                default:
+                    return ['H', 'H'];
+            }
+        }
+
+        function getDefaultPositions(bondType, atoms) {
+            switch (bondType) {
+                case 'covalent':
+                    return [
+                        [-0.8, 0, 0],
+                        [0.8, 0, 0]
+                    ];
+                case 'ion':
+                    return [
+                        [-0.9, 0, 0],
+                        [0.9, 0, 0]
+                    ];
+                case 'metal':
+                    return [
+                        [-0.7, 0.4, 0],
+                        [0.7, 0.4, 0],
+                        [-0.7, -0.4, 0],
+                        [0.7, -0.4, 0]
+                    ];
+                case 'hydrogen':
+                    return [
+                        [0, 0, 0],
+                        [-0.6, -0.4, 0],
+                        [0.6, -0.4, 0]
+                    ];
+                default:
+                    return [
+                        [-0.8, 0, 0],
+                        [0.8, 0, 0]
+                    ];
+            }
+        }
+
+        function getDefaultBonds(bondType, atoms) {
+            switch (bondType) {
+                case 'covalent':
+                    return [
+                        [0, 1, 1]
+                    ];
+                case 'ion':
+                    return [
+                        [0, 1, 1]
+                    ];
+                case 'metal':
+                    return [
+                        [0, 1, 1],
+                        [1, 2, 1],
+                        [2, 3, 1],
+                        [3, 0, 1]
+                    ];
+                case 'hydrogen':
+                    return [
+                        [0, 1, 1],
+                        [0, 2, 1]
+                    ];
+                default:
+                    return [
+                        [0, 1, 1]
+                    ];
+            }
+        }
+
+        function getBondColor(bondType) {
+            switch (bondType) {
+                case 'covalent':
+                    return 0x44ff88;
+                case 'ion':
+                    return 0xff4444;
+                case 'metal':
+                    return 0xffaa44;
+                case 'hydrogen':
+                    return 0x44ff88;
+                default:
+                    return 0x44ff88;
+            }
+        }
+
+        // ============================================================
+        // BOND INFO
+        // ============================================================
+        const bondInfo = {
+            covalent: {
+                title: 'Kovalent Bog\'lanish',
+                desc: 'Elektronlar ikkita atom o\'rtasida umumiy bo\'linadi. Qutbsiz (H₂) va qutbli (H₂O) turlari mavjud. Bog\'lanish karraligi yakka, qo\'sh yoki uch bo\'lishi mumkin.',
+                tag: 'Kovalent',
+                tagClass: 'tag-covalent',
+                props: '• Elektronlar: umumiy<br>• Atomlar: nometal-nometal<br>• Erish harorati: o\'rtacha<br>• Elektr o\'tkazuvchanlik: yo\'q<br>• Misollar: H₂, O₂, H₂O, CH₄'
+            },
+            ion: {
+                title: 'Ion Bog\'lanish',
+                desc: 'Elektronlar bir atomdan boshqasiga to\'liq o\'tadi. Natijada musbat (kation) va manfiy (anion) ionlar hosil bo\'ladi. Ionlar orasida elektrostatik tortishish kuchi ta\'sir qiladi.',
+                tag: 'Ion',
+                tagClass: 'tag-ion',
+                props: '• Elektronlar: o\'tadi<br>• Atomlar: metal-nometal<br>• Erish harorati: yuqori<br>• Elektr o\'tkazuvchanlik: suyuq holatda<br>• Misollar: NaCl, KCl, CaO'
+            },
+            metal: {
+                title: 'Metall Bog\'lanish',
+                desc: 'Metall atomlari o\'rtasida erkin elektronlar "dengizi" mavjud. Elektronlar atomlar orasida erkin harakatlanadi, bu metallarga o\'ziga xos xususiyatlar beradi.',
+                tag: 'Metall',
+                tagClass: 'tag-metal',
+                props: '• Elektronlar: erkin<br>• Atomlar: metal-metal<br>• Erish harorati: turli<br>• Elektr o\'tkazuvchanlik: yuqori<br>• Misollar: Fe, Cu, Na, Al'
+            },
+            hydrogen: {
+                title: 'Vodorod Bog\'lanishi',
+                desc: 'Vodorod atomi kuchli elektronmanfiy element (F, O, N) bilan bog\'langanda hosil bo\'ladi. Molekulalar orasidagi bog\'lanish. Suv, oqsil va DNK da muhim rol o\'ynaydi.',
+                tag: 'Vodorod',
+                tagClass: 'tag-hydrogen',
+                props: '• Elektronlar: qisman<br>• Atomlar: H + F/O/N<br>• Erish harorati: past<br>• Elektr o\'tkazuvchanlik: yo\'q<br>• Misollar: H₂O, HF, NH₃, DNK'
+            }
+        };
+
+        // ============================================================
+        // UI FUNCTIONS
+        // ============================================================
+        window.selectBond = function(type) {
+            state.bondType = type;
+
+            // Update buttons
+            document.querySelectorAll('.bond-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.bond === type) btn.classList.add('active');
+            });
+
+            // Update info
+            const info = bondInfo[type];
+            document.getElementById('bondTitle').textContent = info.title;
+            document.getElementById('bondDesc').textContent = info.desc;
+            const tag = document.getElementById('bondTag');
+            tag.textContent = info.tag;
+            tag.className = 'tag ' + info.tagClass;
+            document.getElementById('propsText').innerHTML = info.props;
+
+            // Update molecule
+            const example = state.currentExample || null;
+            createMolecule(type, example);
+        };
+
+        window.toggleRotation = function() {
+            state.rotating = !state.rotating;
+            controls.autoRotate = state.rotating;
+        };
+
+        window.toggleElectrons = function() {
+            state.showElectrons = !state.showElectrons;
+            const example = state.currentExample || null;
+            createMolecule(state.bondType, example);
+        };
+
+        window.resetCamera = function() {
+            camera.position.set(4, 3, 5);
+            controls.target.set(0, 0, 0);
+            controls.update();
+        };
+
+        window.loadExample = function(name) {
+            const ex = state.examples[name];
+            if (ex) {
+                state.currentExample = ex;
+                // Switch to correct bond type
+                const btn = document.querySelector(`.bond-btn[data-bond="${ex.bond}"]`);
+                if (btn) btn.click();
+                // But override with example data
+                createMolecule(ex.bond, ex);
+            }
+        };
+
+        // ============================================================
+        // ANIMATION LOOP
+        // ============================================================
+        let time = 0;
+
+        function animate() {
+            requestAnimationFrame(animate);
+            time += 0.016;
+
+            // Animate electrons
+            electronParticles.forEach(el => {
+                if (el.userData && el.userData.basePos) {
+                    // For covalent bond electrons
+                    if (el.userData.angle !== undefined) {
+                        const data = el.userData;
+                        const newAngle = data.angle + time * 2 * data.speed;
+                        const ePos = new THREE.Vector3()
+                            .copy(data.mid)
+                            .add(data.dir.clone().multiplyScalar(Math.sin(time * 0.5 + data.phase) * 0.15))
+                            .add(data.perp.clone().multiplyScalar(Math.cos(newAngle) * data.radius))
+                            .add(data.perp2.clone().multiplyScalar(Math.sin(newAngle) * data.radius));
+                        el.position.copy(ePos);
+                    }
+                    // For metal electron sea
+                    if (el.userData.amp !== undefined) {
+                        const data = el.userData;
+                        const offset = new THREE.Vector3(
+                            Math.sin(time * data.speed + data.phase) * data.amp,
+                            Math.cos(time * data.speed * 0.7 + data.phase * 1.3) * data.amp,
+                            Math.sin(time * data.speed * 1.2 + data.phase * 0.7) * data.amp
+                        );
+                        el.position.copy(data.basePos).add(offset);
+                    }
+                }
+                // Glow effect
+                if (el.userData && el.userData.parent) {
+                    const parent = el.userData.parent;
+                    if (parent && parent.position) {
+                        el.position.copy(parent.position);
+                    }
+                }
+            });
+
+            // Auto-rotate
+            if (state.rotating) {
+                moleculeGroup.rotation.y += 0.005;
+                moleculeGroup.rotation.x += 0.001;
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+            labelRenderer.render(scene, camera);
+        }
+
+        // ============================================================
+        // RESIZE
+        // ============================================================
+        function resize() {
+            const w = wrap.clientWidth;
+            const h = wrap.clientHeight;
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+            renderer.setSize(w, h);
+            labelRenderer.setSize(w, h);
+        }
+        window.addEventListener('resize', resize);
+        new ResizeObserver(resize).observe(wrap);
+
+        // ============================================================
+        // INIT
+        // ============================================================
+        // Start with covalent
+        const info = bondInfo.covalent;
+        document.getElementById('bondTitle').textContent = info.title;
+        document.getElementById('bondDesc').textContent = info.desc;
+        document.getElementById('bondTag').textContent = info.tag;
+        document.getElementById('bondTag').className = 'tag ' + info.tagClass;
+        document.getElementById('propsText').innerHTML = info.props;
+
+        createMolecule('covalent', null);
+        controls.autoRotate = true;
+        state.rotating = true;
+        animate();
+
+        console.log('⚗️ Kimyoviy Bog\'lanishlar 3D Vizualizatori ishga tushdi!');
+        console.log('🔗 4 turdagi bog\'lanish: Kovalent, Ion, Metall, Vodorod');
+        console.log('🖱 Sichqoncha bilan aylantirish - molekulalarni tekshirish');
+        console.log('🧪 Misol molekulalar: H₂, H₂O, NaCl, NH₃, CO₂');
+
+        // Expose
+        window.scene = scene;
+        window.camera = camera;
+        window.controls = controls;
+        window.createMolecule = createMolecule;
+    </script>
+</body>
+</html>

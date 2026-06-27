@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Kinematika 3D | Mexanika asoslari | Laboratoriya</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            overflow: hidden;
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            background: #060614;
+            color: #f0f4ff;
+        }
+        canvas { display: block; }
+
+        /* ===================== INFO PANEL ===================== */
+        .info-panel {
+            position: absolute; top: 16px; left: 16px;
+            background: rgba(8,10,28,0.88);
+            backdrop-filter: blur(24px);
+            border-radius: 24px; padding: 12px 20px;
+            border: 1px solid rgba(68,255,170,0.25);
+            z-index: 20; pointer-events: none; max-width: 300px;
+        }
+        .info-panel .badge { font-size:.5rem; text-transform:uppercase; letter-spacing:3px; color:#44ffaa; font-weight:700; }
+        .info-panel h1 { font-size:1.2rem; font-weight:800;
+            background:linear-gradient(135deg,#44ffaa,#44ddff,#aa66ff);
+            -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin:1px 0; }
+        .info-panel .formula { font-family:'JetBrains Mono',monospace; font-size:.7rem;
+            background:rgba(68,255,170,.1); padding:3px 12px; border-radius:30px;
+            color:#88ffcc; display:inline-block; border:1px solid rgba(68,255,170,.1); }
+
+        /* ===================== STATS ===================== */
+        .stats-panel {
+            position:absolute; bottom:16px; left:16px;
+            background:rgba(8,10,28,.88); backdrop-filter:blur(24px);
+            border-radius:24px; padding:12px 18px;
+            border:1px solid rgba(68,255,170,.12);
+            z-index:20; pointer-events:none; min-width:260px;
+        }
+        .stats-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:1px 14px; }
+        .stat-item { display:flex; justify-content:space-between; font-size:.7rem; padding:1px 0; border-bottom:1px solid rgba(255,255,255,.03); }
+        .stat-item .label { color:#6688aa; }
+        .stat-item .value { color:#88ffcc; font-weight:700; font-family:'JetBrains Mono',monospace; }
+        .stat-item .value.highlight { color:#ffaa44; }
+        .stat-item .value.velocity { color:#ff4466; }
+
+        /* ===================== CONTROL PANEL ===================== */
+        .control-panel {
+            position:absolute; bottom:16px; right:16px;
+            background:rgba(8,10,28,.92); backdrop-filter:blur(24px);
+            border-radius:28px; padding:14px 18px;
+            border:1px solid rgba(68,255,170,.15);
+            z-index:25; pointer-events:auto; min-width:320px; max-width:360px;
+        }
+        .control-panel label { font-size:.55rem; font-weight:700; text-transform:uppercase;
+            letter-spacing:1px; color:#6688aa; display:block; margin:4px 0 1px; }
+        .slider-row { display:flex; justify-content:space-between; font-size:.7rem; font-weight:600; color:#aaccee; }
+        input[type="range"] { width:100%; height:3px; -webkit-appearance:none; appearance:none;
+            background:linear-gradient(90deg,#44ffaa,#44ddff,#aa66ff);
+            border-radius:4px; outline:none; cursor:pointer; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance:none; appearance:none;
+            width:16px; height:16px; border-radius:50%;
+            background:radial-gradient(circle at 30% 30%,#66ffcc,#22cc88);
+            cursor:pointer; box-shadow:0 0 20px rgba(68,255,170,.2); border:2px solid rgba(255,255,255,.1); }
+        .btn-group { display:flex; gap:4px; margin:6px 0 3px; flex-wrap:wrap; }
+        .btn { padding:5px 12px; border:none; border-radius:40px; font-weight:700; font-size:.6rem;
+            cursor:pointer; transition:all .15s; flex:1; min-width:44px;
+            text-transform:uppercase; letter-spacing:.3px; }
+        .btn-primary { background:linear-gradient(135deg,#44ffaa,#22dd88); color:#0a1a1a; }
+        .btn-primary:hover { transform:scale(1.05); box-shadow:0 0 20px rgba(68,255,170,.2); }
+        .btn-danger { background:linear-gradient(135deg,#ff6644,#dd4422); color:white; }
+        .btn-danger:hover { transform:scale(1.05); }
+        .btn-blue { background:linear-gradient(135deg,#44aaff,#2288dd); color:white; }
+        .btn-blue:hover { transform:scale(1.05); }
+        .btn-gray { background:rgba(80,100,140,.2); color:#88aacc; border:1px solid rgba(255,255,255,.05); }
+        .btn-gray:hover { background:rgba(80,100,140,.35); transform:scale(1.05); }
+        .btn-purple { background:linear-gradient(135deg,#aa66ff,#8844dd); color:white; }
+        .btn-purple:hover { transform:scale(1.05); }
+        .btn-orange { background:linear-gradient(135deg,#ff9944,#dd7722); color:white; }
+        .btn-orange:hover { transform:scale(1.05); }
+        .btn-sm { font-size:.5rem; padding:3px 8px; min-width:30px; }
+        .checkbox-group { display:flex; gap:10px; margin:4px 0 2px; flex-wrap:wrap; }
+        .checkbox-group label { font-size:.55rem; text-transform:none; display:flex;
+            align-items:center; gap:3px; cursor:pointer; color:#88aacc; font-weight:500; }
+        .checkbox-group input[type="checkbox"] { accent-color:#44ffaa; width:13px; height:13px; cursor:pointer; }
+        .preset-group { display:flex; gap:3px; margin-top:4px; flex-wrap:wrap; }
+        .preset-btn { background:rgba(68,255,170,.06); border:1px solid rgba(68,255,170,.08);
+            color:#88ccbb; padding:2px 10px; border-radius:30px; font-size:.45rem;
+            font-weight:600; cursor:pointer; transition:all .15s; }
+        .preset-btn:hover { background:rgba(68,255,170,.15); color:#44ffaa; transform:scale(1.05); }
+
+        /* ===================== CONTROLS TIP ===================== */
+        .controls-tip {
+            position:absolute; top:16px; right:16px;
+            background:rgba(0,0,0,.4); backdrop-filter:blur(12px);
+            padding:3px 14px; border-radius:40px; font-size:.5rem;
+            color:#6688aa; pointer-events:none; z-index:20;
+            border:1px solid rgba(255,255,255,.04);
+        }
+
+        /* ===================== GRAPH PANEL (bar) ===================== */
+        .graph-panel {
+            position:absolute; top:16px; right:120px;
+            background:rgba(8,10,28,.85); backdrop-filter:blur(20px);
+            border-radius:20px; padding:10px 16px;
+            border:1px solid rgba(68,255,170,.08);
+            z-index:19; pointer-events:none; min-width:150px;
+        }
+        .graph-panel .g-title { font-size:.45rem; text-transform:uppercase; letter-spacing:2px; color:#6688aa; margin-bottom:4px; font-weight:700; }
+        .graph-bar { display:flex; align-items:center; gap:6px; font-size:.5rem; color:#88aacc; padding:1px 0; }
+        .graph-bar .bar-track { flex:1; height:3px; background:rgba(255,255,255,.04); border-radius:4px; overflow:hidden; }
+        .graph-bar .bar-fill { height:100%; border-radius:4px; transition:width .1s; }
+        .graph-bar .bar-fill.s { background:linear-gradient(90deg,#44ffaa,#44ddff); }
+        .graph-bar .bar-fill.v { background:linear-gradient(90deg,#ff4466,#ff8844); }
+        .graph-bar .bar-fill.a { background:linear-gradient(90deg,#44aaff,#aa66ff); }
+
+        /* ===================== DATA TABLE ===================== */
+        .data-panel {
+            position:absolute; top:80px; right:16px;
+            background:rgba(8,10,28,.9); backdrop-filter:blur(20px);
+            border-radius:20px; padding:10px 14px;
+            border:1px solid rgba(68,255,170,.08);
+            z-index:19; pointer-events:none;
+            max-height:200px; overflow-y:auto; min-width:180px;
+            font-size:.55rem; display:none;
+        }
+        .data-panel.visible { display:block; }
+        .data-panel::-webkit-scrollbar { width:2px; }
+        .data-panel::-webkit-scrollbar-thumb { background:#44ffaa; border-radius:4px; }
+        .data-panel .d-title { font-weight:700; color:#44ffaa; margin-bottom:4px; font-size:.5rem; letter-spacing:1px; text-transform:uppercase; }
+        .data-row { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:4px; padding:1px 0;
+            border-bottom:1px solid rgba(255,255,255,.03);
+            font-family:'JetBrains Mono',monospace; color:#88aacc; }
+        .data-row .val { color:#ccddff; }
+        .data-row .val.s { color:#44ffaa; }
+        .data-row .val.v { color:#ff4466; }
+        .data-row .val.a { color:#44aaff; }
+
+        /* ===================== REAL-TIME CHART PANEL ===================== */
+        .chart-panel {
+            position:absolute; top:110px; left:16px;
+            background:rgba(8,10,28,.9); backdrop-filter:blur(20px);
+            border-radius:20px; padding:10px 14px;
+            border:1px solid rgba(68,100,255,.2);
+            z-index:19; pointer-events:none;
+            width:260px; display:none;
+        }
+        .chart-panel.visible { display:block; }
+        .chart-panel .c-title { font-size:.45rem; text-transform:uppercase; letter-spacing:2px; color:#6688aa; margin-bottom:6px; font-weight:700; }
+        #realtimeChart { width:100%; height:90px; display:block; }
+        .chart-legend { display:flex; gap:8px; margin-top:4px; font-size:.45rem; }
+        .chart-legend span { display:flex; align-items:center; gap:3px; }
+        .legend-dot { width:6px; height:6px; border-radius:50%; display:inline-block; }
+
+        /* ===================== QUIZ PANEL ===================== */
+        .quiz-panel {
+            position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+            background:rgba(6,6,22,.97); backdrop-filter:blur(30px);
+            border-radius:28px; padding:28px 32px;
+            border:1px solid rgba(68,255,170,.3);
+            z-index:100; pointer-events:auto;
+            min-width:380px; max-width:480px;
+            display:none; box-shadow:0 0 60px rgba(68,255,170,.1);
+        }
+        .quiz-panel.visible { display:block; }
+        .quiz-panel h2 { font-size:1rem; font-weight:800; color:#44ffaa; margin-bottom:4px; }
+        .quiz-panel .q-sub { font-size:.6rem; color:#6688aa; margin-bottom:18px; }
+        .quiz-question { font-size:.8rem; color:#ddeeff; margin-bottom:14px; line-height:1.5; }
+        .quiz-options { display:flex; flex-direction:column; gap:8px; margin-bottom:16px; }
+        .quiz-opt { padding:10px 16px; border-radius:16px; border:1px solid rgba(68,255,170,.15);
+            background:rgba(68,255,170,.04); color:#88aacc; font-size:.7rem; cursor:pointer;
+            transition:all .15s; text-align:left; }
+        .quiz-opt:hover { background:rgba(68,255,170,.12); color:#44ffaa; border-color:rgba(68,255,170,.3); }
+        .quiz-opt.correct { background:rgba(68,255,170,.2); color:#44ffaa; border-color:#44ffaa; }
+        .quiz-opt.wrong { background:rgba(255,68,68,.15); color:#ff6666; border-color:#ff4444; }
+        .quiz-feedback { font-size:.7rem; padding:8px 14px; border-radius:12px; margin-bottom:12px; min-height:36px; }
+        .quiz-feedback.correct { background:rgba(68,255,170,.1); color:#44ffaa; border:1px solid rgba(68,255,170,.2); }
+        .quiz-feedback.wrong { background:rgba(255,68,68,.1); color:#ff8888; border:1px solid rgba(255,68,68,.2); }
+        .quiz-score { font-size:.6rem; color:#6688aa; text-align:right; margin-bottom:10px; }
+        .quiz-progress { height:2px; background:rgba(255,255,255,.06); border-radius:4px; margin-bottom:16px; }
+        .quiz-progress-bar { height:100%; background:linear-gradient(90deg,#44ffaa,#44ddff); border-radius:4px; transition:width .3s; }
+        .quiz-close { position:absolute; top:14px; right:18px; background:none; border:none; color:#6688aa; font-size:1.1rem; cursor:pointer; }
+        .quiz-close:hover { color:#ff6666; }
+
+        /* ===================== ANALYSIS PANEL ===================== */
+        .analysis-panel {
+            position:absolute; bottom:120px; left:16px;
+            background:rgba(8,10,28,.9); backdrop-filter:blur(20px);
+            border-radius:20px; padding:10px 16px;
+            border:1px solid rgba(170,102,255,.2);
+            z-index:19; pointer-events:none; min-width:220px; display:none;
+        }
+        .analysis-panel.visible { display:block; }
+        .analysis-panel .a-title { font-size:.45rem; text-transform:uppercase; letter-spacing:2px; color:#aa66ff; margin-bottom:6px; font-weight:700; }
+        .analysis-row { display:flex; justify-content:space-between; font-size:.6rem; padding:2px 0; border-bottom:1px solid rgba(255,255,255,.03); }
+        .analysis-row .a-label { color:#6688aa; }
+        .analysis-row .a-val { color:#ccddff; font-family:'JetBrains Mono',monospace; font-weight:600; }
+        .analysis-row .a-val.good { color:#44ffaa; }
+        .analysis-row .a-val.warn { color:#ffaa44; }
+        .analysis-row .a-val.bad { color:#ff4466; }
+
+        /* ===================== TOAST ===================== */
+        .toast {
+            position:absolute; top:60px; left:50%; transform:translateX(-50%);
+            background:rgba(68,255,170,.15); border:1px solid rgba(68,255,170,.3);
+            backdrop-filter:blur(20px); border-radius:40px;
+            padding:8px 24px; font-size:.65rem; color:#44ffaa;
+            z-index:200; pointer-events:none; opacity:0;
+            transition:opacity .3s; white-space:nowrap;
+        }
+        .toast.show { opacity:1; }
+
+        /* ===================== RESPONSIVE ===================== */
+        @media (max-width:860px) {
+            .info-panel { max-width:200px; padding:8px 12px; font-size:.6rem; }
+            .stats-grid { grid-template-columns:1fr 1fr; gap:0 10px; }
+            .stats-panel { min-width:180px; padding:8px 12px; }
+            .stats-panel .stat-item { font-size:.6rem; }
+            .control-panel { min-width:230px; max-width:260px; padding:10px 12px; }
+            .btn { font-size:.5rem; padding:3px 6px; min-width:30px; }
+            .graph-panel,.chart-panel { display:none!important; }
+            .data-panel { right:10px; min-width:150px; max-height:150px; font-size:.5rem; }
+            .controls-tip { display:none; }
+            .quiz-panel { min-width:280px; padding:20px 18px; }
+        }
+        @media (max-width:600px) {
+            .info-panel { top:8px; left:8px; max-width:160px; padding:6px 10px; }
+            .info-panel h1 { font-size:.9rem; }
+            .stats-panel { bottom:8px; left:8px; min-width:140px; padding:6px 10px; }
+            .stats-grid { grid-template-columns:1fr 1fr; gap:0 4px; }
+            .stats-panel .stat-item { font-size:.5rem; }
+            .control-panel { bottom:8px; right:8px; min-width:160px; padding:8px 10px; }
+            .btn { font-size:.4rem; padding:2px 4px; min-width:24px; }
+            .checkbox-group label { font-size:.45rem; }
+            .preset-btn { font-size:.35rem; padding:1px 6px; }
+            .data-panel { right:6px; min-width:120px; max-height:120px; font-size:.45rem; }
+        }
+    </style>
+</head>
+<body>
+    <!-- INFO -->
+    <div class="info-panel">
+        <div class="badge">⚡ Kinematika</div>
+        <h1>Mexanika asoslari</h1>
+        <div class="formula">s = v₀t + ½a·t²</div>
+    </div>
+
+    <!-- TOAST -->
+    <div class="toast" id="toast"></div>
+
+    <!-- BAR GRAPH -->
+    <div class="graph-panel" id="graphPanel">
+        <div class="g-title">📊 Harakat</div>
+        <div class="graph-bar"><span>s</span><div class="bar-track"><div class="bar-fill s" id="graphS" style="width:0%"></div></div></div>
+        <div class="graph-bar"><span>v</span><div class="bar-track"><div class="bar-fill v" id="graphV" style="width:0%"></div></div></div>
+        <div class="graph-bar"><span>a</span><div class="bar-track"><div class="bar-fill a" id="graphA" style="width:0%"></div></div></div>
+    </div>
+
+    <!-- REAL-TIME CHART -->
+    <div class="chart-panel" id="chartPanel">
+        <div class="c-title">📈 Vaqt grafigi</div>
+        <canvas id="realtimeChart"></canvas>
+        <div class="chart-legend">
+            <span><span class="legend-dot" style="background:#44ffaa"></span> s(t)</span>
+            <span><span class="legend-dot" style="background:#ff4466"></span> v(t)</span>
+            <span><span class="legend-dot" style="background:#44aaff"></span> a(t)</span>
+        </div>
+    </div>
+
+    <!-- DATA TABLE -->
+    <div class="data-panel" id="dataPanel">
+        <div class="d-title">📋 Ma'lumotlar jadvali</div>
+        <div id="dataTable"></div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-panel" id="statsPanel">
+        <div class="stats-grid">
+            <div class="stat-item"><span class="label">v₀</span><span class="value" id="v0Display">2.0 m/s</span></div>
+            <div class="stat-item"><span class="label">a</span><span class="value" id="aDisplay">1.0 m/s²</span></div>
+            <div class="stat-item"><span class="label">t</span><span class="value highlight" id="tDisplay">0.00 s</span></div>
+            <div class="stat-item"><span class="label">s</span><span class="value" id="sDisplay">0.00 m</span></div>
+            <div class="stat-item"><span class="label">v</span><span class="value velocity" id="vDisplay">2.00 m/s</span></div>
+            <div class="stat-item"><span class="label">x</span><span class="value" id="xDisplay">-6.00 m</span></div>
+        </div>
+    </div>
+
+    <!-- ANALYSIS -->
+    <div class="analysis-panel" id="analysisPanel">
+        <div class="a-title">🔬 Tahlil</div>
+        <div class="analysis-row"><span class="a-label">Maks. tezlik</span><span class="a-val" id="anMaxV">—</span></div>
+        <div class="analysis-row"><span class="a-label">Maks. masofa</span><span class="a-val" id="anMaxS">—</span></div>
+        <div class="analysis-row"><span class="a-label">Harakat turi</span><span class="a-val" id="anType">—</span></div>
+        <div class="analysis-row"><span class="a-label">To'xtash vaqti</span><span class="a-val" id="anStop">—</span></div>
+        <div class="analysis-row"><span class="a-label">KE ∝ v²</span><span class="a-val" id="anKE">—</span></div>
+    </div>
+
+    <!-- CONTROL PANEL -->
+    <div class="control-panel">
+        <div class="slider-row"><span>🚀 v₀ — Boshlang'ich tezlik</span><span id="v0SliderVal">2.0 m/s</span></div>
+        <input type="range" id="v0Slider" min="0" max="12" step="0.2" value="2.0">
+        <div class="slider-row"><span>📈 a — Tezlanish</span><span id="aSliderVal">1.0 m/s²</span></div>
+        <input type="range" id="aSlider" min="-4" max="6" step="0.1" value="1.0">
+        <div class="slider-row"><span>⏱️ t — Vaqt</span><span id="tSliderVal">0.00 s</span></div>
+        <input type="range" id="tSlider" min="0" max="10" step="0.05" value="0">
+        <div style="font-size:.55rem;color:#66ccaa;text-align:center;margin:2px 0;font-weight:600;font-family:'JetBrains Mono',monospace;" id="formulaDisplay">s = 2.0×0.00 + ½×1.0×0.00² = 0.00 m</div>
+
+        <div class="checkbox-group">
+            <label><input type="checkbox" id="showTrail" checked> Iz</label>
+            <label><input type="checkbox" id="showVelocity" checked> Tezlik</label>
+            <label><input type="checkbox" id="showAccel"> Tezlanish</label>
+            <label><input type="checkbox" id="showGrid" checked> To'r</label>
+            <label><input type="checkbox" id="autoRotate"> Aylanish</label>
+            <label><input type="checkbox" id="showData"> 📋 Jadval</label>
+            <label><input type="checkbox" id="showChart"> 📈 Grafik</label>
+            <label><input type="checkbox" id="showAnalysis"> 🔬 Tahlil</label>
+        </div>
+
+        <div class="btn-group">
+            <button id="playBtn" class="btn btn-primary">▶️ Harakat</button>
+            <button id="resetBtn" class="btn btn-gray">⟳ Qayta</button>
+            <button id="reverseBtn" class="btn btn-danger">🔄 Teskari</button>
+            <button id="quizBtn" class="btn btn-purple btn-sm">🧪 Test</button>
+            <button id="downloadBtn" class="btn btn-orange btn-sm">⬇️ CSV</button>
+            <button id="copyDataBtn" class="btn btn-blue btn-sm">📋 Nusxa</button>
+        </div>
+
+        <div class="preset-group">
+            <button class="preset-btn" data-v0="1" data-a="0.5">🚗 Sekin</button>
+            <button class="preset-btn" data-v0="5" data-a="3">🚀 Tez</button>
+            <button class="preset-btn" data-v0="8" data-a="-2">🛑 Tormoz</button>
+            <button class="preset-btn" data-v0="4" data-a="0">⚡ Tekis</button>
+            <button class="preset-btn" data-v0="0" data-a="2">🏁 Start</button>
+            <button class="preset-btn" data-v0="6" data-a="-3">🪂 Erkin</button>
+            <button class="preset-btn" data-v0="3" data-a="-3">⚖️ Simmetrik</button>
+        </div>
+    </div>
+
+    <div class="controls-tip">🖱️ Aylantirish · Scroll: Zoom</div>
+
+    <!-- ===================== QUIZ PANEL ===================== -->
+    <div class="quiz-panel" id="quizPanel">
+        <button class="quiz-close" id="quizClose">✕</button>
+        <h2>🧪 Laboratoriya Testi</h2>
+        <div class="q-sub">Kinematika — Mexanika asoslari</div>
+        <div class="quiz-progress"><div class="quiz-progress-bar" id="quizProgress" style="width:0%"></div></div>
+        <div class="quiz-score" id="quizScore">Ball: 0 / 0</div>
+        <div class="quiz-question" id="quizQuestion">Savol yuklanmoqda...</div>
+        <div class="quiz-options" id="quizOptions"></div>
+        <div class="quiz-feedback" id="quizFeedback" style="display:none"></div>
+        <div class="btn-group" style="margin-top:4px">
+            <button id="quizNextBtn" class="btn btn-primary" style="display:none">Keyingi →</button>
+            <button id="quizRestartBtn" class="btn btn-gray" style="display:none">🔄 Qaytadan</button>
+        </div>
+    </div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+        // ==================== SAHNA ====================
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x060614);
+        scene.fog = new THREE.FogExp2(0x060614, 0.004);
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 100);
+        camera.position.set(7, 4.5, 13);
+        camera.lookAt(0,0,0);
+        const renderer = new THREE.WebGLRenderer({ antialias:true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+        renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+        renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.2;
+        document.body.appendChild(renderer.domElement);
+        const labelRenderer = new CSS2DRenderer();
+        labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        labelRenderer.domElement.style.cssText='position:absolute;top:0;left:0;pointer-events:none;';
+        document.body.appendChild(labelRenderer.domElement);
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping=true; controls.dampingFactor=0.08;
+        controls.zoomSpeed=1.2; controls.rotateSpeed=0.8;
+        controls.target.set(0,0,0); controls.autoRotate=false; controls.autoRotateSpeed=2;
+
+        // ==================== YORUG'LIK ====================
+        scene.add(new THREE.AmbientLight(0x223355, 0.6));
+        const mainLight = new THREE.DirectionalLight(0xffeedd, 1.4);
+        mainLight.position.set(5,8,4); mainLight.castShadow=true;
+        mainLight.shadow.mapSize.width=mainLight.shadow.mapSize.height=2048;
+        scene.add(mainLight);
+        const rimLight = new THREE.DirectionalLight(0x44ffaa, 0.4);
+        rimLight.position.set(-3,2,-4); scene.add(rimLight);
+        const fillLight = new THREE.PointLight(0x4488ff, 0.3);
+        fillLight.position.set(-2,2,3); scene.add(fillLight);
+        const colorLight = new THREE.PointLight(0xaa66ff, 0.2);
+        colorLight.position.set(0,3,-3); scene.add(colorLight);
+
+        // ==================== ZAMIN ====================
+        const ground = new THREE.Mesh(
+            new THREE.PlaneGeometry(20,10),
+            new THREE.MeshStandardMaterial({color:0x080820,roughness:.8,metalness:.1,transparent:true,opacity:.5})
+        );
+        ground.rotation.x=-Math.PI/2; ground.position.y=-0.9; ground.receiveShadow=true;
+        scene.add(ground);
+
+        // ==================== PANJARA ====================
+        let gridHelper = new THREE.GridHelper(20,20,0x4488ff,0x224488);
+        gridHelper.position.y=-0.8; gridHelper.material.transparent=true; gridHelper.material.opacity=0.25;
+        scene.add(gridHelper);
+
+        // ==================== YULDUZLAR ====================
+        const starGeo = new THREE.BufferGeometry();
+        const sc=3000, sp=new Float32Array(sc*3), scl=new Float32Array(sc*3);
+        for(let i=0;i<sc;i++){
+            sp[i*3]=(Math.random()-.5)*300; sp[i*3+1]=(Math.random()-.5)*100+5; sp[i*3+2]=(Math.random()-.5)*180-80;
+            const c=new THREE.Color().setHSL(.55+Math.random()*.15,.6,.6+Math.random()*.4);
+            scl[i*3]=c.r; scl[i*3+1]=c.g; scl[i*3+2]=c.b;
+        }
+        starGeo.setAttribute('position',new THREE.BufferAttribute(sp,3));
+        starGeo.setAttribute('color',new THREE.BufferAttribute(scl,3));
+        const stars=new THREE.Points(starGeo,new THREE.PointsMaterial({size:.1,transparent:true,opacity:.7,vertexColors:true}));
+        scene.add(stars);
+
+        // ==================== O'Q VA BELGILAR ====================
+        const axisPoints=[];
+        for(let x=-8;x<=8;x+=.2) axisPoints.push(new THREE.Vector3(x,-.3,0));
+        scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(axisPoints),
+            new THREE.LineBasicMaterial({color:0x4488ff,transparent:true,opacity:.3})));
+        for(let x=-8;x<=8;x+=1){
+            const marker=new THREE.Mesh(new THREE.BoxGeometry(.04,.03,.15),
+                new THREE.MeshStandardMaterial({color:0x4488ff,emissive:0x224488,emissiveIntensity:.3}));
+            marker.position.set(x,-.5,0); scene.add(marker);
+            const div=document.createElement('div');
+            div.textContent=x;
+            Object.assign(div.style,{backgroundColor:'rgba(0,0,0,.4)',color:'#4488ff',fontSize:'7px',
+                padding:'1px 6px',borderRadius:'12px',fontWeight:'600',border:'1px solid rgba(68,136,255,.1)'});
+            const lbl=new CSS2DObject(div); lbl.position.set(x,-.75,.3); scene.add(lbl);
+        }
+
+        // ==================== HARAKATLANUVCHI JISM ====================
+        const sphereMat=new THREE.MeshStandardMaterial({color:0xff8844,emissive:0xff4411,emissiveIntensity:.4,metalness:.7,roughness:.15});
+        const movingObject=new THREE.Mesh(new THREE.SphereGeometry(.5,64,64),sphereMat);
+        movingObject.castShadow=true; movingObject.position.set(-6,.1,0); scene.add(movingObject);
+        [[.85,.1,0xff8844],[1.3,.05,0xffaa44],[1.8,.03,0xff6644]].forEach(([r,op,col])=>{
+            movingObject.add(new THREE.Mesh(new THREE.SphereGeometry(r,32,32),
+                new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:op})));
+        });
+
+        // ==================== TRAIL ====================
+        let trailPoints=[],trailLine=null;
+        const trailMax=350;
+        function updateTrail(pos){
+            trailPoints.push(pos.clone());
+            if(trailPoints.length>trailMax) trailPoints.shift();
+            if(trailLine) scene.remove(trailLine);
+            trailLine=new THREE.Line(
+                new THREE.BufferGeometry().setFromPoints(trailPoints),
+                new THREE.LineBasicMaterial({color:0xff8844,transparent:true,opacity:.6})
+            );
+            scene.add(trailLine);
+        }
+
+        // ==================== VEKTORLAR ====================
+        let velocityArrow=null, accelArrow=null;
+        function updateVectors(pos,vel,accel){
+            if(velocityArrow) scene.remove(velocityArrow);
+            if(accelArrow) scene.remove(accelArrow);
+            if(document.getElementById('showVelocity').checked && Math.abs(vel)>.05){
+                const len=Math.min(1.8,Math.abs(vel)/3.5);
+                velocityArrow=new THREE.ArrowHelper(new THREE.Vector3(Math.sign(vel),0,0),pos,len,0xff4466,.5,.3);
+                scene.add(velocityArrow);
+            }
+            if(document.getElementById('showAccel').checked && Math.abs(accel)>.02){
+                const len=Math.min(1.3,Math.abs(accel)/1.8);
+                accelArrow=new THREE.ArrowHelper(new THREE.Vector3(Math.sign(accel),0,0),
+                    new THREE.Vector3(pos.x,pos.y+.7,pos.z),len,0x44ffaa,.4,.25);
+                scene.add(accelArrow);
+            }
+        }
+
+        // ==================== YORLIQLAR ====================
+        function addLabel(text,color,x,y,z){
+            const div=document.createElement('div');
+            div.textContent=text;
+            Object.assign(div.style,{backgroundColor:'rgba(0,0,0,.4)',color,fontSize:'9px',
+                padding:'2px 12px',borderRadius:'30px',fontWeight:'600',
+                backdropFilter:'blur(8px)',border:'1px solid '+color});
+            const lbl=new CSS2DObject(div); lbl.position.set(x,y,z); scene.add(lbl);
+        }
+        addLabel('🚀 Jism','#ffaa66',0,1.2,1.8);
+        addLabel('📐 s = v₀t + ½at²','#44ffaa',-2,1.8,2);
+        addLabel('⬆️ Qizil = Tezlik','#ff4466',2,.8,1.8);
+        addLabel('⬆️ Yashil = Tezlanish','#44ffaa',2,.3,1.8);
+
+        // ==================== KINEMATICS ====================
+        let v0=2.0, a=1.0, t=0.0;
+        let position=-6.0, velocity=v0;
+        let isPlaying=false, isReversing=false;
+        let animFrame=null, lastTime=0;
+        let dataHistory=[];
+        let chartHistory=[];
+
+        function computeKinematics(){
+            const s=v0*t+.5*a*t*t;
+            velocity=v0+a*t;
+            return {s,velocity};
+        }
+
+        // ==================== REAL-TIME CHART ====================
+        const chartCanvas=document.getElementById('realtimeChart');
+        chartCanvas.width=232; chartCanvas.height=90;
+        const ctx=chartCanvas.getContext('2d');
+        function drawRealtimeChart(){
+            const W=chartCanvas.width, H=chartCanvas.height;
+            ctx.clearRect(0,0,W,H);
+            ctx.fillStyle='rgba(8,10,28,.0)'; ctx.fillRect(0,0,W,H);
+            ctx.strokeStyle='rgba(255,255,255,.05)'; ctx.lineWidth=1;
+            [20,40,60,80].forEach(y=>{ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); });
+            if(chartHistory.length<2) return;
+            const maxT=10;
+            const draws=[
+                {key:'s',color:'#44ffaa',max:60},
+                {key:'v',color:'#ff4466',max:15},
+                {key:'a',color:'#44aaff',max:6}
+            ];
+            draws.forEach(({key,color,max})=>{
+                ctx.beginPath(); ctx.strokeStyle=color; ctx.lineWidth=1.5;
+                chartHistory.forEach((d,i)=>{
+                    const x=(d.t/maxT)*W;
+                    const val=Math.max(-max,Math.min(max,d[key]));
+                    const y=H/2-(val/max)*(H/2-4);
+                    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+                });
+                ctx.stroke();
+            });
+            // Current time line
+            const cx=(t/maxT)*W;
+            ctx.strokeStyle='rgba(255,255,255,.3)'; ctx.lineWidth=1; ctx.setLineDash([3,3]);
+            ctx.beginPath(); ctx.moveTo(cx,0); ctx.lineTo(cx,H); ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        // ==================== ANALYSIS ====================
+        function updateAnalysis(){
+            const anPanel=document.getElementById('analysisPanel');
+            if(!anPanel.classList.contains('visible')) return;
+            const {s,velocity:v}=computeKinematics();
+            const maxV=Math.max(...chartHistory.map(d=>Math.abs(d.v)),0).toFixed(2);
+            const maxS=Math.max(...chartHistory.map(d=>d.s),0).toFixed(2);
+            let type='—';
+            if(Math.abs(a)<0.01) type='Tekis';
+            else if(a>0) type='Tezlashuvchi';
+            else type='Sekinlashuvchi';
+            const stopT=a!==0?(-v0/a).toFixed(2):null;
+            const ke=((v*v)/2).toFixed(2);
+            document.getElementById('anMaxV').textContent=maxV+' m/s';
+            document.getElementById('anMaxS').textContent=maxS+' m';
+            document.getElementById('anType').textContent=type;
+            const stopEl=document.getElementById('anStop');
+            if(stopT&&parseFloat(stopT)>=0&&parseFloat(stopT)<=10){
+                stopEl.textContent=stopT+' s'; stopEl.className='a-val warn';
+            } else { stopEl.textContent='—'; stopEl.className='a-val'; }
+            document.getElementById('anKE').textContent=ke+' J/kg';
+        }
+
+        // ==================== UPDATE SCENE ====================
+        function updateScene(){
+            const {s,velocity:v}=computeKinematics();
+            // Jism erkin harakat qiladi — cheklov yo'q
+            // s ni vizual ko'rinish uchun masshtablash (0→-6, har 1m = 1 birlik)
+            position = -6 + s;
+            movingObject.position.x=position;
+            document.getElementById('v0Display').textContent=v0.toFixed(1)+' m/s';
+            document.getElementById('aDisplay').textContent=a.toFixed(1)+' m/s²';
+            document.getElementById('tDisplay').textContent=t.toFixed(2)+' s';
+            document.getElementById('sDisplay').textContent=s.toFixed(2)+' m';
+            document.getElementById('vDisplay').textContent=v.toFixed(2)+' m/s';
+            document.getElementById('xDisplay').textContent=position.toFixed(2)+' m';
+            document.getElementById('v0SliderVal').textContent=v0.toFixed(1)+' m/s';
+            document.getElementById('aSliderVal').textContent=a.toFixed(1)+' m/s²';
+            document.getElementById('tSliderVal').textContent=t.toFixed(2)+' s';
+            document.getElementById('formulaDisplay').innerHTML=
+                `s = ${v0.toFixed(1)}×${t.toFixed(2)} + ½×${a.toFixed(1)}×${t.toFixed(2)}² = <b style="color:#44ffaa">${s.toFixed(2)} m</b>`;
+            const maxS=60,maxV=15,maxA=6;
+            document.getElementById('graphS').style.width=Math.min(100,(s/maxS)*100)+'%';
+            document.getElementById('graphV').style.width=Math.min(100,(Math.abs(v)/maxV)*100)+'%';
+            document.getElementById('graphA').style.width=Math.min(100,(Math.abs(a)/maxA)*100)+'%';
+            if(document.getElementById('showTrail').checked) updateTrail(movingObject.position.clone());
+            else { if(trailLine){scene.remove(trailLine);trailLine=null;} trailPoints=[]; }
+            updateVectors(movingObject.position.clone(),v,a);
+            // Kamera jismni kuzatib boradi
+            controls.target.set(position, 0, 0);
+            controls.update();
+            if(t%0.5<0.03){
+                dataHistory.push({t,s,v,a});
+                if(dataHistory.length>30) dataHistory.shift();
+                updateDataTable();
+            }
+            chartHistory.push({t,s,v,a});
+            if(chartHistory.length>200) chartHistory.shift();
+            drawRealtimeChart();
+            updateAnalysis();
+        }
+
+        // ==================== DATA TABLE ====================
+        function updateDataTable(){
+            const table=document.getElementById('dataTable');
+            let html='<div class="data-row" style="font-weight:700;color:#44ffaa;"><span>t</span><span>s</span><span>v</span><span>a</span></div>';
+            dataHistory.forEach(d=>{
+                html+=`<div class="data-row"><span>${d.t.toFixed(2)}</span><span class="val s">${d.s.toFixed(2)}</span><span class="val v">${d.v.toFixed(2)}</span><span class="val a">${d.a.toFixed(2)}</span></div>`;
+            });
+            table.innerHTML=html;
+        }
+
+        // ==================== COPY ====================
+        function copyData(){
+            let text='t\ts\tv\ta\n';
+            dataHistory.forEach(d=>{text+=`${d.t.toFixed(2)}\t${d.s.toFixed(2)}\t${d.v.toFixed(2)}\t${d.a.toFixed(2)}\n`;});
+            navigator.clipboard.writeText(text).then(()=>showToast('📋 Bufer xotiraga nusxalandi!'));
+        }
+
+        // ==================== CSV DOWNLOAD ====================
+        function downloadCSV(){
+            if(!dataHistory.length){ showToast('⚠️ Avval harakatni ishga tushiring!'); return; }
+            let csv='t(s),s(m),v(m/s),a(m/s2)\n';
+            dataHistory.forEach(d=>{csv+=`${d.t.toFixed(3)},${d.s.toFixed(3)},${d.v.toFixed(3)},${d.a.toFixed(3)}\n`;});
+            const blob=new Blob([csv],{type:'text/csv'});
+            const url=URL.createObjectURL(blob);
+            const a_el=document.createElement('a');
+            a_el.href=url; a_el.download=`kinematika_v0${v0}_a${a}.csv`; a_el.click();
+            URL.revokeObjectURL(url);
+            showToast('⬇️ CSV fayl yuklab olindi!');
+        }
+
+        // ==================== TOAST ====================
+        function showToast(msg){
+            const el=document.getElementById('toast');
+            el.textContent=msg; el.classList.add('show');
+            setTimeout(()=>el.classList.remove('show'),2000);
+        }
+
+        // ==================== SLIDERS ====================
+        const v0Slider=document.getElementById('v0Slider');
+        const aSlider=document.getElementById('aSlider');
+        const tSlider=document.getElementById('tSlider');
+        function updateFromSliders(){
+            if(isPlaying) return;
+            v0=parseFloat(v0Slider.value);
+            a=parseFloat(aSlider.value);
+            t=parseFloat(tSlider.value);
+            updateScene();
+        }
+        v0Slider.addEventListener('input',updateFromSliders);
+        aSlider.addEventListener('input',updateFromSliders);
+        tSlider.addEventListener('input',updateFromSliders);
+
+        // ==================== PLAY / REVERSE ====================
+        function startAnimation(){
+            if(animFrame) cancelAnimationFrame(animFrame);
+            lastTime=performance.now()/1000;
+            isPlaying=true;
+            animFrame=requestAnimationFrame(animateLoop);
+        }
+        function animateLoop(){
+            const now=performance.now()/1000;
+            const delta=Math.min(.05,now-lastTime); lastTime=now;
+            const dt=isReversing?-delta:delta;
+            t=Math.min(10,Math.max(0,t+dt));
+            tSlider.value=t; updateScene();
+            if((t>=10&&!isReversing)||(t<=0&&isReversing)){
+                isPlaying=false; document.getElementById('playBtn').textContent='▶️ Harakat'; return;
+            }
+            animFrame=requestAnimationFrame(animateLoop);
+        }
+        document.getElementById('playBtn').addEventListener('click',()=>{
+            if(isPlaying){
+                isPlaying=false; if(animFrame) cancelAnimationFrame(animFrame);
+                document.getElementById('playBtn').textContent='▶️ Harakat';
+            } else {
+                if(t>=10) t=0;
+                if(t<=0&&isReversing) isReversing=false;
+                document.getElementById('playBtn').textContent='⏸️ To\'xtat';
+                startAnimation();
+            }
+        });
+        document.getElementById('reverseBtn').addEventListener('click',()=>{
+            isReversing=!isReversing;
+            const btn=document.getElementById('reverseBtn');
+            btn.style.background=isReversing?'linear-gradient(135deg,#44ffaa,#22dd88)':'linear-gradient(135deg,#ff6644,#dd4422)';
+            btn.textContent=isReversing?'🔄 Teskari ✓':'🔄 Teskari';
+            if(isPlaying){if(animFrame) cancelAnimationFrame(animFrame); startAnimation();}
+        });
+
+        // ==================== RESET ====================
+        document.getElementById('resetBtn').addEventListener('click',()=>{
+            if(animFrame) cancelAnimationFrame(animFrame);
+            isPlaying=false; isReversing=false;
+            document.getElementById('playBtn').textContent='▶️ Harakat';
+            document.getElementById('reverseBtn').style.background='linear-gradient(135deg,#ff6644,#dd4422)';
+            document.getElementById('reverseBtn').textContent='🔄 Teskari';
+            t=0; tSlider.value='0'; dataHistory=[]; chartHistory=[];
+            updateDataTable(); trailPoints=[]; if(trailLine){scene.remove(trailLine);trailLine=null;}
+            updateScene();
+            camera.position.set(7,4.5,13); controls.target.set(-6,0,0); controls.update();
+            showToast('🔄 Qayta boshlandi');
+        });
+
+        // ==================== PRESETS ====================
+        document.querySelectorAll('.preset-btn').forEach(btn=>{
+            btn.addEventListener('click',()=>{
+                if(isPlaying){isPlaying=false;if(animFrame) cancelAnimationFrame(animFrame);document.getElementById('playBtn').textContent='▶️ Harakat';}
+                v0Slider.value=btn.dataset.v0; aSlider.value=btn.dataset.a;
+                t=0; tSlider.value='0'; dataHistory=[]; chartHistory=[];
+                updateDataTable(); trailPoints=[]; if(trailLine){scene.remove(trailLine);trailLine=null;}
+                updateFromSliders();
+                showToast('✅ '+btn.textContent+' preset tanlandi');
+            });
+        });
+
+        // ==================== CHECKBOXES ====================
+        document.getElementById('showTrail').addEventListener('change',updateScene);
+        document.getElementById('showVelocity').addEventListener('change',updateScene);
+        document.getElementById('showAccel').addEventListener('change',updateScene);
+        document.getElementById('showGrid').addEventListener('change',e=>gridHelper.visible=e.target.checked);
+        document.getElementById('autoRotate').addEventListener('change',e=>controls.autoRotate=e.target.checked);
+        document.getElementById('showData').addEventListener('change',e=>{
+            document.getElementById('dataPanel').classList.toggle('visible',e.target.checked);
+        });
+        document.getElementById('showChart').addEventListener('change',e=>{
+            document.getElementById('chartPanel').classList.toggle('visible',e.target.checked);
+        });
+        document.getElementById('showAnalysis').addEventListener('change',e=>{
+            document.getElementById('analysisPanel').classList.toggle('visible',e.target.checked);
+        });
+        document.getElementById('copyDataBtn').addEventListener('click',copyData);
+        document.getElementById('downloadBtn').addEventListener('click',downloadCSV);
+
+        // ==================== ANIMATION LOOP ====================
+        function animate(){
+            stars.rotation.y+=.0002;
+            controls.update();
+            renderer.render(scene,camera);
+            labelRenderer.render(scene,camera);
+            requestAnimationFrame(animate);
+        }
+        updateScene(); animate();
+        window.addEventListener('resize',()=>{
+            camera.aspect=window.innerWidth/window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth,window.innerHeight);
+            labelRenderer.setSize(window.innerWidth,window.innerHeight);
+        });
+    </script>
+
+    <!-- ==================== QUIZ SCRIPT (non-module) ==================== -->
+    <script>
+    // ==================== QUIZ SAVOLLAR ====================
+    const QUESTIONS = [
+        {
+            q: "Jism v₀ = 4 m/s boshlang'ich tezlik va a = 2 m/s² tezlanish bilan harakat qilmoqda. t = 3 s da jismning tezligi necha m/s?",
+            opts: ["8 m/s","10 m/s","12 m/s","6 m/s"],
+            ans: 1,
+            exp: "v = v₀ + at = 4 + 2×3 = 10 m/s. To'g'ri javob: 10 m/s."
+        },
+        {
+            q: "s = v₀t + ½at² formulasida 'a' nima ifodalaydı?",
+            opts: ["Boshlang'ich tezlik","Vaqt","Tezlanish","Masofa"],
+            ans: 2,
+            exp: "a — tezlanish (akselerasiya). SI birligi m/s². Formula kinematikaning asosiy tenglamasidir."
+        },
+        {
+            q: "Jism v₀ = 6 m/s va a = -2 m/s² bilan harakat qilsa, qachon to'xtaydi?",
+            opts: ["t = 2 s","t = 3 s","t = 4 s","Hech qachon"],
+            ans: 1,
+            exp: "To'xtash sharti: v = 0. v = v₀ + at → 0 = 6 + (-2)t → t = 3 s."
+        },
+        {
+            q: "Tekis harakat deganda nima tushuniladi?",
+            opts: ["a = 0, v = const","a > 0","v = 0","s = 0"],
+            ans: 0,
+            exp: "Tekis harakatda tezlanish a = 0, shuning uchun tezlik o'zgarmaydi: v = const."
+        },
+        {
+            q: "v₀ = 0, a = 4 m/s² da, t = 5 s da bosib o'tilgan masofa necha metr?",
+            opts: ["10 m","50 m","20 m","100 m"],
+            ans: 1,
+            exp: "s = v₀t + ½at² = 0 + ½×4×25 = 50 m."
+        },
+        {
+            q: "Tezlanish birligini ko'rsating:",
+            opts: ["m/s","m/s²","m","N"],
+            ans: 1,
+            exp: "Tezlanish a = Δv/Δt, shuning uchun birligi m/s² (metr/sekund kvadrat)."
+        },
+        {
+            q: "Jism v₀ = 10 m/s bilan harakat qilib, 5 sekunda keyin to'xtadi. Tezlanishi qancha?",
+            opts: ["-1 m/s²","-2 m/s²","2 m/s²","1 m/s²"],
+            ans: 1,
+            exp: "a = (v - v₀)/t = (0 - 10)/5 = -2 m/s². Manfiy belgi tormozlashni bildiradi."
+        },
+        {
+            q: "Tezlik-vaqt grafigida masofa qanday topiladi?",
+            opts: ["Grafik egilishi","Grafik ostidagi yuza","Grafik tepasidagi nuqta","Grafik qiyaligi"],
+            ans: 1,
+            exp: "s = ∫v dt — vaqt grafigida tezlik ostidagi yuza (integral) masofani beradi."
+        },
+        {
+            q: "v₀ = 3 m/s, a = 1 m/s², t = 4 s da s = ?",
+            opts: ["12 m","16 m","20 m","8 m"],
+            ans: 1,
+            exp: "s = v₀t + ½at² = 3×4 + ½×1×16 = 12 + 8 = 20 m. Wait — 20 m to'g'ri javob!"
+        },
+        {
+            q: "v₀ = 3 m/s, a = 1 m/s², t = 4 s da s = ?",
+            opts: ["12 m","20 m","16 m","8 m"],
+            ans: 1,
+            exp: "s = 3×4 + ½×1×4² = 12 + 8 = 20 m."
+        },
+        {
+            q: "Ikkinchi Nyuton qonuniga ko'ra, F = ma da 'm' nima?",
+            opts: ["Masofa","Massa","Moment","Magnit"],
+            ans: 1,
+            exp: "F = ma tenglamasida m — jism massasi (kg), a — tezlanish (m/s²)."
+        },
+        {
+            q: "Harakat yo'nalishi bilan teskari yo'nalgan tezlanish qanday deyiladi?",
+            opts: ["Tezlanish","Tortishish","Sekinlanish (dezakselerasiya)","Inersiya"],
+            ans: 2,
+            exp: "Harakat yo'nalishiga qarshi tezlanish sekinlanish yoki dezakselerasiya deyiladi."
+        }
+    ];
+
+    let qIdx=0, score=0, total=0, answered=false;
+
+    function shuffleArray(arr){
+        for(let i=arr.length-1;i>0;i--){
+            const j=Math.floor(Math.random()*(i+1));
+            [arr[i],arr[j]]=[arr[j],arr[i]];
+        }
+        return arr;
+    }
+
+    let shuffledQ=shuffleArray([...QUESTIONS]);
+
+    function loadQuestion(){
+        if(qIdx>=shuffledQ.length){
+            endQuiz(); return;
+        }
+        answered=false;
+        const q=shuffledQ[qIdx];
+        document.getElementById('quizQuestion').textContent=q.q;
+        document.getElementById('quizFeedback').style.display='none';
+        document.getElementById('quizNextBtn').style.display='none';
+        document.getElementById('quizScore').textContent=`Ball: ${score} / ${total}`;
+        const prog=((qIdx)/shuffledQ.length*100);
+        document.getElementById('quizProgress').style.width=prog+'%';
+        const opts=document.getElementById('quizOptions');
+        opts.innerHTML='';
+        q.opts.forEach((opt,i)=>{
+            const btn=document.createElement('button');
+            btn.className='quiz-opt'; btn.textContent=opt;
+            btn.addEventListener('click',()=>checkAnswer(i));
+            opts.appendChild(btn);
+        });
+    }
+
+    function checkAnswer(chosen){
+        if(answered) return;
+        answered=true; total++;
+        const q=shuffledQ[qIdx];
+        const opts=document.querySelectorAll('.quiz-opt');
+        const fb=document.getElementById('quizFeedback');
+        opts.forEach((b,i)=>{
+            if(i===q.ans) b.classList.add('correct');
+            else if(i===chosen&&chosen!==q.ans) b.classList.add('wrong');
+            b.style.pointerEvents='none';
+        });
+        if(chosen===q.ans){
+            score++;
+            fb.textContent='✅ To\'g\'ri! '+q.exp;
+            fb.className='quiz-feedback correct';
+        } else {
+            fb.textContent='❌ Noto\'g\'ri. '+q.exp;
+            fb.className='quiz-feedback wrong';
+        }
+        fb.style.display='block';
+        document.getElementById('quizScore').textContent=`Ball: ${score} / ${total}`;
+        document.getElementById('quizNextBtn').style.display='block';
+    }
+
+    function endQuiz(){
+        const pct=Math.round(score/total*100);
+        document.getElementById('quizQuestion').textContent=`🏁 Test yakunlandi! ${score}/${total} (${pct}%)`;
+        document.getElementById('quizOptions').innerHTML='';
+        document.getElementById('quizFeedback').style.display='none';
+        document.getElementById('quizNextBtn').style.display='none';
+        document.getElementById('quizRestartBtn').style.display='block';
+        document.getElementById('quizProgress').style.width='100%';
+        const msg=pct>=80?'🌟 A\'lo!':pct>=60?'👍 Yaxshi!':'📚 Ko\'proq o\'qing!';
+        setTimeout(()=>{ if(typeof showToast==='function') showToast(msg+` ${pct}%`); },300);
+    }
+
+    document.getElementById('quizBtn').addEventListener('click',()=>{
+        qIdx=0; score=0; total=0; answered=false;
+        shuffledQ=shuffleArray([...QUESTIONS]);
+        document.getElementById('quizRestartBtn').style.display='none';
+        document.getElementById('quizPanel').classList.add('visible');
+        loadQuestion();
+    });
+    document.getElementById('quizClose').addEventListener('click',()=>{
+        document.getElementById('quizPanel').classList.remove('visible');
+    });
+    document.getElementById('quizNextBtn').addEventListener('click',()=>{
+        qIdx++; loadQuestion();
+    });
+    document.getElementById('quizRestartBtn').addEventListener('click',()=>{
+        qIdx=0; score=0; total=0; answered=false;
+        shuffledQ=shuffleArray([...QUESTIONS]);
+        document.getElementById('quizRestartBtn').style.display='none';
+        loadQuestion();
+    });
+    </script>
+</body>
+</html>

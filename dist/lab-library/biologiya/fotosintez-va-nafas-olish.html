@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Fotosintez va nafas olish | 3D vizualizatsiya | Biologiya</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', 'Poppins', system-ui, sans-serif;
+        }
+        .info-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(12px);
+            border-radius: 28px;
+            padding: 15px 22px;
+            color: #ffecb0;
+            border-left: 6px solid #44ffaa;
+            z-index: 20;
+            pointer-events: none;
+            max-width: 380px;
+        }
+        .info-panel h1 {
+            margin: 0 0 5px;
+            font-size: 1.3rem;
+        }
+        .info-panel h1 span { color: #44ffaa; }
+        .info-panel .formula {
+            font-family: monospace;
+            font-size: 0.9rem;
+            background: #2a2a3a;
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 30px;
+            margin: 5px 0;
+            color: #aaffcc;
+        }
+        .controls-tip {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.5);
+            padding: 5px 12px;
+            border-radius: 18px;
+            font-size: 11px;
+            color: #ccc;
+            pointer-events: none;
+            z-index: 20;
+        }
+        .stats-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(8px);
+            border-radius: 24px;
+            padding: 12px 20px;
+            max-width: 400px;
+            z-index: 20;
+            pointer-events: none;
+            border-top: 2px solid #44ffaa;
+            color: #ddd;
+            font-size: 13px;
+            font-family: 'Courier New', monospace;
+        }
+        .stats-panel .row {
+            display: flex;
+            justify-content: space-between;
+            padding: 2px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .stats-panel .label { color: #88aacc; }
+        .stats-panel .value { color: #ffaa66; font-weight: bold; }
+        
+        .control-panel {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.88);
+            backdrop-filter: blur(12px);
+            border-radius: 28px;
+            padding: 15px 22px;
+            z-index: 25;
+            pointer-events: auto;
+            text-align: center;
+            border-right: 3px solid #44ffaa;
+            min-width: 280px;
+        }
+        .control-panel label {
+            display: block;
+            font-size: 12px;
+            margin: 6px 0 3px;
+            color: #ffdd99;
+        }
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+            background: #444;
+            height: 4px;
+            border-radius: 5px;
+        }
+        .value-display {
+            font-size: 13px;
+            font-weight: bold;
+            margin: 6px 0;
+            color: #44ffaa;
+            font-family: monospace;
+        }
+        button {
+            background: #44ffaa;
+            border: none;
+            color: #1a2a1a;
+            font-weight: bold;
+            padding: 6px 12px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-size: 11px;
+            margin-top: 6px;
+            transition: 0.1s;
+        }
+        button:hover {
+            background: #66ffcc;
+            transform: scale(1.01);
+        }
+        .btn-group {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 4px;
+        }
+        .btn-group button {
+            flex: 1;
+            min-width: 50px;
+        }
+        .btn-blue { background: #44aaff; color: white; }
+        .btn-blue:hover { background: #66ccff; }
+        .btn-orange { background: #ffaa44; color: #1a1a2a; }
+        .btn-orange:hover { background: #ffcc66; }
+        .btn-purple { background: #aa66ff; color: white; }
+        .btn-purple:hover { background: #cc88ff; }
+        @media (max-width: 700px) {
+            .control-panel { min-width: 240px; padding: 10px 15px; }
+            .info-panel { font-size: 11px; max-width: 260px; }
+            .stats-panel { font-size: 11px; max-width: 280px; padding: 10px 14px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="info-panel">
+        <h1>🌿 <span>Fotosintez</span> va <span>Nafas olish</span></h1>
+        <div class="formula">6CO₂ + 6H₂O → C₆H₁₂O₆ + 6O₂ | C₆H₁₂O₆ + 6O₂ → 6CO₂ + 6H₂O + ATP</div>
+        <p>📌 Fotosintez – yorug'lik energiyasini kimyoviy energiyaga aylantirish. Nafas olish – organik moddalarni oksidlash.</p>
+    </div>
+    
+    <div class="stats-panel" id="statsPanel">
+        <div class="row"><span class="label">🔄 Jarayon</span><span class="value" id="processName">Fotosintez</span></div>
+        <div class="row"><span class="label">⚡ Energiya</span><span class="value" id="energyStatus">Yorug'lik → Kimyoviy</span></div>
+        <div class="row"><span class="label">📥 Kirish</span><span class="value" id="inputMols">CO₂ + H₂O</span></div>
+        <div class="row"><span class="label">📤 Chiqish</span><span class="value" id="outputMols">C₆H₁₂O₆ + O₂</span></div>
+        <div class="row"><span class="label">🔬 Joyi</span><span class="value" id="location">Xloroplast</span></div>
+    </div>
+    
+    <div class="control-panel">
+        <label>🔬 Jarayonni tanlash:</label>
+        <div class="btn-group">
+            <button id="modePhotosynthesis" class="btn-green">🌿 Fotosintez</button>
+            <button id="modeRespiration" class="btn-blue">🔥 Nafas olish</button>
+        </div>
+        
+        <label>⚡ Energiya miqdori: <span id="energySliderVal">50</span>%</label>
+        <input type="range" id="energySlider" min="0" max="100" step="5" value="50">
+        
+        <div class="value-display" id="statusDisplay">Holat: Fotosintez</div>
+        <button id="resetViewBtn" style="background:#666; color:white; margin-top:8px;">🎯 Kamerani markazlashtirish</button>
+        <button id="resetBtn" style="background:#ff6644; color:white; margin-top:4px;">⟳ Qayta tiklash</button>
+    </div>
+    <div class="controls-tip">
+        🖱️ Aylantirish | Scroll: kattalashtirish
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+        
+        // --- SAHNA ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0a1030);
+        scene.fog = new THREE.FogExp2(0x0a1030, 0.006);
+        
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(5, 3.5, 9);
+        camera.lookAt(0, 0, 0);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        document.body.appendChild(renderer.domElement);
+        
+        const labelRenderer = new CSS2DRenderer();
+        labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        labelRenderer.domElement.style.position = 'absolute';
+        labelRenderer.domElement.style.top = '0px';
+        labelRenderer.domElement.style.left = '0px';
+        labelRenderer.domElement.style.pointerEvents = 'none';
+        document.body.appendChild(labelRenderer.domElement);
+        
+        // --- Boshqaruv ---
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.06;
+        controls.zoomSpeed = 1.0;
+        
+        // --- Yorug'lik ---
+        const ambient = new THREE.AmbientLight(0x404060);
+        scene.add(ambient);
+        const mainLight = new THREE.DirectionalLight(0xfff5e0, 1.0);
+        mainLight.position.set(3, 5, 2);
+        mainLight.castShadow = true;
+        scene.add(mainLight);
+        const fillLight = new THREE.PointLight(0x88aaff, 0.5);
+        fillLight.position.set(-1, 2, 3);
+        scene.add(fillLight);
+        
+        // --- Zamin ---
+        const gridHelper = new THREE.GridHelper(10, 20, 0x88aaff, 0x4466aa);
+        gridHelper.position.y = -1.5;
+        gridHelper.material.transparent = true;
+        gridHelper.material.opacity = 0.3;
+        scene.add(gridHelper);
+        
+        // --- Yulduzlar ---
+        const starGeo = new THREE.BufferGeometry();
+        const starCount = 1200;
+        const starPos = new Float32Array(starCount * 3);
+        for (let i = 0; i < starCount; i++) {
+            starPos[i*3] = (Math.random() - 0.5) * 200;
+            starPos[i*3+1] = (Math.random() - 0.5) * 70 + 5;
+            starPos[i*3+2] = (Math.random() - 0.5) * 120 - 60;
+        }
+        starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+        const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.08, transparent: true, opacity: 0.5 }));
+        scene.add(stars);
+        
+        // ========== 3D MODEL ==========
+        let mainGroup = null;
+        let particles = [];
+        let currentMode = 'photosynthesis';
+        let energyLevel = 50;
+        
+        // Molekulalar (zarrachalar)
+        const moleculeColors = {
+            CO2: 0xff6644,
+            H2O: 0x44aaff,
+            O2: 0x66ff66,
+            C6H12O6: 0xffaa44,
+            ATP: 0xff44ff,
+            NADPH: 0x44ffaa
+        };
+        
+        function createPhotosynthesis() {
+            if (mainGroup) scene.remove(mainGroup);
+            particles.forEach(p => scene.remove(p));
+            particles = [];
+            mainGroup = new THREE.Group();
+            
+            // Xloroplast (sharsimon struktura)
+            const chloroMat = new THREE.MeshStandardMaterial({ 
+                color: 0x44aa44, 
+                transparent: true, 
+                opacity: 0.2,
+                emissive: 0x224422,
+                emissiveIntensity: 0.2
+            });
+            const chloroplast = new THREE.Mesh(new THREE.SphereGeometry(1.8, 48, 48), chloroMat);
+            chloroplast.castShadow = true;
+            mainGroup.add(chloroplast);
+            
+            // Tilakoid membranalar (disk shaklida)
+            for (let i = -6; i <= 6; i++) {
+                const disc = new THREE.Mesh(
+                    new THREE.CylinderGeometry(1.0, 1.0, 0.05, 16),
+                    new THREE.MeshStandardMaterial({ color: 0x44ff66, transparent: true, opacity: 0.2 })
+                );
+                disc.position.set(Math.sin(i * 0.5) * 0.8, i * 0.15, Math.cos(i * 0.7) * 0.8);
+                disc.rotation.x = i * 0.2;
+                disc.rotation.z = i * 0.1;
+                mainGroup.add(disc);
+            }
+            
+            // Yorug'lik energiyasi (nurlar)
+            const rayCount = 16;
+            for (let i = 0; i < rayCount; i++) {
+                const angle = (i / rayCount) * Math.PI * 2;
+                const rayMat = new THREE.LineBasicMaterial({ 
+                    color: 0xffdd44, 
+                    transparent: true, 
+                    opacity: 0.15 + (energyLevel / 100) * 0.6
+                });
+                const points = [
+                    new THREE.Vector3(0, 0, 0),
+                    new THREE.Vector3(Math.cos(angle) * 3.0, Math.sin(angle) * 0.5, Math.sin(angle) * 3.0)
+                ];
+                const geo = new THREE.BufferGeometry().setFromPoints(points);
+                const ray = new THREE.Line(geo, rayMat);
+                mainGroup.add(ray);
+            }
+            
+            // Molekulalar (harakatlanuvchi zarrachalar)
+            const molCount = 30;
+            for (let i = 0; i < molCount; i++) {
+                const type = ['CO2', 'H2O', 'O2', 'C6H12O6'][i % 4];
+                const color = moleculeColors[type];
+                const size = type === 'C6H12O6' ? 0.15 : 0.08;
+                const sphere = new THREE.Mesh(
+                    new THREE.SphereGeometry(size, 12, 12),
+                    new THREE.MeshStandardMaterial({ color: color, emissive: 0x442200 })
+                );
+                sphere.userData = {
+                    type: type,
+                    angle: Math.random() * Math.PI * 2,
+                    radius: 0.5 + Math.random() * 1.5,
+                    y: (Math.random() - 0.5) * 2,
+                    speed: 0.005 + Math.random() * 0.01
+                };
+                sphere.position.x = Math.cos(sphere.userData.angle) * sphere.userData.radius;
+                sphere.position.z = Math.sin(sphere.userData.angle) * sphere.userData.radius;
+                sphere.position.y = sphere.userData.y;
+                mainGroup.add(sphere);
+                particles.push(sphere);
+            }
+            
+            scene.add(mainGroup);
+            updateUI('photosynthesis');
+        }
+        
+        function createRespiration() {
+            if (mainGroup) scene.remove(mainGroup);
+            particles.forEach(p => scene.remove(p));
+            particles = [];
+            mainGroup = new THREE.Group();
+            
+            // Mitoxondriya (oval shakl)
+            const mitoMat = new THREE.MeshStandardMaterial({ 
+                color: 0xdd4444, 
+                transparent: true, 
+                opacity: 0.15,
+                emissive: 0x442222,
+                emissiveIntensity: 0.2
+            });
+            const mito = new THREE.Mesh(new THREE.SphereGeometry(1.6, 48, 48), mitoMat);
+            mito.scale.set(1.8, 1.0, 1.4);
+            mito.castShadow = true;
+            mainGroup.add(mito);
+            
+            // Kristalar (ichki membranalar)
+            for (let i = -8; i <= 8; i++) {
+                const cristae = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.7, 0.7, 0.03, 12),
+                    new THREE.MeshStandardMaterial({ color: 0xff6644, transparent: true, opacity: 0.15 })
+                );
+                cristae.position.set(Math.sin(i * 0.3) * 0.6, i * 0.12, Math.cos(i * 0.4) * 0.6);
+                cristae.rotation.x = i * 0.15;
+                cristae.rotation.z = i * 0.08;
+                mainGroup.add(cristae);
+            }
+            
+            // ATP energiya zarrachalari (olov rangli)
+            const atpCount = 40;
+            for (let i = 0; i < atpCount; i++) {
+                const sphere = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.06, 8, 8),
+                    new THREE.MeshStandardMaterial({ 
+                        color: 0xff6644, 
+                        emissive: 0xff4411,
+                        emissiveIntensity: 0.5 + (energyLevel / 100) * 0.5
+                    })
+                );
+                sphere.userData = {
+                    angle: Math.random() * Math.PI * 2,
+                    radius: 0.3 + Math.random() * 1.2,
+                    y: (Math.random() - 0.5) * 1.5,
+                    speed: 0.01 + Math.random() * 0.02,
+                    phase: Math.random() * Math.PI * 2
+                };
+                sphere.position.x = Math.cos(sphere.userData.angle) * sphere.userData.radius;
+                sphere.position.z = Math.sin(sphere.userData.angle) * sphere.userData.radius;
+                sphere.position.y = sphere.userData.y;
+                mainGroup.add(sphere);
+                particles.push(sphere);
+            }
+            
+            scene.add(mainGroup);
+            updateUI('respiration');
+        }
+        
+        function updateUI(mode) {
+            if (mode === 'photosynthesis') {
+                document.getElementById('processName').textContent = 'Fotosintez';
+                document.getElementById('energyStatus').textContent = 'Yorug\'lik → Kimyoviy';
+                document.getElementById('inputMols').textContent = 'CO₂ + H₂O';
+                document.getElementById('outputMols').textContent = 'C₆H₁₂O₆ + O₂';
+                document.getElementById('location').textContent = 'Xloroplast';
+                document.getElementById('statusDisplay').textContent = 'Fotosintez - yorug\'lik energiyasi';
+            } else {
+                document.getElementById('processName').textContent = 'Nafas olish';
+                document.getElementById('energyStatus').textContent = 'Kimyoviy → ATP (energiya)';
+                document.getElementById('inputMols').textContent = 'C₆H₁₂O₆ + O₂';
+                document.getElementById('outputMols').textContent = 'CO₂ + H₂O + ATP';
+                document.getElementById('location').textContent = 'Mitoxondriya';
+                document.getElementById('statusDisplay').textContent = 'Nafas olish - ATP ishlab chiqarish';
+            }
+        }
+        
+        function animateParticles() {
+            if (!mainGroup) return;
+            particles.forEach(p => {
+                const data = p.userData;
+                data.angle += data.speed;
+                const radius = data.radius + Math.sin(Date.now() * 0.001 + data.phase) * 0.1;
+                p.position.x = Math.cos(data.angle) * radius;
+                p.position.z = Math.sin(data.angle) * radius;
+                p.position.y = data.y + Math.sin(Date.now() * 0.002 + data.phase) * 0.2;
+                
+                // Energiya darajasiga qarab rang o'zgarishi
+                if (currentMode === 'respiration') {
+                    const intensity = 0.3 + (energyLevel / 100) * 0.7;
+                    if (p.material) p.material.emissiveIntensity = intensity;
+                }
+            });
+        }
+        
+        // ========== TUGMALAR ==========
+        document.getElementById('modePhotosynthesis').addEventListener('click', () => {
+            currentMode = 'photosynthesis';
+            createPhotosynthesis();
+        });
+        
+        document.getElementById('modeRespiration').addEventListener('click', () => {
+            currentMode = 'respiration';
+            createRespiration();
+        });
+        
+        document.getElementById('energySlider').addEventListener('input', (e) => {
+            energyLevel = parseInt(e.target.value);
+            document.getElementById('energySliderVal').textContent = energyLevel;
+            // Vizual ranglarni yangilash
+            if (mainGroup) {
+                mainGroup.children.forEach(child => {
+                    if (child.material && child.material.emissiveIntensity !== undefined) {
+                        child.material.emissiveIntensity = 0.2 + (energyLevel / 100) * 0.6;
+                    }
+                });
+            }
+        });
+        
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            energyLevel = 50;
+            document.getElementById('energySlider').value = '50';
+            document.getElementById('energySliderVal').textContent = '50';
+            currentMode = 'photosynthesis';
+            createPhotosynthesis();
+        });
+        
+        document.getElementById('resetViewBtn').addEventListener('click', () => {
+            camera.position.set(5, 3.5, 9);
+            controls.target.set(0, 0, 0);
+            controls.update();
+        });
+        
+        // ========== ANIMATSIYA ==========
+        function animate() {
+            animateParticles();
+            stars.rotation.y += 0.0003;
+            controls.update();
+            renderer.render(scene, camera);
+            labelRenderer.render(scene, camera);
+            requestAnimationFrame(animate);
+        }
+        
+        // Boshlash
+        createPhotosynthesis();
+        animate();
+        
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+        console.log('Fotosintez va nafas olish | 3D vizualizatsiya');
+    </script>
+</body>
+</html>

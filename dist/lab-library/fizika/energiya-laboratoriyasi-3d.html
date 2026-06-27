@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Energiya · Ish · Quvvat — 3D Laboratoriya</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+:root {
+  --work-clr: #ff5252;
+  --energy-clr: #ffb300;
+  --power-clr: #40c4ff;
+  --bg: #060614;
+  --panel-bg: rgba(8,10,30,0.88);
+  --border: rgba(255,255,255,0.07);
+  --text: #d0d6f0;
+  --dim: rgba(255,255,255,0.35);
+}
+body { background:var(--bg); overflow:hidden; font-family:'Segoe UI',Arial,sans-serif; color:var(--text); }
+
+/* ====== HEADER ====== */
+#header {
+  position:absolute; top:14px; left:50%; transform:translateX(-50%);
+  background:var(--panel-bg); backdrop-filter:blur(12px);
+  border:1px solid var(--border); border-radius:50px;
+  padding:8px 28px; z-index:30; text-align:center; pointer-events:none;
+}
+#header h1 { font-size:1rem; font-weight:300; letter-spacing:3px; }
+#header h1 b { color:var(--energy-clr); font-weight:800; }
+#header p { font-size:0.5rem; letter-spacing:4px; color:var(--dim); margin-top:1px; }
+
+/* ====== LEFT PANEL: Formula + Tushuntirish ====== */
+#leftPanel {
+  position:absolute; left:18px; top:50%; transform:translateY(-50%);
+  width:230px; background:var(--panel-bg); backdrop-filter:blur(14px);
+  border:1px solid var(--border); border-radius:18px;
+  padding:18px 16px; z-index:30; display:flex; flex-direction:column; gap:14px;
+  box-shadow:0 20px 60px rgba(0,0,0,0.6);
+}
+#leftPanel .section-label {
+  font-size:0.55rem; letter-spacing:3px; color:var(--dim); text-transform:uppercase;
+}
+.formula-box {
+  background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.07);
+  border-radius:12px; padding:12px 14px;
+  transition: border-color 0.4s, background 0.4s;
+}
+.formula-box.active-work  { border-color:rgba(255,82,82,0.4);  background:rgba(255,82,82,0.06);  }
+.formula-box.active-energy{ border-color:rgba(255,179,0,0.4);  background:rgba(255,179,0,0.06);  }
+.formula-box.active-power { border-color:rgba(64,196,255,0.4); background:rgba(64,196,255,0.06); }
+.formula-box .formula-title {
+  font-size:0.7rem; font-weight:700; display:flex; align-items:center; gap:7px; margin-bottom:5px;
+}
+.formula-box .formula-title .dot {
+  width:8px; height:8px; border-radius:50%; flex-shrink:0;
+}
+.formula-box .formula-math {
+  font-family:'Courier New',monospace; font-size:1.05rem; font-weight:700;
+  text-align:center; padding:6px; letter-spacing:1px;
+}
+.formula-box .formula-math.work-f   { color:var(--work-clr);   }
+.formula-box .formula-math.energy-f { color:var(--energy-clr); }
+.formula-box .formula-math.power-f  { color:var(--power-clr);  }
+.formula-box .formula-desc { font-size:0.68rem; color:var(--dim); line-height:1.55; margin-top:5px; }
+.formula-box .vars { margin-top:8px; display:flex; flex-direction:column; gap:3px; }
+.formula-box .vars span { font-size:0.62rem; color:var(--dim); }
+.formula-box .vars span b { color:var(--text); font-family:'Courier New',monospace; }
+
+/* ====== RIGHT PANEL: Stats + Tugmalar ====== */
+#rightPanel {
+  position:absolute; right:18px; top:50%; transform:translateY(-50%);
+  width:200px; z-index:30; display:flex; flex-direction:column; gap:10px;
+}
+
+/* Live meters */
+#meters {
+  background:var(--panel-bg); backdrop-filter:blur(14px);
+  border:1px solid var(--border); border-radius:18px;
+  padding:16px 14px; box-shadow:0 20px 60px rgba(0,0,0,0.6);
+}
+#meters .section-label { font-size:0.55rem; letter-spacing:3px; color:var(--dim); margin-bottom:10px; display:block; }
+.meter-row { margin-bottom:10px; }
+.meter-row:last-child { margin-bottom:0; }
+.meter-row .m-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; }
+.meter-row .m-name { font-size:0.7rem; display:flex; align-items:center; gap:6px; }
+.meter-row .m-dot { width:7px; height:7px; border-radius:50%; }
+.meter-row .m-val { font-size:0.85rem; font-weight:800; font-variant-numeric:tabular-nums; }
+.m-val.wv { color:var(--work-clr); }
+.m-val.ev { color:var(--energy-clr); }
+.m-val.pv { color:var(--power-clr); }
+.meter-bar { height:4px; background:rgba(255,255,255,0.07); border-radius:4px; overflow:hidden; }
+.meter-bar-fill { height:100%; border-radius:4px; transition:width 0.1s; }
+.bar-work  { background:linear-gradient(90deg,#c62828,#ff5252); }
+.bar-energy{ background:linear-gradient(90deg,#f57f17,#ffb300); }
+.bar-power { background:linear-gradient(90deg,#0277bd,#40c4ff); }
+
+/* Tugmalar */
+#buttons {
+  background:var(--panel-bg); backdrop-filter:blur(14px);
+  border:1px solid var(--border); border-radius:18px;
+  padding:14px; box-shadow:0 20px 60px rgba(0,0,0,0.6);
+  display:flex; flex-direction:column; gap:8px;
+}
+#buttons .section-label { font-size:0.55rem; letter-spacing:3px; color:var(--dim); display:block; margin-bottom:2px; }
+.btn-scene {
+  display:flex; align-items:center; gap:10px;
+  background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07);
+  border-radius:12px; padding:10px 12px; cursor:pointer;
+  transition:all 0.25s; color:var(--text); font-family:inherit;
+  text-align:left; width:100%;
+}
+.btn-scene:hover { background:rgba(255,255,255,0.07); transform:translateX(2px); }
+.btn-scene.sel-work   { border-left:3px solid var(--work-clr);   background:rgba(255,82,82,0.08);  }
+.btn-scene.sel-energy { border-left:3px solid var(--energy-clr); background:rgba(255,179,0,0.08); }
+.btn-scene.sel-power  { border-left:3px solid var(--power-clr);  background:rgba(64,196,255,0.08); }
+.btn-scene .b-icon { font-size:1.2rem; }
+.btn-scene .b-text strong { font-size:0.78rem; font-weight:700; display:block; }
+.btn-scene .b-text span { font-size:0.6rem; color:var(--dim); }
+
+/* ====== BOTTOM INFO BAR ====== */
+#infoBar {
+  position:absolute; bottom:18px; left:50%; transform:translateX(-50%);
+  background:var(--panel-bg); backdrop-filter:blur(12px);
+  border:1px solid var(--border); border-radius:50px;
+  padding:7px 22px; z-index:30; pointer-events:none;
+  font-size:0.6rem; letter-spacing:2px; color:var(--dim);
+  display:flex; gap:18px; align-items:center;
+}
+#infoBar span { display:flex; align-items:center; gap:6px; }
+#infoBar span::before { content:''; width:5px; height:5px; background:currentColor; border-radius:50%; opacity:0.5; }
+
+/* ====== STEP BADGE ====== */
+#stepBadge {
+  position:absolute; top:70px; left:50%; transform:translateX(-50%);
+  z-index:25; pointer-events:none; transition:opacity 0.5s;
+}
+#stepBadge .badge-pill {
+  background:rgba(0,0,0,0.75); backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,0.1); border-radius:30px;
+  padding:5px 18px; font-size:0.65rem; letter-spacing:1px;
+  display:flex; align-items:center; gap:8px;
+}
+#stepBadge .badge-pill .step-num {
+  width:20px; height:20px; border-radius:50%;
+  font-size:0.7rem; font-weight:800; display:flex; align-items:center; justify-content:center;
+}
+
+/* mobile */
+@media(max-width:700px){
+  #leftPanel,#infoBar { display:none; }
+  #rightPanel { right:10px; top:auto; bottom:12px; transform:none; width:160px; }
+  #header h1 { font-size:0.75rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div id="header">
+  <h1>⚡ <b>Energiya</b> · Ish · Quvvat</h1>
+  <p>3D INTERAKTIV LABORATORIYA</p>
+</div>
+
+<!-- STEP BADGE -->
+<div id="stepBadge">
+  <div class="badge-pill">
+    <span class="step-num" id="stepNum" style="background:#ff5252;color:#fff;">1</span>
+    <span id="stepLabel">Ish: Kuch × Ko'chish</span>
+  </div>
+</div>
+
+<!-- LEFT PANEL -->
+<div id="leftPanel">
+  <span class="section-label">📐 Formulalar</span>
+
+  <!-- ISH -->
+  <div class="formula-box active-work" id="fWork">
+    <div class="formula-title">
+      <span class="dot" style="background:var(--work-clr); box-shadow:0 0 8px var(--work-clr);"></span>
+      Bajarilgan Ish
+    </div>
+    <div class="formula-math work-f">A = F · s</div>
+    <div class="formula-desc">Kuch yo'nalishida yuz bergan ko'chish natijasida bajarilgan ish.</div>
+    <div class="vars">
+      <span><b>A</b> — ish, Joul [J]</span>
+      <span><b>F</b> — kuch, Newton [N]</span>
+      <span><b>s</b> — ko'chish, metr [m]</span>
+    </div>
+  </div>
+
+  <!-- ENERGIYA -->
+  <div class="formula-box" id="fEnergy">
+    <div class="formula-title">
+      <span class="dot" style="background:var(--energy-clr); box-shadow:0 0 8px var(--energy-clr);"></span>
+      Kinetik Energiya
+    </div>
+    <div class="formula-math energy-f">Eₖ = ½ · m · v²</div>
+    <div class="formula-desc">Harakat qilayotgan jismning energiyasi massasi va tezligiga bog'liq.</div>
+    <div class="vars">
+      <span><b>Eₖ</b> — kinetik energiya [J]</span>
+      <span><b>m</b> — massa [kg]</span>
+      <span><b>v</b> — tezlik [m/s]</span>
+    </div>
+  </div>
+
+  <!-- QUVVAT -->
+  <div class="formula-box" id="fPower">
+    <div class="formula-title">
+      <span class="dot" style="background:var(--power-clr); box-shadow:0 0 8px var(--power-clr);"></span>
+      Mexanik Quvvat
+    </div>
+    <div class="formula-math power-f">P = A / t</div>
+    <div class="formula-desc">Vaqt birligida bajarilgan ish — quvvat miqdorini belgilaydi.</div>
+    <div class="vars">
+      <span><b>P</b> — quvvat, Vatt [W]</span>
+      <span><b>A</b> — ish [J]</span>
+      <span><b>t</b> — vaqt [s]</span>
+    </div>
+  </div>
+</div>
+
+<!-- RIGHT PANEL -->
+<div id="rightPanel">
+
+  <!-- Live meters -->
+  <div id="meters">
+    <span class="section-label">📊 Jonli O'lchov</span>
+    <div class="meter-row">
+      <div class="m-head">
+        <span class="m-name"><span class="m-dot" style="background:var(--work-clr);"></span>Ish</span>
+        <span class="m-val wv" id="wVal">0.0 J</span>
+      </div>
+      <div class="meter-bar"><div class="meter-bar-fill bar-work" id="wBar" style="width:50%;"></div></div>
+    </div>
+    <div class="meter-row">
+      <div class="m-head">
+        <span class="m-name"><span class="m-dot" style="background:var(--energy-clr);"></span>Energiya</span>
+        <span class="m-val ev" id="eVal">0.0 J</span>
+      </div>
+      <div class="meter-bar"><div class="meter-bar-fill bar-energy" id="eBar" style="width:50%;"></div></div>
+    </div>
+    <div class="meter-row">
+      <div class="m-head">
+        <span class="m-name"><span class="m-dot" style="background:var(--power-clr);"></span>Quvvat</span>
+        <span class="m-val pv" id="pVal">0.0 W</span>
+      </div>
+      <div class="meter-bar"><div class="meter-bar-fill bar-power" id="pBar" style="width:50%;"></div></div>
+    </div>
+  </div>
+
+  <!-- Tugmalar -->
+  <div id="buttons">
+    <span class="section-label">🔭 Ko'rish</span>
+    <button class="btn-scene sel-work" id="btnWork">
+      <span class="b-icon">⚙️</span>
+      <span class="b-text"><strong>Ish</strong><span>G'ildirak aylanishi</span></span>
+    </button>
+    <button class="btn-scene" id="btnEnergy">
+      <span class="b-icon">⚡</span>
+      <span class="b-text"><strong>Energiya</strong><span>Yorug' shar to'planishi</span></span>
+    </button>
+    <button class="btn-scene" id="btnPower">
+      <span class="b-icon">🚀</span>
+      <span class="b-text"><strong>Quvvat</strong><span>Oqim uzatilishi</span></span>
+    </button>
+  </div>
+</div>
+
+<!-- BOTTOM INFO -->
+<div id="infoBar">
+  <span>🖱 Sichqoncha: aylantirib ko'ring</span>
+  <span>🔍 Scroll: yaqinlashtirish</span>
+  <span>🖱 O'ng tugma: surish</span>
+</div>
+
+<!-- THREE.JS IMPORTMAP -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.158.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.158.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* ============================================================
+   SAHNA VA KAMERA
+   ============================================================ */
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x060614, 0.045);
+
+const camera = new THREE.PerspectiveCamera(42, innerWidth / innerHeight, 0.05, 200);
+camera.position.set(6, 4, 10);
+camera.lookAt(0, 0.5, 0);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+document.body.appendChild(renderer.domElement);
+
+/* ============================================================
+   YORITISH TIZIMI
+   ============================================================ */
+scene.add(new THREE.AmbientLight(0x1a1a3a, 1.2));
+
+const sun = new THREE.DirectionalLight(0xfff5e0, 1.8);
+sun.position.set(8, 14, 10);
+sun.castShadow = true;
+sun.shadow.mapSize.setScalar(2048);
+sun.shadow.camera.near = 0.5;
+sun.shadow.camera.far = 60;
+sun.shadow.camera.left = -12; sun.shadow.camera.right = 12;
+sun.shadow.camera.top  =  12; sun.shadow.camera.bottom= -12;
+sun.shadow.bias = -0.001;
+scene.add(sun);
+
+const rimLight = new THREE.DirectionalLight(0x4466ff, 0.6);
+rimLight.position.set(-8, 3, -6);
+scene.add(rimLight);
+
+const backLight = new THREE.DirectionalLight(0xff8822, 0.4);
+backLight.position.set(-2, -2, -10);
+scene.add(backLight);
+
+/* ============================================================
+   YULDUZ MAYDON
+   ============================================================ */
+(function buildStars() {
+  const geo = new THREE.BufferGeometry();
+  const n = 3000;
+  const pos = new Float32Array(n * 3);
+  const col = new Float32Array(n * 3);
+  const starColors = [
+    [0.6, 0.7, 1.0], [1.0, 0.9, 0.7], [0.9, 0.9, 1.0], [0.7, 0.8, 1.0]
+  ];
+  for (let i = 0; i < n; i++) {
+    const r = 80 + Math.random() * 60;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(2 * Math.random() - 1);
+    pos[i*3]   = r * Math.sin(phi) * Math.cos(theta);
+    pos[i*3+1] = r * Math.sin(phi) * Math.sin(theta);
+    pos[i*3+2] = r * Math.cos(phi);
+    const c = starColors[Math.floor(Math.random() * starColors.length)];
+    col[i*3]=c[0]; col[i*3+1]=c[1]; col[i*3+2]=c[2];
+  }
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute('color',    new THREE.BufferAttribute(col, 3));
+  const mat = new THREE.PointsMaterial({ size: 0.18, vertexColors: true, transparent: true, opacity: 0.7 });
+  const stars = new THREE.Points(geo, mat);
+  scene.add(stars);
+  return stars;
+})();
+
+/* ============================================================
+   ZAMIN SATHI
+   ============================================================ */
+const groundMat = new THREE.MeshStandardMaterial({
+  color: 0x0d0f28, roughness: 0.9, metalness: 0.05,
+  transparent: true, opacity: 0.35
+});
+const ground = new THREE.Mesh(new THREE.CircleGeometry(10, 64), groundMat);
+ground.rotation.x = -Math.PI / 2;
+ground.position.y = -1.8;
+ground.receiveShadow = true;
+scene.add(ground);
+
+const grid = new THREE.GridHelper(16, 24, 0x2255aa, 0x112244);
+grid.position.y = -1.75;
+grid.material.transparent = true;
+grid.material.opacity = 0.12;
+scene.add(grid);
+
+/* ============================================================
+   YORDAMCHI FUNKSIYALAR
+   ============================================================ */
+function makeGlowSprite(color, radius) {
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+  const g = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+  g.addColorStop(0, color + 'cc');
+  g.addColorStop(0.35, color + '55');
+  g.addColorStop(1, color + '00');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 128, 128);
+  const tex = new THREE.CanvasTexture(canvas);
+  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
+  const sprite = new THREE.Sprite(mat);
+  sprite.scale.setScalar(radius);
+  return sprite;
+}
+
+/* ============================================================
+   1. ISH G'ILDIRAGI — murakkab turbina
+   ============================================================ */
+const workGroup = new THREE.Group();
+workGroup.position.set(-2.6, 0.2, 0);
+
+// Tashqi halqa
+const rimMat = new THREE.MeshStandardMaterial({
+  color: 0xff4040, emissive: 0x550000, roughness: 0.25, metalness: 0.75
+});
+const rim = new THREE.Mesh(new THREE.TorusGeometry(1.65, 0.14, 32, 64), rimMat);
+rim.castShadow = true;
+workGroup.add(rim);
+
+// Ichki halqa
+const innerRim = new THREE.Mesh(
+  new THREE.TorusGeometry(0.9, 0.07, 16, 48),
+  new THREE.MeshStandardMaterial({ color: 0xff6060, emissive: 0x330000, roughness: 0.3, metalness: 0.6 })
+);
+workGroup.add(innerRim);
+
+// G'ildirak spitslari (12 ta)
+const spokeMat = new THREE.MeshStandardMaterial({ color: 0xff7070, emissive: 0x220000, roughness: 0.4, metalness: 0.5 });
+const spokeGeo = new THREE.BoxGeometry(0.07, 0.07, 1.5);
+for (let i = 0; i < 12; i++) {
+  const a = (i / 12) * Math.PI * 2;
+  const s = new THREE.Mesh(spokeGeo, spokeMat);
+  s.position.set(Math.sin(a) * 1.27, Math.cos(a) * 1.27, 0);
+  s.rotation.z = a;
+  s.castShadow = true;
+  workGroup.add(s);
+}
+
+// Turbina qanotlari (8 ta)
+const bladeMat = new THREE.MeshStandardMaterial({ color: 0xff3333, emissive: 0x660000, roughness: 0.2, metalness: 0.8 });
+for (let i = 0; i < 8; i++) {
+  const a = (i / 8) * Math.PI * 2;
+  const blade = new THREE.Mesh(
+    new THREE.BoxGeometry(0.4, 0.12, 0.05),
+    bladeMat
+  );
+  blade.position.set(Math.sin(a) * 1.27, Math.cos(a) * 1.27, 0);
+  blade.rotation.z = a + Math.PI / 4;
+  workGroup.add(blade);
+}
+
+// Markaziy vint
+const hubMat = new THREE.MeshStandardMaterial({ color: 0xffaa00, emissive: 0x552200, roughness: 0.15, metalness: 0.9 });
+const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.38, 32), hubMat);
+hub.rotation.x = Math.PI / 2;
+hub.castShadow = true;
+workGroup.add(hub);
+
+// Vintdagi gvintt effekti
+const boltMat = new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.1, metalness: 1 });
+for (let i = 0; i < 6; i++) {
+  const a = (i / 6) * Math.PI * 2;
+  const bolt = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 8), boltMat);
+  bolt.position.set(Math.sin(a) * 0.22, Math.cos(a) * 0.22, 0.22);
+  workGroup.add(bolt);
+}
+
+// Ish uchun glow sprite
+const workGlow = makeGlowSprite('#ff2200', 5.5);
+workGlow.position.set(-2.6, 0.2, 0);
+scene.add(workGlow);
+
+const workLight = new THREE.PointLight(0xff4422, 1.2, 7);
+workLight.position.set(-2.6, 1.5, 0);
+scene.add(workLight);
+
+scene.add(workGroup);
+
+/* Kuch vektori strelkasi */
+const arrowDir = new THREE.Vector3(0.7, 0.7, 0).normalize();
+const arrowHelper = new THREE.ArrowHelper(arrowDir, new THREE.Vector3(-2.6, -1.2, 0), 1.2, 0xff6644, 0.28, 0.18);
+scene.add(arrowHelper);
+
+/* ============================================================
+   2. ENERGIYA SHARI — plazmali tuzilish
+   ============================================================ */
+const energyGroup = new THREE.Group();
+energyGroup.position.set(2.4, 0.5, 0);
+
+// Asosiy shar
+const sphereMat = new THREE.MeshStandardMaterial({
+  color: 0xff8800, emissive: 0xff4400,
+  roughness: 0.15, metalness: 0.05,
+  emissiveIntensity: 0.8,
+  transparent: true, opacity: 0.92
+});
+const energySphere = new THREE.Mesh(new THREE.SphereGeometry(0.88, 48, 48), sphereMat);
+energySphere.castShadow = true;
+energyGroup.add(energySphere);
+
+// Tashqi qatlam (qobiq)
+const shellMat = new THREE.MeshStandardMaterial({
+  color: 0xffcc00, emissive: 0xff6600,
+  roughness: 0.05, metalness: 0.2,
+  emissiveIntensity: 0.4,
+  transparent: true, opacity: 0.18,
+  side: THREE.BackSide
+});
+const shell = new THREE.Mesh(new THREE.SphereGeometry(1.15, 32, 32), shellMat);
+energyGroup.add(shell);
+
+// Ichki energiya halqalari (3 ta)
+const ringMat = new THREE.MeshBasicMaterial({ color: 0xffcc44, transparent: true, opacity: 0.35, side: THREE.DoubleSide });
+for (let i = 0; i < 3; i++) {
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(1.0 + i * 0.18, 0.015, 8, 64), ringMat.clone());
+  ring.rotation.x = (i * Math.PI) / 3;
+  ring.rotation.y = (i * Math.PI) / 4;
+  energyGroup.add(ring);
+}
+
+scene.add(energyGroup);
+
+// Eneriya glow
+const energyGlow = makeGlowSprite('#ff8800', 7.0);
+energyGlow.position.set(2.4, 0.5, 0);
+scene.add(energyGlow);
+
+const energyLight = new THREE.PointLight(0xffaa00, 1.4, 8);
+energyLight.position.set(2.4, 2.0, 0.5);
+scene.add(energyLight);
+
+// Orbital zarrachalar (200 ta)
+const pGeo = new THREE.BufferGeometry();
+const pCount = 200;
+const pPos = new Float32Array(pCount * 3);
+const pVel = new Float32Array(pCount * 3);
+for (let i = 0; i < pCount; i++) {
+  const theta = Math.random() * Math.PI * 2;
+  const phi   = Math.acos(2 * Math.random() - 1);
+  const r     = 0.9 + Math.random() * 0.5;
+  pPos[i*3]   = Math.sin(phi) * Math.cos(theta) * r;
+  pPos[i*3+1] = Math.sin(phi) * Math.sin(theta) * r;
+  pPos[i*3+2] = Math.cos(phi) * r;
+  pVel[i*3]   = (Math.random() - 0.5) * 0.01;
+  pVel[i*3+1] = (Math.random() - 0.5) * 0.01;
+  pVel[i*3+2] = (Math.random() - 0.5) * 0.01;
+}
+pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+const pMat = new THREE.PointsMaterial({
+  color: 0xffcc66, size: 0.055, transparent: true, opacity: 0.9,
+  blending: THREE.AdditiveBlending, depthWrite: false
+});
+const particles = new THREE.Points(pGeo, pMat);
+energyGroup.add(particles);
+
+/* ============================================================
+   3. QUVVAT OQIMI — spiral giperelips
+   ============================================================ */
+const powerGroup = new THREE.Group();
+powerGroup.position.set(0, 0.3, 3.0);
+
+// 5 ta spiral chiziq
+const spiralColors = [0x40c4ff, 0x80d8ff, 0x29b6f6, 0x00bcd4, 0x4dd0e1];
+const spiralLines = [];
+for (let j = 0; j < 5; j++) {
+  const pts = [];
+  for (let i = 0; i <= 60; i++) {
+    const t = i / 60;
+    const twist = t * Math.PI * 5 + j * (Math.PI * 2 / 5);
+    const rx = 1.3 + 0.25 * Math.sin(twist * 0.7);
+    const ry = 0.7 + 0.15 * Math.cos(twist * 0.5);
+    pts.push(new THREE.Vector3(
+      Math.cos(twist) * rx,
+      Math.sin(twist) * ry,
+      (t - 0.5) * 3.5
+    ));
+  }
+  const geo = new THREE.BufferGeometry().setFromPoints(pts);
+  const mat = new THREE.LineBasicMaterial({
+    color: spiralColors[j], transparent: true, opacity: 0.55
+  });
+  const line = new THREE.Line(geo, mat);
+  spiralLines.push({ line, offset: j * (Math.PI * 2 / 5) });
+  powerGroup.add(line);
+}
+
+// Yadro silindr (truba)
+const tubeMat = new THREE.MeshStandardMaterial({
+  color: 0x00aacc, emissive: 0x003366,
+  roughness: 0.1, metalness: 0.8,
+  transparent: true, opacity: 0.25,
+  side: THREE.DoubleSide
+});
+const tube = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 3.5, 32, 1, true), tubeMat);
+tube.rotation.x = Math.PI / 2;
+powerGroup.add(tube);
+
+// Oqim zarrachalari (150 ta)
+const flowGeo = new THREE.BufferGeometry();
+const fCount = 150;
+const fPos = new Float32Array(fCount * 3);
+const fMeta = new Float32Array(fCount); // progress
+for (let i = 0; i < fCount; i++) {
+  fMeta[i] = Math.random();
+  const t = fMeta[i];
+  const twist = t * Math.PI * 5 + Math.random() * Math.PI * 2;
+  fPos[i*3]   = Math.cos(twist) * (0.7 + Math.random() * 0.6);
+  fPos[i*3+1] = Math.sin(twist) * 0.4;
+  fPos[i*3+2] = (t - 0.5) * 3.5;
+}
+flowGeo.setAttribute('position', new THREE.BufferAttribute(fPos, 3));
+const flowMat = new THREE.PointsMaterial({
+  color: 0x40e0ff, size: 0.07, transparent: true, opacity: 0.9,
+  blending: THREE.AdditiveBlending, depthWrite: false
+});
+const flowPts = new THREE.Points(flowGeo, flowMat);
+powerGroup.add(flowPts);
+
+// Quvvat uchun glow
+const powerGlow = makeGlowSprite('#0088ff', 6.0);
+powerGlow.position.set(0, 0.3, 3.0);
+scene.add(powerGlow);
+
+const powerLight = new THREE.PointLight(0x40c4ff, 1.0, 7);
+powerLight.position.set(0, 1.5, 3.0);
+scene.add(powerLight);
+
+scene.add(powerGroup);
+
+/* ============================================================
+   ORBIT CONTROLS
+   ============================================================ */
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.06;
+controls.target.set(0, 0.5, 1);
+controls.minDistance = 3;
+controls.maxDistance = 25;
+controls.update();
+
+/* ============================================================
+   UI ELEMENTLARI
+   ============================================================ */
+const wVal = document.getElementById('wVal');
+const eVal = document.getElementById('eVal');
+const pVal = document.getElementById('pVal');
+const wBar = document.getElementById('wBar');
+const eBar = document.getElementById('eBar');
+const pBar = document.getElementById('pBar');
+const stepNum   = document.getElementById('stepNum');
+const stepLabel = document.getElementById('stepLabel');
+
+const fWork   = document.getElementById('fWork');
+const fEnergy = document.getElementById('fEnergy');
+const fPower  = document.getElementById('fPower');
+const btnWork   = document.getElementById('btnWork');
+const btnEnergy = document.getElementById('btnEnergy');
+const btnPower  = document.getElementById('btnPower');
+
+const stepData = {
+  work:   { num:'1', label:'Ish: A = F · s', clr:'#ff5252' },
+  energy: { num:'2', label:'Energiya: Eₖ = ½·m·v²', clr:'#ffb300' },
+  power:  { num:'3', label:'Quvvat: P = A / t', clr:'#40c4ff' }
+};
+
+let activeScene = 'work';
+
+function selectScene(type) {
+  activeScene = type;
+  [btnWork, btnEnergy, btnPower].forEach(b => {
+    b.className = 'btn-scene';
+  });
+  [fWork, fEnergy, fPower].forEach(f => {
+    f.className = 'formula-box';
+  });
+  if (type === 'work') {
+    btnWork.className = 'btn-scene sel-work';
+    fWork.className   = 'formula-box active-work';
+  } else if (type === 'energy') {
+    btnEnergy.className = 'btn-scene sel-energy';
+    fEnergy.className   = 'formula-box active-energy';
+  } else {
+    btnPower.className = 'btn-scene sel-power';
+    fPower.className   = 'formula-box active-power';
+  }
+  const d = stepData[type];
+  stepNum.textContent = d.num;
+  stepNum.style.background = d.clr;
+  stepLabel.textContent = d.label;
+
+  // Kamera fokusi
+  const targets = { work: [-2.6,0.2,0], energy: [2.4,0.5,0], power: [0,0.3,3.0] };
+  const tgt = targets[type];
+  controls.target.set(...tgt);
+}
+
+btnWork.addEventListener('click',   () => selectScene('work'));
+btnEnergy.addEventListener('click', () => selectScene('energy'));
+btnPower.addEventListener('click',  () => selectScene('power'));
+
+/* ============================================================
+   ANIMATSIYA SIKLI
+   ============================================================ */
+const clock = new THREE.Clock();
+let frame = 0;
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = clock.getDelta();
+  const t  = clock.elapsedTime;
+  frame++;
+
+  /* --- 1. ISH G'ILDIRAGI --- */
+  workGroup.rotation.z += dt * 2.2;
+  workGroup.rotation.x  = Math.sin(t * 0.25) * 0.06;
+  workLight.intensity   = 0.9 + 0.5 * Math.sin(t * 1.6);
+  workGlow.material.opacity = 0.3 + 0.2 * Math.sin(t * 1.2);
+  arrowHelper.setDirection(new THREE.Vector3(
+    Math.cos(t * 0.4), Math.sin(t * 0.4 + 1), 0
+  ).normalize());
+
+  /* --- 2. ENERGIYA SHARI --- */
+  const pulse = 1 + 0.07 * Math.sin(t * 2.2);
+  energySphere.scale.setScalar(pulse);
+  shell.scale.setScalar(1 + 0.04 * Math.sin(t * 1.4 + 0.7));
+  const hue = 0.07 + 0.05 * Math.sin(t * 0.4);
+  energySphere.material.color.setHSL(hue, 1, 0.55);
+  energySphere.material.emissive.setHSL(hue, 1, 0.35);
+  energyLight.intensity = 1.0 + 0.8 * Math.sin(t * 1.5);
+  energyGlow.material.opacity = 0.25 + 0.15 * Math.sin(t * 0.9);
+
+  // Orbital zarrachalar harakat
+  if (frame % 2 === 0) {
+    const pa = pGeo.attributes.position.array;
+    for (let i = 0; i < pCount; i++) {
+      const px = pa[i*3] - 0; const py = pa[i*3+1]; const pz = pa[i*3+2];
+      const r = Math.sqrt(px*px + py*py + pz*pz) || 0.001;
+      const theta2 = Math.atan2(py, px) + dt * (0.6 + 0.4 * Math.sin(i));
+      const phi2   = Math.acos(Math.max(-1, Math.min(1, pz / r))) + dt * 0.12;
+      const nr     = 0.9 + 0.45 * Math.sin(t * 0.7 + i * 0.15);
+      pa[i*3]   = Math.sin(phi2) * Math.cos(theta2) * nr;
+      pa[i*3+1] = Math.sin(phi2) * Math.sin(theta2) * nr;
+      pa[i*3+2] = Math.cos(phi2) * nr;
+    }
+    pGeo.attributes.position.needsUpdate = true;
+  }
+
+  // Energiya halqalari aylanishi
+  energyGroup.children.forEach((child, idx) => {
+    if (child.geometry && child.geometry.type === 'TorusGeometry') {
+      child.rotation.z += dt * (0.4 + idx * 0.15);
+      child.rotation.x += dt * 0.1;
+    }
+  });
+
+  /* --- 3. QUVVAT OQIMI --- */
+  powerGroup.rotation.y += dt * 0.4;
+
+  // Oqim zarrachalarini oldinga siljitish
+  if (frame % 2 === 0) {
+    const fa = flowGeo.attributes.position.array;
+    for (let i = 0; i < fCount; i++) {
+      fMeta[i] += dt * 0.55;
+      if (fMeta[i] > 1) fMeta[i] -= 1;
+      const tt  = fMeta[i];
+      const twi = tt * Math.PI * 5 + (i / fCount) * Math.PI * 2;
+      fa[i*3]   = Math.cos(twi) * (0.7 + 0.5 * Math.sin(i * 0.4));
+      fa[i*3+1] = Math.sin(twi) * 0.4;
+      fa[i*3+2] = (tt - 0.5) * 3.5;
+    }
+    flowGeo.attributes.position.needsUpdate = true;
+  }
+
+  powerLight.intensity = 0.7 + 0.6 * Math.sin(t * 2.0);
+  powerGlow.material.opacity = 0.22 + 0.14 * Math.sin(t * 1.1);
+
+  /* --- UI QIYMATLAR --- */
+  const workV   = 14 + 9 * Math.sin(t * 0.55) + 3 * Math.sin(t * 1.2);
+  const energyV = 32 + 14 * Math.sin(t * 0.65) + 5 * Math.sin(t * 1.5);
+  const powerV  = 11 + 7  * Math.sin(t * 0.85) + 3 * Math.sin(t * 1.9);
+
+  wVal.textContent = workV.toFixed(1)   + ' J';
+  eVal.textContent = energyV.toFixed(1) + ' J';
+  pVal.textContent = powerV.toFixed(1)  + ' W';
+
+  wBar.style.width = ((workV - 5) / 32 * 100).toFixed(1) + '%';
+  eBar.style.width = ((energyV - 18) / 28 * 100).toFixed(1) + '%';
+  pBar.style.width = ((powerV - 8) / 15 * 100).toFixed(1) + '%';
+
+  /* --- RENDER --- */
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+animate();
+
+/* ============================================================
+   OYNA O'LCHAMI
+   ============================================================ */
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+console.log('✅ 3D Energiya Laboratoriyasi — v2.0 ishga tushdi!');
+</script>
+</body>
+</html>

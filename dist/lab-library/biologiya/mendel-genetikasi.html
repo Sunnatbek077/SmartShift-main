@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mendel Genetikasi va Meros Qonunlari — 3D Laboratoriya</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #0a0e1a;
+            color: #e8ecf5;
+            overflow: hidden;
+            height: 100vh;
+        }
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+            position: relative;
+            z-index: 1;
+        }
+        #ui {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+        }
+        #ui > * { pointer-events: auto; }
+
+        /* HEADER */
+        #hdr {
+            position: absolute;
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(10, 14, 30, 0.88);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 60px;
+            padding: 8px 28px;
+            text-align: center;
+            white-space: nowrap;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+        #hdr h1 {
+            font-size: 1.1rem;
+            font-weight: 300;
+            letter-spacing: 1.5px;
+        }
+        #hdr h1 b {
+            color: #66dd88;
+            font-weight: 700;
+            text-shadow: 0 0 20px #66dd8855;
+        }
+        #hdr .sub {
+            font-size: 0.45rem;
+            letter-spacing: 4px;
+            opacity: 0.4;
+            margin-top: 2px;
+        }
+
+        /* CHAP PANEL */
+        #leftPanel {
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 210px;
+            background: rgba(10, 14, 30, 0.9);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 18px;
+            padding: 14px 12px;
+            box-shadow: 0 16px 50px rgba(0,0,0,0.7);
+            max-height: 90vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .slbl {
+            font-size: 0.5rem;
+            letter-spacing: 3px;
+            color: rgba(255,255,255,0.3);
+            text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+        .mcrd {
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 12px;
+            padding: 10px 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: rgba(255,255,255,0.02);
+        }
+        .mcrd:hover {
+            background: rgba(255,255,255,0.06);
+            transform: scale(1.01);
+        }
+        .mcrd.s1 { border-color: rgba(102, 221, 136, 0.5); background: rgba(102, 221, 136, 0.08); }
+        .mcrd.s2 { border-color: rgba(255, 200, 80, 0.5); background: rgba(255, 200, 80, 0.08); }
+        .mcrd.s3 { border-color: rgba(80, 180, 255, 0.5); background: rgba(80, 180, 255, 0.08); }
+
+        .mcrd .mhd {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+        .mcrd .mdot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .mcrd .mtit {
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+        .mcrd .mdesc {
+            font-size: 0.58rem;
+            color: rgba(255,255,255,0.5);
+            line-height: 1.5;
+            margin-top: 2px;
+        }
+        .mcrd .mdesc b { color: #e8ecf5; }
+
+        /* O'NG PANEL */
+        #rightPanel {
+            position: absolute;
+            right: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 200px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .rpan {
+            background: rgba(10, 14, 30, 0.9);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 14px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+        }
+        .rpan .rtit {
+            font-size: 0.6rem;
+            letter-spacing: 2px;
+            color: rgba(255,255,255,0.3);
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+        .prop-item {
+            display: flex;
+            gap: 8px;
+            padding: 3px 0;
+            font-size: 0.65rem;
+            color: rgba(255,255,255,0.6);
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+        }
+        .prop-item:last-child { border-bottom: none; }
+        .prop-item .pi { flex-shrink: 0; }
+        .prop-item b { color: #e8ecf5; }
+
+        /* HOLAT BELGISI */
+        #stateBadge {
+            position: absolute;
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(10,14,30,0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 40px;
+            padding: 4px 18px;
+            font-size: 0.6rem;
+            color: rgba(255,255,255,0.5);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+        #stateBadge .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        #hint {
+            position: absolute;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(10,14,30,0.7);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.04);
+            border-radius: 40px;
+            padding: 4px 16px;
+            font-size: 0.5rem;
+            color: rgba(255,255,255,0.2);
+            display: flex;
+            gap: 16px;
+            pointer-events: none;
+        }
+
+        @media (max-width: 700px) {
+            #leftPanel { display: none; }
+            #rightPanel { right: 8px; top: auto; bottom: 50px; transform: none; width: 160px; }
+            #stateBadge { top: 55px; font-size: 0.5rem; padding: 3px 12px; }
+            #hdr { top: 8px; padding: 4px 14px; white-space: normal; }
+            #hdr h1 { font-size: 0.85rem; }
+            #hdr .sub { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="canvas-container"></div>
+
+    <div id="ui">
+        <div id="hdr">
+            <h1>🧬 <b>Mendel Genetikasi</b> — Meros Qonunlari</h1>
+            <div class="sub">3D INTERAKTIV LABORATORIYA</div>
+        </div>
+
+        <div id="stateBadge">
+            <span class="dot" style="background:#66dd88;"></span>
+            <span id="stateText">Monogibrid chatishtirish — 3:1 nisbat</span>
+        </div>
+
+        <div id="leftPanel">
+            <span class="slbl">📚 Tajriba turlari</span>
+
+            <div class="mcrd s1" id="mMono" onclick="setMode('mono')">
+                <div class="mhd">
+                    <span class="mdot" style="background:#66dd88;box-shadow:0 0 8px #66dd8866;"></span>
+                    <span class="mtit" style="color:#66dd88;">Monogibrid</span>
+                </div>
+                <div class="mdesc">Bitta belgi bo'yicha chatishtirish. <b>3:1</b> fenotip nisbati.</div>
+            </div>
+
+            <div class="mcrd s2" id="mDihybrid" onclick="setMode('dihybrid')">
+                <div class="mhd">
+                    <span class="mdot" style="background:#ffc850;box-shadow:0 0 8px #ffc85066;"></span>
+                    <span class="mtit" style="color:#ffc850;">Digibrid</span>
+                </div>
+                <div class="mdesc">Ikki belgi bo'yicha chatishtirish. <b>9:3:3:1</b> fenotip nisbati.</div>
+            </div>
+
+            <div class="mcrd s3" id="mTest" onclick="setMode('test')">
+                <div class="mhd">
+                    <span class="mdot" style="background:#50b4ff;box-shadow:0 0 8px #50b4ff66;"></span>
+                    <span class="mtit" style="color:#50b4ff;">Tahliliy chatishtirish</span>
+                </div>
+                <div class="mdesc">No'malum genotipni retsessiv gomozigota bilan chatishtirish.</div>
+            </div>
+        </div>
+
+        <div id="rightPanel">
+            <div class="rpan">
+                <div class="rtit">📊 Natijalar</div>
+                <div id="propBox">
+                    <div class="prop-item"><span class="pi">🧬</span><span>Genotip: <b>AA, Aa, aa</b></span></div>
+                    <div class="prop-item"><span class="pi">📐</span><span>Nisbat: <b>1:2:1</b></span></div>
+                    <div class="prop-item"><span class="pi">🌱</span><span>Fenotip: <b>3:1</b></span></div>
+                </div>
+            </div>
+            <div class="rpan">
+                <div class="rtit">📖 Qonunlar</div>
+                <div id="lawBox">
+                    <div class="prop-item"><span class="pi">1️⃣</span><span>Bir xillik qonuni</span></div>
+                    <div class="prop-item"><span class="pi">2️⃣</span><span>Bo'linish qonuni</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="hint">
+            <span>🖱 Aylantirish</span>
+            <span>🔍 Kattalashtirish</span>
+            <span>↕ O'ng tugma — surish</span>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+    (function() {
+        'use strict';
+
+        var container = document.getElementById('canvas-container');
+        var scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0a0e1a);
+        scene.fog = new THREE.FogExp2(0x0a0e1a, 0.025);
+
+        var camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(7, 4.5, 9);
+        camera.lookAt(0, 0, 0);
+
+        var renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        container.appendChild(renderer.domElement);
+
+        var controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.06;
+        controls.target.set(0, 0, 0);
+        controls.minDistance = 3;
+        controls.maxDistance = 20;
+        controls.update();
+
+        // Yoritish
+        scene.add(new THREE.AmbientLight(0x1a2a44, 1.2));
+        var sun = new THREE.DirectionalLight(0xfff5e0, 1.5);
+        sun.position.set(6, 12, 8);
+        sun.castShadow = true;
+        sun.shadow.mapSize.width = 1024;
+        sun.shadow.mapSize.height = 1024;
+        scene.add(sun);
+        var fill = new THREE.DirectionalLight(0x4488cc, 0.5);
+        fill.position.set(-6, 2, -4);
+        scene.add(fill);
+        var rim = new THREE.DirectionalLight(0xff8844, 0.3);
+        rim.position.set(-2, -1, -8);
+        scene.add(rim);
+
+        // Yulduzlar
+        (function() {
+            var g = new THREE.BufferGeometry();
+            var n = 1500;
+            var p = new Float32Array(n * 3);
+            for (var i = 0; i < n; i++) {
+                var r = 50 + Math.random() * 80;
+                var th = Math.random() * Math.PI * 2;
+                var ph = Math.acos(2 * Math.random() - 1);
+                p[i*3] = r * Math.sin(ph) * Math.cos(th);
+                p[i*3+1] = r * Math.sin(ph) * Math.sin(th);
+                p[i*3+2] = r * Math.cos(ph);
+            }
+            g.setAttribute('position', new THREE.BufferAttribute(p, 3));
+            scene.add(new THREE.Points(g, new THREE.PointsMaterial({
+                color: 0x8899cc,
+                size: 0.12,
+                transparent: true,
+                opacity: 0.4
+            })));
+        })();
+
+        // Zamin
+        var ground = new THREE.Mesh(
+            new THREE.PlaneGeometry(12, 12),
+            new THREE.MeshStandardMaterial({ color: 0x080c1a, roughness: 0.9, transparent: true, opacity: 0.3 })
+        );
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = -0.8;
+        ground.receiveShadow = true;
+        scene.add(ground);
+
+        var grid = new THREE.GridHelper(10, 20, 0x2244aa, 0x112244);
+        grid.position.y = -0.79;
+        grid.material.transparent = true;
+        grid.material.opacity = 0.08;
+        scene.add(grid);
+
+        // O'qlar
+        function axis(len, col, dx, dy, dz) {
+            var g = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(0,0,0),
+                new THREE.Vector3(dx*len, dy*len, dz*len)
+            ]);
+            return new THREE.Line(g, new THREE.LineBasicMaterial({ color: col, transparent: true, opacity: 0.15 }));
+        }
+        scene.add(axis(4.5, 0x4488ff, 1,0,0));
+        scene.add(axis(4.5, 0x4488ff, 0,1,0));
+        scene.add(axis(4.5, 0x4488ff, 0,0,1));
+
+        // ── OTA-ONA ORGANIZMLAR ──
+        var parentGroup = new THREE.Group();
+        scene.add(parentGroup);
+
+        // Ota (A) — dominanta
+        var maleGroup = new THREE.Group();
+        var maleColor = 0x66dd88;
+        var maleMat = new THREE.MeshStandardMaterial({ color: maleColor, emissive: maleColor, emissiveIntensity: 0.2, roughness: 0.3 });
+        var maleBody = new THREE.Mesh(new THREE.SphereGeometry(0.6, 16, 16), maleMat);
+        maleBody.position.set(-2.5, 0.2, 0);
+        maleBody.castShadow = true;
+        parentGroup.add(maleBody);
+
+        // Ota gametalari (dominant allel)
+        for (var i = 0; i < 3; i++) {
+            var gamm = new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 8), 
+                new THREE.MeshStandardMaterial({ color: 0x88ff99, emissive: 0x66dd88, emissiveIntensity: 0.3 }));
+            gamm.position.set(-2.5 + (i-1)*0.25, -0.2, 0.2 + i*0.15);
+            parentGroup.add(gamm);
+        }
+
+        // Ona (a) — retsessiv
+        var femaleMat = new THREE.MeshStandardMaterial({ color: 0xff8844, emissive: 0xff8844, emissiveIntensity: 0.2, roughness: 0.3 });
+        var femaleBody = new THREE.Mesh(new THREE.SphereGeometry(0.6, 16, 16), femaleMat);
+        femaleBody.position.set(2.5, 0.2, 0);
+        femaleBody.castShadow = true;
+        parentGroup.add(femaleBody);
+
+        for (var i = 0; i < 3; i++) {
+            var gamm = new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 8),
+                new THREE.MeshStandardMaterial({ color: 0xffaa66, emissive: 0xff8844, emissiveIntensity: 0.3 }));
+            gamm.position.set(2.5 + (i-1)*0.25, -0.2, 0.2 + i*0.15);
+            parentGroup.add(gamm);
+        }
+
+        // O'q (chatishtirish belgisi)
+        var arrowMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.3 });
+        var arrowPts = [
+            new THREE.Vector3(-1.8, 0.2, 0),
+            new THREE.Vector3(1.8, 0.2, 0)
+        ];
+        var arrowGeo = new THREE.BufferGeometry().setFromPoints(arrowPts);
+        var arrowLine = new THREE.Line(arrowGeo, arrowMat);
+        parentGroup.add(arrowLine);
+
+        // ── NASL (G1) ──
+        var offspringGroup = new THREE.Group();
+        scene.add(offspringGroup);
+
+        // 4 ta nasl (AA, Aa, Aa, aa) — sferalar
+        var offPos = [
+            new THREE.Vector3(-1.8, -0.6, -1.5),
+            new THREE.Vector3(-0.6, -0.6, -1.5),
+            new THREE.Vector3(0.6, -0.6, -1.5),
+            new THREE.Vector3(1.8, -0.6, -1.5)
+        ];
+        var offGeno = ['AA', 'Aa', 'Aa', 'aa'];
+        var offColor = [0x66dd88, 0x88dd88, 0x88dd88, 0xff8844];
+        var offFeno = ['Dominant', 'Dominant', 'Dominant', 'Retsessiv'];
+
+        offPos.forEach(function(pos, idx) {
+            var mat = new THREE.MeshStandardMaterial({ 
+                color: offColor[idx], 
+                emissive: offColor[idx], 
+                emissiveIntensity: 0.15,
+                roughness: 0.3 
+            });
+            var sphere = new THREE.Mesh(new THREE.SphereGeometry(0.4, 16, 16), mat);
+            sphere.position.copy(pos);
+            sphere.castShadow = true;
+            offspringGroup.add(sphere);
+
+            // Genotip yorlig'i (sprite)
+            var canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 64;
+            var ctx = canvas.getContext('2d');
+            ctx.fillStyle = 'rgba(0,0,0,0)';
+            ctx.fillRect(0, 0, 128, 64);
+            ctx.font = 'Bold 28px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = offColor[idx] === 0x66dd88 ? '#88ff99' : '#ffaa66';
+            ctx.fillText(offGeno[idx], 64, 32);
+            var texture = new THREE.CanvasTexture(canvas);
+            var spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false });
+            var sprite = new THREE.Sprite(spriteMat);
+            sprite.position.set(pos.x, pos.y - 0.7, pos.z);
+            sprite.scale.set(0.8, 0.4, 1);
+            offspringGroup.add(sprite);
+        });
+
+        // Punnett panjarasi (chiziqlar)
+        var gridMat = new THREE.LineBasicMaterial({ color: 0x4488ff, transparent: true, opacity: 0.2 });
+        for (var i = -1; i <= 1; i+=2) {
+            var pts = [
+                new THREE.Vector3(i*0.6, -0.2, -2.5),
+                new THREE.Vector3(i*0.6, -1.0, -0.5)
+            ];
+            var g = new THREE.BufferGeometry().setFromPoints(pts);
+            var line = new THREE.Line(g, gridMat);
+            offspringGroup.add(line);
+        }
+        for (var i = -1; i <= 1; i+=2) {
+            var pts = [
+                new THREE.Vector3(-1.2, -0.6, -2.5 + i*0.5),
+                new THREE.Vector3(1.2, -0.6, -2.5 + i*0.5)
+            ];
+            var g = new THREE.BufferGeometry().setFromPoints(pts);
+            var line = new THREE.Line(g, gridMat);
+            offspringGroup.add(line);
+        }
+
+        // ── DIGIBRID HOLATI ──
+        var dihybridGroup = new THREE.Group();
+        scene.add(dihybridGroup);
+        dihybridGroup.visible = false;
+
+        // 16 ta nasl (9:3:3:1)
+        var dihybridPos = [];
+        var dihybridColors = [];
+        var dihybridGeno = [];
+        for (var i = 0; i < 4; i++) {
+            for (var j = 0; j < 4; j++) {
+                var x = -1.8 + j * 1.2;
+                var z = -1.8 + i * 1.2;
+                dihybridPos.push(new THREE.Vector3(x, -0.6, z));
+                // Genotiplar (AABB, AaBb, ...)
+                var gen = '';
+                var col = 0x66dd88;
+                if (i < 2 && j < 2) { gen = 'AABB'; col = 0x66dd88; }
+                else if (i < 2 || j < 2) { gen = 'AaBb'; col = 0x88dd88; }
+                else { gen = 'aabb'; col = 0xff8844; }
+                dihybridColors.push(col);
+                dihybridGeno.push(gen);
+            }
+        }
+
+        dihybridPos.forEach(function(pos, idx) {
+            var mat = new THREE.MeshStandardMaterial({ 
+                color: dihybridColors[idx], 
+                emissive: dihybridColors[idx], 
+                emissiveIntensity: 0.1,
+                roughness: 0.3 
+            });
+            var sphere = new THREE.Mesh(new THREE.SphereGeometry(0.2, 12, 12), mat);
+            sphere.position.copy(pos);
+            dihybridGroup.add(sphere);
+        });
+
+        // ── TAHLILIY CHATISHTIRISH ──
+        var testGroup = new THREE.Group();
+        scene.add(testGroup);
+        testGroup.visible = false;
+
+        // No'malum (?) x retsessiv (aa)
+        var testPos = [
+            new THREE.Vector3(-1.5, -0.4, -1.5),
+            new THREE.Vector3(-0.5, -0.4, -1.5),
+            new THREE.Vector3(0.5, -0.4, -1.5),
+            new THREE.Vector3(1.5, -0.4, -1.5)
+        ];
+        var testColors = [0x88dd88, 0x88dd88, 0xff8844, 0xff8844];
+        testPos.forEach(function(pos, idx) {
+            var mat = new THREE.MeshStandardMaterial({ 
+                color: testColors[idx], 
+                emissive: testColors[idx], 
+                emissiveIntensity: 0.15,
+                roughness: 0.3 
+            });
+            var sphere = new THREE.Mesh(new THREE.SphereGeometry(0.3, 12, 12), mat);
+            sphere.position.copy(pos);
+            testGroup.add(sphere);
+        });
+
+        // ── REJIMLAR ──
+        var modeMap = {
+            mono: { group: offspringGroup, color: '#66dd88', text: 'Monogibrid — 3:1 nisbat' },
+            dihybrid: { group: dihybridGroup, color: '#ffc850', text: 'Digibrid — 9:3:3:1 nisbat' },
+            test: { group: testGroup, color: '#50b4ff', text: 'Tahliliy chatishtirish — 1:1 nisbat' }
+        };
+
+        var currentMode = 'mono';
+
+        window.setMode = function(mode) {
+            currentMode = mode;
+            // Barcha guruhlarni yashirish
+            Object.keys(modeMap).forEach(function(key) {
+                modeMap[key].group.visible = (key === mode);
+            });
+            parentGroup.visible = true;
+
+            document.getElementById('stateText').textContent = modeMap[mode].text;
+            document.querySelector('#stateBadge .dot').style.background = modeMap[mode].color;
+
+            // Kartalar
+            ['mMono','mDihybrid','mTest'].forEach(function(id) {
+                document.getElementById(id).className = 'mcrd';
+            });
+            var mapId = { mono: 'mMono', dihybrid: 'mDihybrid', test: 'mTest' };
+            document.getElementById(mapId[mode]).className = 'mcrd s' + (mode === 'mono' ? '1' : mode === 'dihybrid' ? '2' : '3');
+
+            updateProps(mode);
+        };
+
+        function updateProps(mode) {
+            var propBox = document.getElementById('propBox');
+            var lawBox = document.getElementById('lawBox');
+            if (mode === 'mono') {
+                propBox.innerHTML = `
+                    <div class="prop-item"><span class="pi">🧬</span><span>Genotip: <b>AA, Aa, aa</b></span></div>
+                    <div class="prop-item"><span class="pi">📐</span><span>Nisbat: <b>1:2:1</b></span></div>
+                    <div class="prop-item"><span class="pi">🌱</span><span>Fenotip: <b>3:1</b></span></div>
+                `;
+                lawBox.innerHTML = `
+                    <div class="prop-item"><span class="pi">1️⃣</span><span>Bir xillik qonuni</span></div>
+                    <div class="prop-item"><span class="pi">2️⃣</span><span>Bo'linish qonuni</span></div>
+                `;
+            } else if (mode === 'dihybrid') {
+                propBox.innerHTML = `
+                    <div class="prop-item"><span class="pi">🧬</span><span>Genotip: <b>16</b> kombinatsiya</span></div>
+                    <div class="prop-item"><span class="pi">📐</span><span>Fenotip: <b>9:3:3:1</b></span></div>
+                    <div class="prop-item"><span class="pi">🧪</span><span>Mustaqil bo'linish</span></div>
+                `;
+                lawBox.innerHTML = `
+                    <div class="prop-item"><span class="pi">3️⃣</span><span>Mustaqil birikish</span></div>
+                    <div class="prop-item"><span class="pi">📊</span><span>9:3:3:1 nisbat</span></div>
+                `;
+            } else if (mode === 'test') {
+                propBox.innerHTML = `
+                    <div class="prop-item"><span class="pi">🧬</span><span>No'malum × aa</span></div>
+                    <div class="prop-item"><span class="pi">📐</span><span>Nisbat: <b>1:1</b></span></div>
+                    <div class="prop-item"><span class="pi">🔍</span><span>Genotipni aniqlash</span></div>
+                `;
+                lawBox.innerHTML = `
+                    <div class="prop-item"><span class="pi">🔬</span><span>Tahliliy chatishtirish</span></div>
+                    <div class="prop-item"><span class="pi">📊</span><span>1:1 yoki barcha dominant</span></div>
+                `;
+            }
+        }
+
+        window.setMode('mono');
+
+        // ── ANIMATSIYA ──
+        var clock = new THREE.Clock();
+        function animate() {
+            requestAnimationFrame(animate);
+            var dt = clock.getDelta();
+
+            // Ota-ona va nasl aylanishi
+            parentGroup.rotation.y += dt * 0.08;
+            offspringGroup.rotation.y += dt * 0.06;
+            dihybridGroup.rotation.y += dt * 0.05;
+            testGroup.rotation.y += dt * 0.07;
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', function() {
+            var w = window.innerWidth;
+            var h = window.innerHeight;
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+            renderer.setSize(w, h);
+        });
+
+        console.log('✅ Mendel genetikasi 3D laboratoriyasi ishga tushdi');
+    })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Ko'rsatkichli va Logarifmik Funksiyalar</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0a1a;
+            color: #e0e0ff;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #topBar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 20px;
+            background: rgba(10, 10, 30, 0.85);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            flex-shrink: 0;
+            z-index: 10;
+            backdrop-filter: blur(10px);
+        }
+        #topBar h1 {
+            font-size: 18px;
+            background: linear-gradient(135deg, #4488ff, #aa66ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
+        }
+        #topBar .info {
+            font-size: 12px;
+            color: #6688aa;
+        }
+
+        #main {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        #canvasWrap {
+            flex: 1;
+            position: relative;
+            background: #0a0a1a;
+        }
+        #canvasWrap canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        #controls {
+            width: 320px;
+            min-width: 320px;
+            background: rgba(10, 10, 30, 0.9);
+            border-left: 1px solid rgba(255, 255, 255, 0.06);
+            padding: 16px 18px;
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        #controls::-webkit-scrollbar {
+            width: 4px;
+        }
+        #controls::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+        }
+
+        .ctrl-section {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+            padding: 12px 14px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+        .ctrl-section h3 {
+            font-size: 12px;
+            color: #8899bb;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .func-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .func-btn {
+            padding: 8px 14px;
+            border: 2px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.03);
+            color: #8899bb;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s;
+            flex: 1;
+            min-width: 60px;
+            text-align: center;
+        }
+        .func-btn:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.15);
+            color: #fff;
+        }
+        .func-btn.active {
+            background: linear-gradient(135deg, #4488ff33, #aa66ff33);
+            border-color: #aa66ff66;
+            color: #ccddff;
+            box-shadow: 0 0 20px rgba(170, 102, 255, 0.08);
+        }
+
+        .slider-group {
+            margin: 4px 0;
+        }
+        .slider-group label {
+            font-size: 12px;
+            color: #8899bb;
+            display: flex;
+            justify-content: space-between;
+        }
+        .slider-group input[type="range"] {
+            width: 100%;
+            accent-color: #4488ff;
+            background: transparent;
+            cursor: pointer;
+        }
+        .slider-group .val {
+            color: #ffaa66;
+            font-weight: 600;
+        }
+
+        .value-display {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2px 12px;
+            font-size: 12px;
+            padding: 4px 0;
+        }
+        .value-display .vlabel {
+            color: #6688aa;
+        }
+        .value-display .vval {
+            color: #ccddff;
+            font-weight: 600;
+            text-align: right;
+            font-family: 'Courier New', monospace;
+        }
+
+        /* LEGEND */
+        #legend {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            z-index: 5;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 8px;
+            padding: 10px 14px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(5px);
+            font-size: 11px;
+        }
+        #legend .leg-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 2px 0;
+        }
+        #legend .leg-color {
+            width: 18px;
+            height: 3px;
+            border-radius: 2px;
+        }
+        #legend .leg-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        @media (max-width: 768px) {
+            #main {
+                flex-direction: column;
+            }
+            #controls {
+                width: 100%;
+                min-width: unset;
+                max-height: 45vh;
+                border-left: none;
+                border-top: 1px solid rgba(255, 255, 255, 0.06);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="topBar">
+        <h1>📈 3D Ko'rsatkichli & Logarifmik Funksiyalar</h1>
+        <span class="info">🖱 Sichqoncha bilan aylantirish | 🔄 O'zaro teskari funksiyalar</span>
+    </div>
+
+    <div id="main">
+        <div id="canvasWrap">
+            <canvas id="cvs"></canvas>
+            <div id="legend">
+                <div class="leg-item"><span class="leg-color" style="background:#ff4444;"></span> aˣ (ko'rsatkichli)</div>
+                <div class="leg-item"><span class="leg-color" style="background:#4488ff;"></span> logₐx (logarifmik)</div>
+                <div class="leg-item"><span class="leg-color" style="background:#ffaa44;border:1px dashed rgba(255,170,68,0.3);"></span> y = x (simmetriya)</div>
+                <div class="leg-item"><span class="leg-dot" style="background:#44ff88;"></span> Kesishish nuqtasi</div>
+            </div>
+        </div>
+
+        <div id="controls">
+            <!-- Funksiya tanlash -->
+            <div class="ctrl-section">
+                <h3>🔢 Funksiyani tanlang</h3>
+                <div class="func-buttons">
+                    <button class="func-btn active" data-func="exp" onclick="selectFunc('exp')">aˣ</button>
+                    <button class="func-btn" data-func="log" onclick="selectFunc('log')">logₐx</button>
+                    <button class="func-btn" data-func="both" onclick="selectFunc('both')">Ikkalasi</button>
+                </div>
+            </div>
+
+            <!-- Asos slayeri -->
+            <div class="ctrl-section">
+                <h3>🔢 Asos (a) ni o'zgartiring</h3>
+                <div class="slider-group">
+                    <label>
+                        <span>a = <span class="val" id="baseDisplay">2.0</span></span>
+                        <span style="color:#6688aa;font-size:11px;">(a > 0, a ≠ 1)</span>
+                    </label>
+                    <input type="range" id="baseSlider" min="0.1" max="4" step="0.05" value="2">
+                </div>
+            </div>
+
+            <!-- X qiymati slayeri -->
+            <div class="ctrl-section">
+                <h3>🎯 X qiymati</h3>
+                <div class="slider-group">
+                    <label>
+                        <span>x = <span class="val" id="xDisplay">1.0</span></span>
+                    </label>
+                    <input type="range" id="xSlider" min="-4" max="4" step="0.05" value="1">
+                </div>
+            </div>
+
+            <!-- Qiymatlar -->
+            <div class="ctrl-section">
+                <h3>📊 Funksiya qiymatlari</h3>
+                <div class="value-display">
+                    <span class="vlabel">aˣ =</span>
+                    <span class="vval" id="expVal">2.0000</span>
+                    <span class="vlabel">logₐ(x) =</span>
+                    <span class="vval" id="logVal">0.0000</span>
+                    <span class="vlabel">x =</span>
+                    <span class="vval" id="xVal">1.00</span>
+                    <span class="vlabel">a =</span>
+                    <span class="vval" id="aVal">2.00</span>
+                </div>
+            </div>
+
+            <!-- Boshqaruv -->
+            <div class="ctrl-section">
+                <h3>🎮 Boshqaruv</h3>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                    <button class="func-btn" onclick="toggleRotation()" style="flex:1;min-width:60px;padding:6px 10px;font-size:11px;">
+                        🔄 Aylantirish
+                    </button>
+                    <button class="func-btn" onclick="resetCamera()" style="flex:1;min-width:60px;padding:6px 10px;font-size:11px;">
+                        🏠 Qayta tiklash
+                    </button>
+                    <button class="func-btn" onclick="animateX()" style="flex:1;min-width:60px;padding:6px 10px;font-size:11px;">
+                        ▶ Animatsiya
+                    </button>
+                </div>
+            </div>
+
+            <!-- Maxsus asoslar -->
+            <div class="ctrl-section">
+                <h3>⚡ Tezkor asoslar</h3>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                    <button class="func-btn" onclick="setBase(2)" style="flex:1;min-width:40px;padding:4px 8px;font-size:11px;">2</button>
+                    <button class="func-btn" onclick="setBase(Math.E)" style="flex:1;min-width:40px;padding:4px 8px;font-size:11px;">e ≈ 2.718</button>
+                    <button class="func-btn" onclick="setBase(3)" style="flex:1;min-width:40px;padding:4px 8px;font-size:11px;">3</button>
+                    <button class="func-btn" onclick="setBase(10)" style="flex:1;min-width:40px;padding:4px 8px;font-size:11px;">10</button>
+                    <button class="func-btn" onclick="setBase(0.5)" style="flex:1;min-width:40px;padding:4px 8px;font-size:11px;">0.5</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- THREE.JS -->
+    <!-- ============================================================ -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+        // ============================================================
+        // STATE
+        // ============================================================
+        const state = {
+            func: 'both',
+            base: 2,
+            x: 1,
+            rotating: true,
+            animating: false,
+            showExp: true,
+            showLog: true,
+            showSymmetry: true,
+        };
+
+        // ============================================================
+        // THREE.JS SETUP
+        // ============================================================
+        const wrap = document.getElementById('canvasWrap');
+        const cvs = document.getElementById('cvs');
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0a0a1a);
+
+        const camera = new THREE.PerspectiveCamera(45, wrap.clientWidth / wrap.clientHeight, 0.1, 50);
+        camera.position.set(6, 4, 8);
+        camera.lookAt(0, 0, 0);
+
+        const renderer = new THREE.WebGLRenderer({
+            canvas: cvs,
+            antialias: true,
+            alpha: true
+        });
+        renderer.setSize(wrap.clientWidth, wrap.clientHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+        const labelRenderer = new CSS2DRenderer();
+        labelRenderer.setSize(wrap.clientWidth, wrap.clientHeight);
+        labelRenderer.domElement.style.position = 'absolute';
+        labelRenderer.domElement.style.top = '0';
+        labelRenderer.domElement.style.left = '0';
+        labelRenderer.domElement.style.pointerEvents = 'none';
+        wrap.appendChild(labelRenderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.08;
+        controls.autoRotate = false;
+        controls.target.set(0, 0, 0);
+        controls.minDistance = 3;
+        controls.maxDistance = 20;
+
+        // ============================================================
+        // LIGHTS
+        // ============================================================
+        const ambientLight = new THREE.AmbientLight(0x404060, 0.6);
+        scene.add(ambientLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+        dirLight.position.set(5, 10, 7);
+        scene.add(dirLight);
+
+        const fillLight = new THREE.DirectionalLight(0x4488ff, 0.3);
+        fillLight.position.set(-5, -3, -5);
+        scene.add(fillLight);
+
+        // ============================================================
+        // SCENE GROUP
+        // ============================================================
+        const sceneGroup = new THREE.Group();
+        scene.add(sceneGroup);
+
+        let graphObjects = [];
+        let pointObjects = [];
+        let labelObjects = [];
+
+        // ============================================================
+        // BUILD SCENE
+        // ============================================================
+        function buildScene() {
+            // Clear old
+            while (sceneGroup.children.length > 0) {
+                const child = sceneGroup.children[0];
+                if (child.geometry) child.geometry.dispose();
+                if (child.material) child.material.dispose();
+                sceneGroup.remove(child);
+            }
+            graphObjects = [];
+            pointObjects = [];
+            labelObjects = [];
+
+            const a = state.base;
+            const x = state.x;
+            const expVal = Math.pow(a, x);
+            const logVal = x > 0 ? Math.log(x) / Math.log(a) : NaN;
+
+            // 1. Grid
+            const gridHelper = new THREE.GridHelper(10, 10, 0x4488ff33, 0x2244aa22);
+            gridHelper.position.y = -0.01;
+            sceneGroup.add(gridHelper);
+
+            // 2. Axes
+            sceneGroup.add(createAxes());
+
+            // 3. Symmetry line y = x
+            if (state.showSymmetry) {
+                const symMat = new THREE.LineBasicMaterial({
+                    color: 0xffaa44,
+                    transparent: true,
+                    opacity: 0.15,
+                    linewidth: 1,
+                });
+                const symPoints = [
+                    new THREE.Vector3(-3, -3, 0),
+                    new THREE.Vector3(3, 3, 0)
+                ];
+                const symGeo = new THREE.BufferGeometry().setFromPoints(symPoints);
+                const symLine = new THREE.Line(symGeo, symMat);
+                sceneGroup.add(symLine);
+
+                // Dashed effect
+                const dashMat = new THREE.LineDashedMaterial({
+                    color: 0xffaa44,
+                    transparent: true,
+                    opacity: 0.1,
+                    dashSize: 0.1,
+                    gapSize: 0.08,
+                });
+                const dashLine = new THREE.Line(symGeo.clone(), dashMat);
+                dashLine.computeLineDistances();
+                sceneGroup.add(dashLine);
+            }
+
+            // 4. Exponential function
+            if (state.showExp) {
+                const expGraph = createExponentialGraph(a);
+                if (expGraph) sceneGroup.add(expGraph);
+            }
+
+            // 5. Logarithmic function
+            if (state.showLog) {
+                const logGraph = createLogarithmicGraph(a);
+                if (logGraph) sceneGroup.add(logGraph);
+            }
+
+            // 6. Points on graphs
+            if (!isNaN(expVal) && isFinite(expVal)) {
+                const expPoint = createPoint(x, expVal, 0xff4444, 'aˣ');
+                sceneGroup.add(expPoint);
+                pointObjects.push(expPoint);
+            }
+
+            if (!isNaN(logVal) && isFinite(logVal) && x > 0) {
+                const logPoint = createPoint(x, logVal, 0x4488ff, 'logₐx');
+                sceneGroup.add(logPoint);
+                pointObjects.push(logPoint);
+            }
+
+            // 7. Labels
+            const labels = createLabels(a, x, expVal, logVal);
+            labels.forEach(l => {
+                sceneGroup.add(l);
+                labelObjects.push(l);
+            });
+
+            // Update display
+            document.getElementById('expVal').textContent = isNaN(expVal) ? '∞' : expVal.toFixed(4);
+            document.getElementById('logVal').textContent = isNaN(logVal) ? '∞' : logVal.toFixed(4);
+            document.getElementById('xVal').textContent = x.toFixed(2);
+            document.getElementById('aVal').textContent = a.toFixed(2);
+        }
+
+        // ============================================================
+        // CREATE AXES
+        // ============================================================
+        function createAxes() {
+            const group = new THREE.Group();
+            const length = 5.5;
+            const colors = [0xff4444, 0x44ff44, 0x4488ff];
+            const dirs = [
+                new THREE.Vector3(1, 0, 0),
+                new THREE.Vector3(0, 1, 0),
+                new THREE.Vector3(0, 0, 1)
+            ];
+            const labels = ['X', 'Y', 'Z'];
+            dirs.forEach((dir, i) => {
+                const arrow = new THREE.ArrowHelper(dir, new THREE.Vector3(0, 0, 0), length, colors[i], 0.25, 0.12);
+                group.add(arrow);
+                const div = document.createElement('div');
+                div.textContent = labels[i];
+                div.style.color = ['#ff4444', '#44ff44', '#4488ff'][i];
+                div.style.fontSize = '13px';
+                div.style.fontWeight = 'bold';
+                div.style.textShadow = '0 0 10px rgba(0,0,0,0.8)';
+                const label = new CSS2DObject(div);
+                label.position.copy(dir.clone().multiplyScalar(length + 0.3));
+                group.add(label);
+            });
+            return group;
+        }
+
+        // ============================================================
+        // CREATE EXPONENTIAL GRAPH
+        // ============================================================
+        function createExponentialGraph(a) {
+            const group = new THREE.Group();
+            const range = 3.5;
+            const segments = 200;
+            const points = [];
+
+            for (let i = 0; i <= segments; i++) {
+                const x = -range + (i / segments) * range * 2;
+                const y = Math.pow(a, x);
+                if (isFinite(y) && Math.abs(y) < 20) {
+                    points.push(new THREE.Vector3(x, y, 0.1));
+                }
+            }
+
+            if (points.length < 2) return null;
+
+            const geo = new THREE.BufferGeometry().setFromPoints(points);
+            const mat = new THREE.LineBasicMaterial({
+                color: 0xff4444,
+                linewidth: 2,
+            });
+            const line = new THREE.Line(geo, mat);
+            group.add(line);
+
+            // Glow effect
+            const glowMat = new THREE.LineBasicMaterial({
+                color: 0xff4444,
+                transparent: true,
+                opacity: 0.15,
+                linewidth: 1,
+            });
+            const glowLine = new THREE.Line(geo.clone(), glowMat);
+            glowLine.position.z = -0.05;
+            group.add(glowLine);
+
+            // Label
+            const div = document.createElement('div');
+            div.textContent = `y = ${a.toFixed(1)}ˣ`;
+            div.style.color = '#ff4444';
+            div.style.fontSize = '12px';
+            div.style.fontWeight = 'bold';
+            div.style.textShadow = '0 0 15px rgba(0,0,0,0.9)';
+            div.style.background = 'rgba(0,0,0,0.3)';
+            div.style.padding = '2px 8px';
+            div.style.borderRadius = '4px';
+            const label = new CSS2DObject(div);
+            label.position.set(range * 0.6, Math.pow(a, range * 0.6) + 0.3, 0.1);
+            group.add(label);
+
+            return group;
+        }
+
+        // ============================================================
+        // CREATE LOGARITHMIC GRAPH
+        // ============================================================
+        function createLogarithmicGraph(a) {
+            const group = new THREE.Group();
+            const range = 3.5;
+            const segments = 200;
+            const points = [];
+
+            for (let i = 0; i <= segments; i++) {
+                const x = 0.01 + (i / segments) * range * 2;
+                const y = Math.log(x) / Math.log(a);
+                if (isFinite(y) && Math.abs(y) < 20) {
+                    points.push(new THREE.Vector3(x, y, -0.1));
+                }
+            }
+
+            if (points.length < 2) return null;
+
+            const geo = new THREE.BufferGeometry().setFromPoints(points);
+            const mat = new THREE.LineBasicMaterial({
+                color: 0x4488ff,
+                linewidth: 2,
+            });
+            const line = new THREE.Line(geo, mat);
+            group.add(line);
+
+            // Glow
+            const glowMat = new THREE.LineBasicMaterial({
+                color: 0x4488ff,
+                transparent: true,
+                opacity: 0.15,
+                linewidth: 1,
+            });
+            const glowLine = new THREE.Line(geo.clone(), glowMat);
+            glowLine.position.z = 0.05;
+            group.add(glowLine);
+
+            // Label
+            const div = document.createElement('div');
+            div.textContent = `y = log₍${a.toFixed(1)}₎x`;
+            div.style.color = '#4488ff';
+            div.style.fontSize = '12px';
+            div.style.fontWeight = 'bold';
+            div.style.textShadow = '0 0 15px rgba(0,0,0,0.9)';
+            div.style.background = 'rgba(0,0,0,0.3)';
+            div.style.padding = '2px 8px';
+            div.style.borderRadius = '4px';
+            const label = new CSS2DObject(div);
+            label.position.set(range * 0.5, Math.log(range * 0.5) / Math.log(a) - 0.3, -0.1);
+            group.add(label);
+
+            return group;
+        }
+
+        // ============================================================
+        // CREATE POINT
+        // ============================================================
+        function createPoint(x, y, color, label) {
+            const group = new THREE.Group();
+
+            // Main sphere
+            const mat = new THREE.MeshPhysicalMaterial({
+                color: color,
+                emissive: color,
+                emissiveIntensity: 0.3,
+                metalness: 0.3,
+                roughness: 0.4,
+            });
+            const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.08, 16, 16), mat);
+            sphere.position.set(x, y, 0);
+            group.add(sphere);
+
+            // Glow
+            const glowMat = new THREE.MeshBasicMaterial({
+                color: color,
+                transparent: true,
+                opacity: 0.15,
+            });
+            const glow = new THREE.Mesh(new THREE.SphereGeometry(0.16, 16, 16), glowMat);
+            glow.position.copy(sphere.position);
+            group.add(glow);
+
+            // Label
+            const div = document.createElement('div');
+            div.textContent = `${label} = ${y.toFixed(2)}`;
+            div.style.color = '#fff';
+            div.style.fontSize = '10px';
+            div.style.textShadow = '0 0 10px rgba(0,0,0,0.9)';
+            div.style.background = 'rgba(0,0,0,0.5)';
+            div.style.padding = '2px 6px';
+            div.style.borderRadius = '4px';
+            div.style.border = '1px solid rgba(255,255,255,0.05)';
+            const labelObj = new CSS2DObject(div);
+            labelObj.position.set(x + 0.2, y + 0.2, 0);
+            group.add(labelObj);
+
+            return group;
+        }
+
+        // ============================================================
+        // CREATE LABELS
+        // ============================================================
+        function createLabels(a, x, expVal, logVal) {
+            const labels = [];
+
+            // Special points
+            const specialPoints = [
+                { x: 0, y: 1, text: `(0, 1)`, color: '#ffaa44' },
+                { x: 1, y: 0, text: `(1, 0)`, color: '#44ff88' },
+            ];
+
+            specialPoints.forEach(p => {
+                const div = document.createElement('div');
+                div.textContent = p.text;
+                div.style.color = p.color;
+                div.style.fontSize = '10px';
+                div.style.textShadow = '0 0 10px rgba(0,0,0,0.9)';
+                div.style.background = 'rgba(0,0,0,0.3)';
+                div.style.padding = '1px 4px';
+                div.style.borderRadius = '3px';
+                const label = new CSS2DObject(div);
+                label.position.set(p.x, p.y + 0.15, 0);
+                labels.push(label);
+            });
+
+            // Current value label
+            if (isFinite(expVal) && !isNaN(expVal)) {
+                const div = document.createElement('div');
+                div.textContent = `aˣ = ${expVal.toFixed(2)}`;
+                div.style.color = '#ff4444';
+                div.style.fontSize = '10px';
+                div.style.textShadow = '0 0 10px rgba(0,0,0,0.9)';
+                div.style.background = 'rgba(0,0,0,0.4)';
+                div.style.padding = '1px 6px';
+                div.style.borderRadius = '3px';
+                const label = new CSS2DObject(div);
+                label.position.set(x + 0.2, expVal + 0.2, 0.1);
+                labels.push(label);
+            }
+
+            if (isFinite(logVal) && !isNaN(logVal) && x > 0) {
+                const div = document.createElement('div');
+                div.textContent = `logₐx = ${logVal.toFixed(2)}`;
+                div.style.color = '#4488ff';
+                div.style.fontSize = '10px';
+                div.style.textShadow = '0 0 10px rgba(0,0,0,0.9)';
+                div.style.background = 'rgba(0,0,0,0.4)';
+                div.style.padding = '1px 6px';
+                div.style.borderRadius = '3px';
+                const label = new CSS2DObject(div);
+                label.position.set(x + 0.2, logVal - 0.2, -0.1);
+                labels.push(label);
+            }
+
+            return labels;
+        }
+
+        // ============================================================
+        // UI FUNCTIONS
+        // ============================================================
+        window.selectFunc = function(func) {
+            state.func = func;
+            state.showExp = func === 'exp' || func === 'both';
+            state.showLog = func === 'log' || func === 'both';
+            state.showSymmetry = func === 'both';
+
+            document.querySelectorAll('.func-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.func === func) btn.classList.add('active');
+            });
+
+            buildScene();
+        };
+
+        window.toggleRotation = function() {
+            state.rotating = !state.rotating;
+            controls.autoRotate = state.rotating;
+        };
+
+        window.resetCamera = function() {
+            camera.position.set(6, 4, 8);
+            controls.target.set(0, 0, 0);
+            controls.update();
+        };
+
+        window.animateX = function() {
+            state.animating = !state.animating;
+            const btn = document.querySelector('.func-btn:last-child');
+            btn.textContent = state.animating ? '⏸ To\'xtatish' : '▶ Animatsiya';
+        };
+
+        window.setBase = function(val) {
+            state.base = val;
+            document.getElementById('baseSlider').value = val;
+            document.getElementById('baseDisplay').textContent = val.toFixed(2);
+            buildScene();
+        };
+
+        // ============================================================
+        // SLIDERS
+        // ============================================================
+        const baseSlider = document.getElementById('baseSlider');
+        baseSlider.addEventListener('input', () => {
+            state.base = parseFloat(baseSlider.value);
+            document.getElementById('baseDisplay').textContent = state.base.toFixed(2);
+            buildScene();
+        });
+
+        const xSlider = document.getElementById('xSlider');
+        xSlider.addEventListener('input', () => {
+            state.x = parseFloat(xSlider.value);
+            document.getElementById('xDisplay').textContent = state.x.toFixed(2);
+            buildScene();
+        });
+
+        // ============================================================
+        // ANIMATION LOOP
+        // ============================================================
+        let time = 0;
+
+        function animate() {
+            requestAnimationFrame(animate);
+            time += 0.016;
+
+            // Animate x
+            if (state.animating) {
+                const newX = Math.sin(time * 0.5) * 3;
+                state.x = newX;
+                xSlider.value = newX;
+                document.getElementById('xDisplay').textContent = newX.toFixed(2);
+                buildScene();
+            }
+
+            // Auto-rotate
+            if (state.rotating) {
+                sceneGroup.rotation.y += 0.005;
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+            labelRenderer.render(scene, camera);
+        }
+
+        // ============================================================
+        // RESIZE
+        // ============================================================
+        function resize() {
+            const w = wrap.clientWidth;
+            const h = wrap.clientHeight;
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+            renderer.setSize(w, h);
+            labelRenderer.setSize(w, h);
+        }
+        window.addEventListener('resize', resize);
+        new ResizeObserver(resize).observe(wrap);
+
+        // ============================================================
+        // INIT
+        // ============================================================
+        buildScene();
+        controls.autoRotate = true;
+        state.rotating = true;
+        animate();
+
+        console.log('📈 3D Ko\'rsatkichli & Logarifmik Funksiyalar ishga tushdi!');
+        console.log('📊 aˣ va logₐx funksiyalarini 3D da o\'rganing');
+        console.log('🔄 Funksiyalar o\'zaro teskari ekanligini kuzating');
+        console.log('🎯 Slayerlar orqali a va x ni o\'zgartiring');
+
+        // Expose
+        window.scene = scene;
+        window.camera = camera;
+        window.controls = controls;
+        window.buildScene = buildScene;
+    </script>
+</body>
+</html>
