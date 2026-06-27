@@ -42,9 +42,12 @@ import MinistryPanel from "./MinistryPanel";
 import BiometricRegistrationModal from "./BiometricRegistrationModal";
 import { storage, resetSupabase, getUserId, setUserId, clearUserData } from "./supabase";
 import { getCurrentUser, logout, isAdminLoggedIn, adminLogout, isMinistryLoggedIn, ministryLogout } from "./auth";
+import { useEmojiIcons } from "./EmojiIconInjector";
 import "./global.css";
 
 export default function App() {
+  useEmojiIcons();
+
   const [currentPage, setCurrentPage] = useState("dashboard");
   const [selectedFan, setSelectedFan] = useState(null);
   const [globalErrors, setGlobalErrors] = useState([]);
