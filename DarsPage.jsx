@@ -3737,7 +3737,7 @@ Izoh: 'actions' massividagi 'time' (sekundda) ovozning tegishli qismiga mos bo'l
           style={{
             ...ls.stepContent,
             ...(lessonStep === 2 &&
-            (localStorage.getItem(`lab_html_${selectedTopicId}`) || currentTopic?.labHtml)
+            (localStorage.getItem(`lab_html_${fanId}_${selectedTopicId}`) || currentTopic?.labHtml)
               ? {
                   padding: 16,
                   minHeight: "calc(100vh - 200px)",
@@ -3754,11 +3754,11 @@ Izoh: 'actions' massividagi 'time' (sekundda) ovozning tegishli qismiga mos bo'l
         (() => {
           const isPractice = lessonStep === 5;
           const labHtml = localStorage.getItem(
-            isPractice ? `practice_html_${selectedTopicId}` : `lab_html_${selectedTopicId}`
+            isPractice ? `practice_html_${selectedTopicId}` : `lab_html_${fanId}_${selectedTopicId}`
           ) || (isPractice ? currentTopic?.practiceHtml : currentTopic?.labHtml);
           const rawLabText = isPractice
             ? ""
-            : localStorage.getItem(`lab_${selectedTopicId}`);
+            : localStorage.getItem(`lab_${fanId}_${selectedTopicId}`);
           let labText = "";
           let labActions = [];
           if (isPractice) {
