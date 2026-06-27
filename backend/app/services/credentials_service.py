@@ -11,8 +11,9 @@ BCRYPT_ALGO = "bcrypt"
 
 def _get_row(role: str) -> Optional[dict]:
     sb = get_supabase()
-    result = sb.table("app_credentials").select("*").eq("role", role).maybe_single().execute()
-    return result.data
+    result = sb.table("app_credentials").select("*").eq("role", role).execute()
+    rows = result.data if result else []
+    return rows[0] if rows else None
 
 
 def login(role: str, password: str, default_password: str) -> None:
