@@ -6,12 +6,21 @@ import { useState, useEffect } from "react";
 import { getStudents, addStudent, toggleStudentActive, deleteStudent, changeStudentPassword, getAllStudentResults, getStudentsBiometrics, resetStudentBiometrics } from "./auth";
 import { FANS, FANS_7, FANS_1KURS, TOPICS_MAP, TOPICS_MAP_7, TOPICS_MAP_1KURS } from "./index";
 import { storage } from "./supabase";
-import ThemeToggle from "./ThemeToggle";
+import Navbar from "./Navbar";
 import * as XLSX from "xlsx";
 import mammoth from "mammoth";
 const COLORS_MAP = {
   A: "#059669", B: "#2563EB", C: "#D97706", D: "#DC2626", F: "#64748B"
 };
+
+const TEACHER_NAV_TABS = [
+  { id: "students", label: "Dashboard" },
+  { id: "results", label: "AI Tekshirish" },
+  { id: "stats", label: "Hisobotlar" },
+  { id: "classes", label: "Guruhlar" },
+  { id: "lessons", label: "Dars Rejalari" },
+  { id: "add", label: "Talaba qo'shish" },
+];
 
 const getGradeKey = (className) => {
   const match = String(className || "").match(/^\d+/);
@@ -909,74 +918,14 @@ export default function TeacherPanel({ teacher, onLogout }) {
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg)", color: "var(--text)", fontFamily: "'Inter', sans-serif" }}>
 
-      {/* Oliy ta'lim (Professor) Header */}
-      <div style={{
-        background: "var(--navbar-bg)",
-        backdropFilter: "blur(20px)",
-        borderBottom: "1px solid var(--navbar-border)",
-        padding: "0 32px", height: 72,
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        position: "sticky", top: 0, zIndex: 50
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 40 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <img src="/logo.png" alt="EduMind" style={{ width: 32, height: 32, borderRadius: 8, objectFit: "cover" }} />
-            <div style={{ color: "var(--text)", fontWeight: 700, fontSize: 20, letterSpacing: "-0.5px" }}>EduMind</div>
-          </div>
-          <div style={{ display: "flex", gap: 24 }}>
-            {[
-              { id: "students", label: "Dashboard" },
-              { id: "results", label: "AI Tekshirish" },
-              { id: "stats", label: "Hisobotlar" },
-              { id: "classes", label: "Guruhlar" },
-              { id: "lessons", label: "Dars Rejalari" },
-              { id: "add", label: "Talaba qo'shish" },
-            ].map(t => (
-              <div
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                style={{
-                  color: tab === t.id ? "var(--text)" : "var(--muted)",
-                  fontSize: 14, fontWeight: tab === t.id ? 600 : 500,
-                  cursor: "pointer", transition: "color 0.2s",
-                  borderBottom: tab === t.id ? "2px solid var(--primary)" : "2px solid transparent",
-                  padding: "24px 0",
-                  marginTop: 2
-                }}
-              >
-                {t.label}
-              </div>
-            ))}
-          </div>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-          <ThemeToggle />
-          <div style={{ color: "var(--muted)", cursor: "pointer" }}>🔍</div>
-          <div style={{ color: "var(--muted)", cursor: "pointer", position: "relative" }}>
-            🔔
-            <div style={{ position: "absolute", top: 0, right: 0, width: 8, height: 8, background: "#EF4444", borderRadius: "50%" }}></div>
-          </div>
-          <div
-            onClick={() => setShowProfile(true)}
-            style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", marginLeft: 10 }}
-          >
-            <div style={{
-              width: 36, height: 36, borderRadius: "50%",
-              background: "linear-gradient(135deg, #3B82F6, #8B5CF6)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontWeight: 700, fontSize: 14, color: "white"
-            }}>
-              {teacher.full_name?.[0]?.toUpperCase() || "P"}
-            </div>
-          </div>
-          <button onClick={onLogout} style={{
-            background: "transparent", border: "1px solid var(--border)",
-            color: "var(--text)", padding: "6px 14px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 500
-          }}>
-            Chiqish
-          </button>
-        </div>
-      </div>
+      <Navbar
+        tabs={TEACHER_NAV_TABS}
+        currentPage={tab}
+        onNavigate={setTab}
+        currentUser={teacher}
+        onLogout={onLogout}
+        onProfileClick={() => setShowProfile(true)}
+      />
 
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 20px" }}>
 

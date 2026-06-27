@@ -44,6 +44,11 @@ import { storage, resetSupabase, getUserId, setUserId, clearUserData } from "./s
 import { getCurrentUser, logout, isAdminLoggedIn, adminLogout, isMinistryLoggedIn, ministryLogout } from "./auth";
 import { useEmojiIcons } from "./EmojiIconInjector";
 import { updateLoginStreak } from "./activityStats";
+
+const STUDENT_NAV_TABS = [
+  { id: "dashboard", icon: "📊", label: "Dashboard" },
+  { id: "profile", icon: "👤", label: "Profil" },
+];
 import "./global.css";
 
 export default function App() {
@@ -406,6 +411,7 @@ export default function App() {
         />
       )}
       <Navbar
+        tabs={STUDENT_NAV_TABS}
         currentPage={currentPage}
         onNavigate={handleNavigate}
         currentUser={currentUser}
