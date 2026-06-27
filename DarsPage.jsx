@@ -3597,7 +3597,7 @@ Izoh: 'actions' massividagi 'time' (sekundda) ovozning tegishli qismiga mos bo'l
   };
 
   return (
-    <div className="lesson-container" style={{ background: "#09090b", minHeight: "100vh", padding: 20 }}>
+    <div className="lesson-container" style={{ background: "var(--bg)", minHeight: "100vh", padding: 20 }}>
       <div className="lesson-sidebar" style={ls.sidebar}>
         <div
           style={{
