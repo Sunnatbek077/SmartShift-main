@@ -42,7 +42,7 @@ export default function MinistryPanel({ onLogout }) {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ fontSize: 28 }}>🏛️</div>
+          <img src="/logo.jpeg" alt="EduMind" style={{ width: 32, height: 32, borderRadius: 8, objectFit: "cover" }} />
           <div>
             <div style={{ color: "white", fontWeight: 800, fontSize: 18, fontFamily: "'Space Grotesk'" }}>
               EduMind Vazirlik Hisoboti

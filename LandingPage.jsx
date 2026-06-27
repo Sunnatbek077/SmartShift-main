@@ -4,20 +4,13 @@
 // ============================================================
 
 const LogoMark = ({ size = 36 }) => (
-  <svg
+  <img
+    src="/logo.jpeg"
     width={size}
     height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M12 2L2 7l10 5 10-5-10-5z" />
-    <path d="M2 17l10 5 10-5" />
-    <path d="M2 12l10 5 10-5" />
-  </svg>
+    alt="EduMind"
+    style={{ borderRadius: size / 4, objectFit: "cover" }}
+  />
 );
 
 export default function LandingPage({ onGetStarted }) {

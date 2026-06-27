@@ -25,7 +25,7 @@ const loginStyles = `
   @keyframes cardIn { to{ opacity:1; transform:translateY(0) scale(1);} }
 
   .logo-shield { width:70px; height:74px; margin:0 auto 10px; position:relative; display:flex; align-items:center; justify-content:center; }
-  .logo-shield svg { width:100%; height:100%; filter:drop-shadow(0 0 12px rgba(255,60,80,.7)); z-index:2; position:relative; }
+  .logo-shield svg, .logo-shield img { width:100%; height:100%; filter:drop-shadow(0 0 12px rgba(255,60,80,.7)); z-index:2; position:relative; }
   .logo-shield .pulse { position:absolute; inset:-10px; border-radius:50%; background:radial-gradient(circle, rgba(255,70,90,.35), transparent 70%); animation: pulse 2.4s ease-in-out infinite; }
   @keyframes pulse { 0%,100%{ transform:scale(.85); opacity:.5; } 50%{ transform:scale(1.15); opacity:.9; } }
 
@@ -1326,11 +1326,7 @@ CREATE POLICY "allow_all_results" ON results FOR ALL USING (true);`;
                 style={{ cursor: 'pointer' }}
               >
                 <div className="pulse"></div>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'white' }}>
-                  <path d="M12 2L2 7l10 5 10-5-10-5z" />
-                  <path d="M2 17l10 5 10-5" />
-                  <path d="M2 12l10 5 10-5" />
-                </svg>
+                <img src="/logo.jpeg" alt="EduMind" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
               </div>
               <div className="login-brand">EduMind</div>
               <div className="login-panel">
