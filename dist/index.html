@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="uz">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EduMind Platform</title>
+    <meta name="description" content="Interaktiv AI-ga asoslangan ta'lim platformasi" />
+    <script>
+      (function() {
+        var saved = localStorage.getItem('theme');
+        var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var isDark = saved ? saved === 'dark' : prefersDark;
+        document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+      })();
+    </script>
+    <script type="module" crossorigin src="./assets/index-Dkbpxo8c.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-Q3pa_5E2.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
