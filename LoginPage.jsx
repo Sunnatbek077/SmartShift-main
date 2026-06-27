@@ -1367,11 +1367,6 @@ CREATE POLICY "allow_all_results" ON results FOR ALL USING (true);`;
                   </div>
                   <div className="arrow">→</div>
                 </button>
-
-                <div className="login-links">
-                  <span onClick={() => setShowAboutModal(true)}>Need Help?</span>
-                  <span>Create Account</span>
-                </div>
               </div>
             </div>
           </div>
