@@ -524,6 +524,7 @@ CREATE POLICY "allow_all_results" ON results FOR ALL USING (true);`;
     });
     setLoading(false);
     if (result.success) {
+      await login(regUser, regPass);
       onLogin(result.user);
     } else {
       setError(result.error);
@@ -1592,6 +1593,7 @@ CREATE POLICY "allow_all_results" ON results FOR ALL USING (true);`;
                     });
                     setSetupLoading(false);
                     if (result.success) {
+                      await login(fd.get("user"), fd.get("pass"));
                       onLogin(result.user);
                     } else {
                       setSetupMsg(result.error);

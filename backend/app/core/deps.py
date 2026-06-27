@@ -41,8 +41,9 @@ async def get_current_user(
         raise _unauthorized()
 
     sb = get_supabase()
-    result = sb.table("users").select("*").eq("id", user_id).maybe_single().execute()
-    row = result.data
+    result = sb.table("users").select("*").eq("id", user_id).execute()
+    rows = result.data if result else []
+    row = rows[0] if rows else None
     if not row:
         raise _unauthorized("Foydalanuvchi topilmadi")
     if not row.get("is_active", True):
