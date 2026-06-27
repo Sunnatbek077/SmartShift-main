@@ -247,7 +247,7 @@ export async function getAllStudentResults(teacherId) {
 // ============================================================
 // O'QITUVCHI YARATISH (birinchi marta)
 // ============================================================
-export async function createTeacher({ fullName, username, password }) {
+export async function createTeacher({ fullName, username, password, regionId, regionName }) {
   // Avval mavjudligini tekshirish
   const check = await sbFetch(`users?username=eq.${encodeURIComponent(username.trim().toLowerCase())}&select=id`);
   if (check.ok && check.data?.length > 0) {
@@ -268,7 +268,86 @@ export async function createTeacher({ fullName, username, password }) {
   if (!result.ok) {
     return { success: false, error: result.data?.message || "Xato" };
   }
-  return { success: true, user: result.data?.[0] };
+  const newTeacher = result.data?.[0];
+  if (newTeacher?.id && regionId) {
+    await setTeacherRegion(newTeacher.id, regionId, regionName);
+  }
+  return { success: true, user: newTeacher };
+}
+
+// ============================================================
+// HUDUDLAR (regions) — admin orqali boshqariladi, eduai_data'da
+// global ro'yxat sifatida saqlanadi (schema o'zgarishi talab qilmaydi)
+// ============================================================
+const REGIONS_KEY = "regions";
+
+export async function getAllRegions() {
+  const r = await sbFetch(`eduai_data?user_id=eq.admin_global&key=eq.${REGIONS_KEY}&select=value`);
+  if (r.ok && r.data?.[0]?.value) {
+    try { return JSON.parse(r.data[0].value); } catch { return []; }
+  }
+  return [];
+}
+
+async function saveAllRegions(regions) {
+  const existing = await sbFetch(`eduai_data?user_id=eq.admin_global&key=eq.${REGIONS_KEY}&select=id`);
+  const body = JSON.stringify({ value: JSON.stringify(regions), updated_at: new Date().toISOString() });
+  if (existing.ok && existing.data?.length > 0) {
+    await sbFetch(`eduai_data?user_id=eq.admin_global&key=eq.${REGIONS_KEY}`, { method: "PATCH", body });
+  } else {
+    await sbFetch("eduai_data", {
+      method: "POST",
+      body: JSON.stringify({ user_id: "admin_global", key: REGIONS_KEY, value: JSON.stringify(regions) }),
+    });
+  }
+}
+
+export async function createRegion(name) {
+  const trimmed = name.trim();
+  if (!trimmed) return { success: false, error: "Hudud nomini kiriting" };
+  const regions = await getAllRegions();
+  if (regions.some(r => r.name.toLowerCase() === trimmed.toLowerCase())) {
+    return { success: false, error: "Bu hudud allaqachon mavjud" };
+  }
+  const newRegion = { id: crypto.randomUUID(), name: trimmed };
+  await saveAllRegions([...regions, newRegion]);
+  return { success: true, region: newRegion };
+}
+
+export async function deleteRegion(regionId) {
+  const regions = await getAllRegions();
+  await saveAllRegions(regions.filter(r => r.id !== regionId));
+  return true;
+}
+
+// O'qituvchi — hudud bog'lanishi (har bir o'qituvchi uchun alohida kalit)
+async function setTeacherRegion(teacherId, regionId, regionName) {
+  const key = `teacher_region_${teacherId}`;
+  const value = JSON.stringify({ regionId, regionName });
+  const existing = await sbFetch(`eduai_data?user_id=eq.admin_global&key=eq.${key}&select=id`);
+  if (existing.ok && existing.data?.length > 0) {
+    await sbFetch(`eduai_data?user_id=eq.admin_global&key=eq.${key}`, {
+      method: "PATCH",
+      body: JSON.stringify({ value, updated_at: new Date().toISOString() }),
+    });
+  } else {
+    await sbFetch("eduai_data", {
+      method: "POST",
+      body: JSON.stringify({ user_id: "admin_global", key, value }),
+    });
+  }
+}
+
+// Barcha o'qituvchilarning hududlarini bir martada olish: { teacherId: { regionId, regionName } }
+export async function getTeacherRegionsMap() {
+  const r = await sbFetch("eduai_data?user_id=eq.admin_global&key=like.teacher_region_*&select=key,value");
+  if (!r.ok || !r.data) return {};
+  const map = {};
+  r.data.forEach(row => {
+    const teacherId = row.key.replace("teacher_region_", "");
+    try { map[teacherId] = JSON.parse(row.value); } catch {}
+  });
+  return map;
 }
 
 // ============================================================

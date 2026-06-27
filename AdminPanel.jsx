@@ -7,7 +7,8 @@ import { useState, useEffect } from "react";
 import {
   getAllTeachers, adminResetTeacherPassword,
   toggleTeacherActive, deleteTeacher, getTeacherStats,
-  adminLogout, changeAdminPassword, createTeacher, resetAdminPassword
+  adminLogout, changeAdminPassword, createTeacher, resetAdminPassword,
+  getAllRegions, createRegion, deleteRegion, getTeacherRegionsMap,
 } from "./auth";
 import ThemeToggle from "./ThemeToggle";
 
@@ -16,6 +17,12 @@ export default function AdminPanel({ onLogout }) {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("teachers"); // teachers | add | settings
   const [stats, setStats] = useState({});
+
+  // Hududlar
+  const [regions, setRegions] = useState([]);
+  const [teacherRegions, setTeacherRegions] = useState({});
+  const [newRegionName, setNewRegionName] = useState("");
+  const [regionMsg, setRegionMsg] = useState(null);
 
   // Parol o'zgartirish
   const [resetFor, setResetFor] = useState(null);
@@ -27,6 +34,7 @@ export default function AdminPanel({ onLogout }) {
   const [addName, setAddName] = useState("");
   const [addUser, setAddUser] = useState("");
   const [addPass, setAddPass] = useState("");
+  const [addRegionId, setAddRegionId] = useState("");
   const [addShowPass, setAddShowPass] = useState(false);
   const [addMsg, setAddMsg] = useState(null);
   const [addLoading, setAddLoading] = useState(false);
@@ -53,7 +61,29 @@ export default function AdminPanel({ onLogout }) {
       statsMap[t.id] = await getTeacherStats(t.id);
     }));
     setStats(statsMap);
+    const [regionsList, regionsMap] = await Promise.all([getAllRegions(), getTeacherRegionsMap()]);
+    setRegions(regionsList);
+    setTeacherRegions(regionsMap);
     setLoading(false);
+  };
+
+  const handleAddRegion = async (e) => {
+    e.preventDefault();
+    const result = await createRegion(newRegionName);
+    if (result.success) {
+      setRegions(r => [...r, result.region]);
+      setNewRegionName("");
+      setRegionMsg(null);
+    } else {
+      setRegionMsg(result.error);
+    }
+  };
+
+  const handleDeleteRegion = async (regionId) => {
+    if (!confirm("Bu hududni o'chirishni tasdiqlaysizmi?")) return;
+    await deleteRegion(regionId);
+    setRegions(r => r.filter(x => x.id !== regionId));
+    if (addRegionId === regionId) setAddRegionId("");
   };
 
   const handleResetPass = async (teacherId) => {
@@ -85,11 +115,15 @@ export default function AdminPanel({ onLogout }) {
       return;
     }
     setAddLoading(true);
-    const result = await createTeacher({ fullName: addName, username: addUser, password: addPass });
+    const selectedRegion = regions.find(r => r.id === addRegionId);
+    const result = await createTeacher({
+      fullName: addName, username: addUser, password: addPass,
+      regionId: selectedRegion?.id, regionName: selectedRegion?.name,
+    });
     setAddLoading(false);
     if (result.success) {
       setAddMsg({ type: "success", text: `✅ ${addName} qo'shildi! Login: ${addUser}` });
-      setAddName(""); setAddUser(""); setAddPass("");
+      setAddName(""); setAddUser(""); setAddPass(""); setAddRegionId("");
       loadData();
     } else {
       setAddMsg({ type: "error", text: result.error });
@@ -240,6 +274,7 @@ export default function AdminPanel({ onLogout }) {
                             @{teacher.username}
                             {teacher.school && ` • ${teacher.school}`}
                             {teacher.subject && ` • ${teacher.subject}`}
+                            {teacherRegions[teacher.id]?.regionName && ` • 📍 ${teacherRegions[teacher.id].regionName}`}
                           </div>
                           <div style={{ display: "flex", gap: 12, marginTop: 6 }}>
                             <span style={{ fontSize: 11, color: "#60A5FA" }}>👥 {st.studentCount || 0} talaba</span>
@@ -355,6 +390,45 @@ export default function AdminPanel({ onLogout }) {
                     </button>
                   </div>
                 </div>
+
+                <div style={{ marginBottom: 20 }}>
+                  <label style={{ color: "var(--muted)", fontSize: 13, fontWeight: 600, display: "block", marginBottom: 6 }}>📍 Hudud <span style={{ color: "var(--dim)", fontWeight: 400 }}>(ixtiyoriy)</span></label>
+                  <select value={addRegionId} onChange={e => setAddRegionId(e.target.value)}
+                    style={{ width: "100%", padding: "11px 14px", borderRadius: 10, background: "var(--input-bg)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 14, outline: "none", boxSizing: "border-box", marginBottom: 10 }}>
+                    <option value="">— Hudud tanlamaslik —</option>
+                    {regions.map(r => (
+                      <option key={r.id} value={r.id}>{r.name}</option>
+                    ))}
+                  </select>
+
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input value={newRegionName} onChange={e => setNewRegionName(e.target.value)}
+                      placeholder="Yangi hudud nomi (masalan: Samarqand)"
+                      style={{ flex: 1, padding: "9px 12px", borderRadius: 8, background: "var(--input-bg)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+                    <button type="button" onClick={handleAddRegion}
+                      style={{ background: "rgba(129,140,248,0.15)", color: "#818CF8", border: "1px solid rgba(129,140,248,0.3)", padding: "9px 14px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap" }}>
+                      ➕ Hudud qo'shish
+                    </button>
+                  </div>
+                  {regionMsg && (
+                    <div style={{ marginTop: 8, fontSize: 12, color: "#FCA5A5" }}>{regionMsg}</div>
+                  )}
+
+                  {regions.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
+                      {regions.map(r => (
+                        <span key={r.id} style={{ display: "flex", alignItems: "center", gap: 6, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 20, padding: "4px 6px 4px 10px", fontSize: 12, color: "var(--text)" }}>
+                          {r.name}
+                          <button type="button" onClick={() => handleDeleteRegion(r.id)}
+                            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--dim)", fontSize: 13, padding: "0 2px", lineHeight: 1 }}>
+                            ✕
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 <button type="submit" disabled={addLoading}
                   style={{ width: "100%", padding: "13px", borderRadius: 12, border: "none", background: addLoading ? "rgba(124,58,237,0.4)" : "linear-gradient(135deg, #7C3AED, #2563EB)", color: "white", fontWeight: 700, fontSize: 15, cursor: addLoading ? "not-allowed" : "pointer" }}>
                   {addLoading ? "⏳ Qo'shilmoqda..." : "✅ O'qituvchi qo'shish"}
