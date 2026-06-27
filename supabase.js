@@ -45,7 +45,10 @@ export const setUserId = (id) => {
 export const clearUserData = () => {
   const keysToKeep = [
     'eduai_authors',
-    'eduai_admin_session'
+    'eduai_admin_session',
+    'eduai_session',
+    'eduai_session_user',
+    'eduai_ministry_session',
   ];
   const keysToRemove = [];
   for (let i = 0; i < localStorage.length; i++) {
