@@ -5,7 +5,7 @@
 
 const LogoMark = ({ size = 36 }) => (
   <img
-    src="/logo.jpeg"
+    src="/logo.png"
     width={size}
     height={size}
     alt="EduMind"

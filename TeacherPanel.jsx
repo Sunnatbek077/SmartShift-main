@@ -920,7 +920,7 @@ export default function TeacherPanel({ teacher, onLogout }) {
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 40 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <img src="/logo.jpeg" alt="EduMind" style={{ width: 32, height: 32, borderRadius: 8, objectFit: "cover" }} />
+            <img src="/logo.png" alt="EduMind" style={{ width: 32, height: 32, borderRadius: 8, objectFit: "cover" }} />
             <div style={{ color: "var(--text)", fontWeight: 700, fontSize: 20, letterSpacing: "-0.5px" }}>EduMind</div>
           </div>
           <div style={{ display: "flex", gap: 24 }}>

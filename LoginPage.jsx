@@ -21,13 +21,13 @@ const loginStyles = `
   @keyframes float { 0%,100% { transform:translateY(0) scale(1); } 50% { transform:translateY(-25px) scale(1.08); } }
 
   .login-stage { position:relative; z-index:10; width:100%; height:100%; display:flex; align-items:center; justify-content:center; }
-  .login-card { width:380px; padding:30px 28px 26px; background:rgba(8,12,24,0.72); border:1px solid rgba(120,160,255,0.25); border-radius:18px; backdrop-filter: blur(14px); box-shadow: 0 0 40px rgba(60,120,255,0.18), 0 0 90px rgba(255,90,60,0.08); text-align:center; opacity:0; transform:translateY(30px) scale(.96); animation: cardIn 1.1s cubic-bezier(.2,.9,.25,1) .3s forwards; }
+  .login-card { width:380px; padding:30px 28px 26px; background:rgba(8,12,24,0.72); border:1px solid rgba(120,160,255,0.25); border-radius:18px; backdrop-filter: blur(14px); box-shadow: 0 0 40px rgba(60,120,255,0.18), 0 0 90px rgba(124,58,237,0.10); text-align:center; opacity:0; transform:translateY(30px) scale(.96); animation: cardIn 1.1s cubic-bezier(.2,.9,.25,1) .3s forwards; }
   @keyframes cardIn { to{ opacity:1; transform:translateY(0) scale(1);} }
 
-  .logo-shield { width:70px; height:74px; margin:0 auto 10px; position:relative; display:flex; align-items:center; justify-content:center; }
-  .logo-shield svg, .logo-shield img { width:100%; height:100%; filter:drop-shadow(0 0 12px rgba(255,60,80,.7)); z-index:2; position:relative; }
-  .logo-shield .pulse { position:absolute; inset:-10px; border-radius:50%; background:radial-gradient(circle, rgba(255,70,90,.35), transparent 70%); animation: pulse 2.4s ease-in-out infinite; }
-  @keyframes pulse { 0%,100%{ transform:scale(.85); opacity:.5; } 50%{ transform:scale(1.15); opacity:.9; } }
+  .logo-shield { width:88px; height:88px; margin:0 auto 14px; position:relative; display:flex; align-items:center; justify-content:center; }
+  .logo-shield svg, .logo-shield img { width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 4px 16px rgba(37,99,235,.45)); z-index:2; position:relative; border-radius:20px; }
+  .logo-shield .pulse { position:absolute; inset:-14px; border-radius:50%; background:radial-gradient(circle, rgba(99,102,241,.28), transparent 70%); animation: pulse 2.4s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{ transform:scale(.85); opacity:.5; } 50%{ transform:scale(1.12); opacity:.85; } }
 
   .login-brand { color:#fff; font-size:24px; font-weight:700; letter-spacing:.5px; margin-bottom:18px; text-shadow:0 0 20px rgba(120,170,255,.4); font-family: 'Segoe UI', Arial, sans-serif; }
 
@@ -350,7 +350,7 @@ export default function LoginPage({ onLogin, onAdminLogin, onMinistryLogin }) {
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0, width, height);
 
-        const dataUrl = canvas.toDataURL("image/jpeg", 0.75);
+        const dataUrl = canvas.toDataURL("image/png", 0.75);
         callback(dataUrl);
       };
       img.src = event.target.result;
@@ -1326,7 +1326,7 @@ CREATE POLICY "allow_all_results" ON results FOR ALL USING (true);`;
                 style={{ cursor: 'pointer' }}
               >
                 <div className="pulse"></div>
-                <img src="/logo.jpeg" alt="EduMind" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                <img src="/logo.png" alt="EduMind" style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: 20 }} />
               </div>
               <div className="login-brand">EduMind</div>
               <div className="login-panel">

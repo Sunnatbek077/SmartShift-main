@@ -65,7 +65,7 @@ export default function Navbar({ currentPage, onNavigate, currentUser, onLogout 
     <nav style={styles.navbar}>
       {/* LOGO */}
       <button style={styles.logo} onClick={() => onNavigate("dashboard")}>
-        <img src="/logo.jpeg" alt="EduMind" style={{ width: 32, height: 32, borderRadius: 8, objectFit: 'cover', marginRight: 4 }} /> EduMind
+        <img src="/logo.png" alt="EduMind" style={{ width: 32, height: 32, borderRadius: 8, objectFit: 'cover', marginRight: 4 }} /> EduMind
       </button>
 
       {/* NAV LINKS (DESKTOP) */}
