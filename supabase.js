@@ -1,30 +1,38 @@
 // ============================================================
-// EduAI Platform — Supabase Client
-// YANGILANDI: user_id asosida sync — istalgan qurilmadan kirsa
-// barcha ma'lumotlar (API kalitlar, HTML, videolar) yuklanadi
+// EduAI Platform — Storage qatlami
+// YANGILANDI: endi to'g'ridan-to'g'ri Supabase'ga emas, balki
+// backend/ papkasidagi FastAPI serverning /storage/{key} endpoint'iga
+// HTTP orqali murojaat qiladi. Supabase client va anon key olib tashlandi.
 // ============================================================
-import { createClient } from '@supabase/supabase-js';
 
-const getSupabaseConfig = () => {
-  const url = localStorage.getItem('supabase_url') || import.meta.env.VITE_SUPABASE_URL || '';
-  const key = localStorage.getItem('supabase_key') || import.meta.env.VITE_SUPABASE_ANON_KEY || '';
-  return { url, key };
-};
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
-let _client = null;
+const SESSION_TOKEN_KEY = "eduai_session";
 
-export const getSupabase = () => {
-  const { url, key } = getSupabaseConfig();
-  if (!url || !key) return null;
-  if (!_client) _client = createClient(url, key);
-  return _client;
-};
+function getToken() {
+  return localStorage.getItem(SESSION_TOKEN_KEY);
+}
 
-export const resetSupabase = () => { _client = null; };
+async function storageFetch(path, options = {}) {
+  const token = getToken();
+  if (!token) return null;
+  const resp = await fetch(`${API_BASE}/storage${path}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+      ...(options.headers || {}),
+    },
+  });
+  if (!resp.ok) return null;
+  const text = await resp.text();
+  try { return text ? JSON.parse(text) : null; } catch { return null; }
+}
 
 // ============================================================
 // USER ID — qurilmaga bog'liq EMAS, foydalanuvchi o'zi belgilaydi
-// Agar yo'q bo'lsa "default" ishlatiladi
+// (faqat UI/localStorage darajasida ishlatiladi; haqiqiy scoping backendda
+// JWT orqali bo'ladi)
 // ============================================================
 export const getUserId = () => {
   return localStorage.getItem('eduai_user_id') || 'default';
@@ -36,8 +44,6 @@ export const setUserId = (id) => {
 
 export const clearUserData = () => {
   const keysToKeep = [
-    'supabase_url',
-    'supabase_key',
     'eduai_authors',
     'eduai_admin_session'
   ];
@@ -52,14 +58,13 @@ export const clearUserData = () => {
 };
 
 // ============================================================
-// GLOBAL CONTENT ID — barcha foydalanuvchilar uchun umumiy ma'lumotlar
-// (Ma'ruzalar, videolar, lablar)
+// GLOBAL CONTENT — qaysi kalitlar barcha foydalanuvchilar uchun umumiy
+// ekanini backend ham xuddi shu ro'yxat bilan aniqlaydi (app/services/storage_service.py)
 // ============================================================
-const GLOBAL_ID = 'eduai_global_content';
 const isGlobalKey = (key) => {
-  return key.startsWith('lecture_') || 
-         key.startsWith('video_') || 
-         key.startsWith('lab_html_') || 
+  return key.startsWith('lecture_') ||
+         key.startsWith('video_') ||
+         key.startsWith('lab_html_') ||
          key.startsWith('lab_') ||
          key.startsWith('quiz_') ||
          key.startsWith('practice_') ||
@@ -74,123 +79,60 @@ const isGlobalKey = (key) => {
 // ============================================================
 export const storage = {
 
-  // Ma'lumot olish — avval Supabase, keyin localStorage
+  // Ma'lumot olish — avval backend, keyin localStorage
   async get(key) {
-    const sb = getSupabase();
-    if (sb) {
-      try {
-        const targetUserId = isGlobalKey(key) ? GLOBAL_ID : getUserId();
-        const { data, error } = await sb
-          .from('eduai_data')
-          .select('value')
-          .eq('user_id', targetUserId)
-          .eq('key', key)
-          .maybeSingle();
-        if (!error && data) {
-          // localStorage ni ham yangilab qo'yamiz
-          if (data.value !== null) localStorage.setItem(key, data.value);
-          return data.value;
-        }
-      } catch {}
+    const result = await storageFetch(`/${encodeURIComponent(key)}`);
+    if (result && result.value !== null && result.value !== undefined) {
+      localStorage.setItem(key, result.value);
+      return result.value;
     }
     return localStorage.getItem(key);
   },
 
-  // Ma'lumot saqlash — ham localStorage, ham Supabase
+  // Ma'lumot saqlash — ham localStorage, ham backend
   async set(key, value) {
     localStorage.setItem(key, value);
-    const sb = getSupabase();
-    if (sb) {
-      try {
-        const targetUserId = isGlobalKey(key) ? GLOBAL_ID : getUserId();
-        await sb.from('eduai_data').upsert(
-          { user_id: targetUserId, key, value, updated_at: new Date().toISOString() },
-          { onConflict: 'user_id,key' }
-        );
-      } catch {}
-    }
+    await storageFetch(`/${encodeURIComponent(key)}`, {
+      method: "PUT",
+      body: JSON.stringify({ value }),
+    });
   },
 
   // Ma'lumot o'chirish
   async remove(key) {
     localStorage.removeItem(key);
-    const sb = getSupabase();
-    if (sb) {
-      try {
-        const targetUserId = isGlobalKey(key) ? GLOBAL_ID : getUserId();
-        await sb.from('eduai_data')
-          .delete()
-          .eq('user_id', targetUserId)
-          .eq('key', key);
-      } catch {}
-    }
+    await storageFetch(`/${encodeURIComponent(key)}`, { method: "DELETE" });
   },
 
-  // Barcha ma'lumotlarni Supabase dan yuklab olish
+  // Barcha ma'lumotlarni backend'dan yuklab olish
   async syncFromCloud() {
-    const sb = getSupabase();
-    if (!sb) return false;
-    try {
-      // 1. Shaxsiy ma'lumotlarni yuklash
-      const { data: userData } = await sb
-        .from('eduai_data')
-        .select('key, value')
-        .eq('user_id', getUserId());
-      
-      if (userData) {
-        userData.forEach(({ key, value }) => {
-          if (value !== null && value !== undefined) localStorage.setItem(key, value);
-        });
-      }
-
-      // 2. Umumiy (Global) ma'lumotlarni yuklash
-      const { data: globalData } = await sb
-        .from('eduai_data')
-        .select('key, value')
-        .eq('user_id', GLOBAL_ID);
-      
-      if (globalData) {
-        globalData.forEach(({ key, value }) => {
-          if (value !== null && value !== undefined) localStorage.setItem(key, value);
-        });
-      }
-
-      return true;
-    } catch { return false; }
+    const rows = await storageFetch("/_sync/from-cloud");
+    if (!rows) return false;
+    rows.forEach(({ key, value }) => {
+      if (value !== null && value !== undefined) localStorage.setItem(key, value);
+    });
+    return true;
   },
 
-  // Barcha ma'lumotlarni Supabase ga yuklash (yangi qurilmadan birinchi marta)
+  // Barcha ma'lumotlarni backend'ga yuklash (yangi qurilmadan birinchi marta)
   async syncToCloud() {
-    const sb = getSupabase();
-    if (!sb) return false;
-    try {
-      const rows = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const k = localStorage.key(i);
-        const val = localStorage.getItem(k);
-        if (k && val && !k.startsWith('_')) {
-          rows.push({
-            user_id: isGlobalKey(k) ? GLOBAL_ID : getUserId(),
-            key: k,
-            value: val,
-            updated_at: new Date().toISOString(),
-          });
-        }
+    const rows = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      const val = localStorage.getItem(k);
+      if (k && val && !k.startsWith('_')) {
+        rows.push({ key: k, value: val });
       }
-
-      if (rows.length > 0) {
-        const chunkSize = 50;
-        for (let i = 0; i < rows.length; i += chunkSize) {
-          const chunk = rows.slice(i, i + chunkSize);
-          await sb.from('eduai_data').upsert(chunk, { onConflict: 'user_id,key' });
-        }
-      }
-      return true;
-    } catch { return false; }
+    }
+    if (rows.length === 0) return true;
+    const result = await storageFetch("/_sync/to-cloud", {
+      method: "POST",
+      body: JSON.stringify(rows),
+    });
+    return result !== null;
   },
 
   isConnected() {
-    const { url, key } = getSupabaseConfig();
-    return !!(url && key);
+    return !!getToken();
   }
 };

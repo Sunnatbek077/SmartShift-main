@@ -3,7 +3,7 @@
 // Talabalar qo'shish, natijalarni ko'rish, parol berish
 // ============================================================
 import { useState, useEffect } from "react";
-import { getStudents, addStudent, toggleStudentActive, deleteStudent, changeStudentPassword, getAllStudentResults, getStudentsBiometrics, resetStudentBiometrics } from "./auth";
+import { getStudents, addStudent, toggleStudentActive, deleteStudent, changeStudentPassword, getAllStudentResults, getStudentsBiometrics, resetStudentBiometrics, updateTeacherProfile } from "./auth";
 import { FANS, FANS_7, FANS_1KURS, TOPICS_MAP, TOPICS_MAP_7, TOPICS_MAP_1KURS } from "./index";
 import { storage } from "./supabase";
 import Navbar from "./Navbar";
@@ -748,41 +748,21 @@ export default function TeacherPanel({ teacher, onLogout }) {
     }
     setProfileLoading(true);
     try {
-      const SB_URL = "https://hmdyvzrjlznqvobbmdbx.supabase.co";
-      const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhtZHl2enJqbHpucXZvYmJtZGJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwMzk0NTUsImV4cCI6MjA5MzYxNTQ1NX0.E3yendkcCaMEbzlOpu-xNP0IGpsgVmVzzzH06MyM9OQ";
-
-      const updateData = {
-        full_name: editName.trim(),
+      const result = await updateTeacherProfile({
+        fullName: editName.trim(),
         phone: editPhone.trim(),
         school: editSchool.trim(),
         subject: editSubject.trim(),
         experience: editExp.trim(),
         about: editAbout.trim(),
-      };
-
-      // Parol o'zgartirish
-      if (editPass.trim()) {
-        await changeStudentPassword(teacher.id, editPass.trim());
-      }
-
-      const resp = await fetch(`${SB_URL}/rest/v1/users?id=eq.${teacher.id}`, {
-        method: "PATCH",
-        headers: {
-          "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}`,
-          "Content-Type": "application/json", "Prefer": "return=representation"
-        },
-        body: JSON.stringify(updateData)
+        newPassword: editPass.trim() || undefined,
       });
 
-      if (resp.ok) {
-        // Sessiyani yangilash
-        const session = JSON.parse(localStorage.getItem("eduai_session") || "{}");
-        Object.assign(session, updateData);
-        localStorage.setItem("eduai_session", JSON.stringify(session));
+      if (result.success) {
         setProfileMsg({ type: "success", text: "✅ Profil saqlandi!" });
         setTimeout(() => setProfileMsg(null), 3000);
       } else {
-        setProfileMsg({ type: "error", text: "Xato yuz berdi" });
+        setProfileMsg({ type: "error", text: result.error || "Xato yuz berdi" });
       }
     } catch (e) {
       setProfileMsg({ type: "error", text: e.message });

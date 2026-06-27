@@ -1,109 +1,101 @@
 // ============================================================
 // EduAI Platform — Auth tizimi
-// O'qituvchi va talaba login/parol bilan kirish
-// Supabase users jadvalidan foydalanadi
+// YANGILANDI: endi to'g'ridan-to'g'ri Supabase'ga emas, balki
+// backend/ papkasidagi FastAPI serverga HTTP orqali murojaat qiladi.
+// Parol hashing va anon key endi frontendda yo'q.
 // ============================================================
-import { getSupabase, clearUserData } from "./supabase";
+import { clearUserData } from "./supabase";
 
-const SB_URL = "https://hmdyvzrjlznqvobbmdbx.supabase.co";
-const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhtZHl2enJqbHpucXZvYmJtZGJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwMzk0NTUsImV4cCI6MjA5MzYxNTQ1NX0.E3yendkcCaMEbzlOpu-xNP0IGpsgVmVzzzH06MyM9OQ";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
-// Oddiy hash (SHA-256 — brauzerda ishlaydi)
-async function hashPassword(password) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password + "eduai_salt_2024");
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+const SESSION_TOKEN_KEY = "eduai_session";
+const SESSION_USER_KEY = "eduai_session_user";
+const ADMIN_TOKEN_KEY = "eduai_admin_session";
+const MINISTRY_TOKEN_KEY = "eduai_ministry_session";
+
+function decodeJwtExp(token) {
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+    return payload.exp ? payload.exp * 1000 : null;
+  } catch {
+    return null;
+  }
 }
 
-// Supabase REST API orqali so'rov
-async function sbFetch(path, options = {}, customKey = null) {
-  const useKey = customKey || SB_KEY;
-  const resp = await fetch(`${SB_URL}/rest/v1/${path}`, {
+function isTokenValid(token) {
+  if (!token) return false;
+  const expMs = decodeJwtExp(token);
+  return !expMs || expMs > Date.now();
+}
+
+async function apiFetch(path, { token, ...options } = {}) {
+  const resp = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers: {
-      "apikey": useKey,
-      "Authorization": `Bearer ${useKey}`,
       "Content-Type": "application/json",
-      "Prefer": "return=representation",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(options.headers || {}),
     },
   });
   const text = await resp.text();
-  try { return { ok: resp.ok, status: resp.status, data: JSON.parse(text) }; }
-  catch { return { ok: resp.ok, status: resp.status, data: text }; }
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch { data = text; }
+  if (!resp.ok) {
+    const message = (data && (data.detail || data.message)) || "Xato yuz berdi";
+    throw new Error(message);
+  }
+  return data;
+}
+
+function getUserToken() {
+  return localStorage.getItem(SESSION_TOKEN_KEY);
+}
+
+function getAdminToken() {
+  return localStorage.getItem(ADMIN_TOKEN_KEY);
+}
+
+function getMinistryToken() {
+  return localStorage.getItem(MINISTRY_TOKEN_KEY);
 }
 
 // ============================================================
-// JADVAL MAVJUDLIGINI TEKSHIRISH
+// JADVALLAR — schema endi backend/migrations/001_init.sql orqali bir marta
+// qo'lda ishga tushiriladi (service-role key frontendda umuman bo'lmaydi).
+// Bu ikki funksiya faqat eski LoginPage "birinchi sozlash" oqimi bilan
+// moslik uchun qoldirilgan — setup-mode endi hech qachon ishga tushmaydi.
 // ============================================================
 export async function checkTablesExist() {
-  try {
-    const r = await sbFetch("users?limit=1");
-    return r.status !== 404 && r.status !== 400;
-  } catch { return false; }
+  return true;
 }
 
-// ============================================================
-// SERVICE KEY BILAN JADVAL YARATISH
-// ============================================================
-export async function createTablesWithServiceKey(serviceKey) {
-  // service_role key bilan SQL ishlatish
-  const queries = [
-    `CREATE TABLE IF NOT EXISTS users (id uuid DEFAULT gen_random_uuid() PRIMARY KEY, full_name text NOT NULL, username text NOT NULL UNIQUE, password_hash text NOT NULL, role text NOT NULL DEFAULT 'student', class_name text, teacher_id uuid, is_active boolean DEFAULT true, created_at timestamptz DEFAULT now())`,
-    `ALTER TABLE users ENABLE ROW LEVEL SECURITY`,
-    `DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='users' AND policyname='allow_all_users') THEN CREATE POLICY "allow_all_users" ON users FOR ALL USING (true); END IF; END $$`,
-    `CREATE TABLE IF NOT EXISTS results (id uuid DEFAULT gen_random_uuid() PRIMARY KEY, student_id uuid NOT NULL, topic_id integer, topic_name text, fan_id text, fan_name text, score integer, transcript text, details text, created_at timestamptz DEFAULT now())`,
-    `ALTER TABLE results ENABLE ROW LEVEL SECURITY`,
-    `DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='results' AND policyname='allow_all_results') THEN CREATE POLICY "allow_all_results" ON results FOR ALL USING (true); END IF; END $$`,
-  ];
-
-  for (const sql of queries) {
-    try {
-      await fetch(`${SB_URL}/rest/v1/rpc/exec_sql`, {
-        method: "POST",
-        headers: {
-          "apikey": serviceKey,
-          "Authorization": `Bearer ${serviceKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ sql }),
-      });
-    } catch {}
-  }
-
-  // Tekshirish
-  const check = await sbFetch("users?limit=1", {}, serviceKey);
-  return check.status !== 404 && check.status !== 400;
+export async function createTablesWithServiceKey() {
+  return true;
 }
 
 // ============================================================
 // LOGIN
 // ============================================================
 export async function login(username, password) {
-  const hash = await hashPassword(password);
-  const result = await sbFetch(
-    `users?username=eq.${encodeURIComponent(username.trim().toLowerCase())}&password_hash=eq.${hash}&select=*`
-  );
-  if (!result.ok || !result.data?.length) {
-    return { success: false, error: "Login yoki parol noto'g'ri" };
+  try {
+    const { token, user } = await apiFetch("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ username, password }),
+    });
+    localStorage.setItem(SESSION_TOKEN_KEY, token);
+    localStorage.setItem(SESSION_USER_KEY, JSON.stringify(user));
+    return { success: true, user };
+  } catch (e) {
+    return { success: false, error: e.message || "Login yoki parol noto'g'ri" };
   }
-  const user = result.data[0];
-  if (!user.is_active) {
-    return { success: false, error: "Akkaunt bloklangan. O'qituvchiga murojaat qiling." };
-  }
-  // Sessiyani saqlash
-  const session = { ...user, loginTime: Date.now() };
-  localStorage.setItem("eduai_session", JSON.stringify(session));
-  return { success: true, user };
 }
 
 // ============================================================
 // LOGOUT
 // ============================================================
 export function logout() {
-  localStorage.removeItem("eduai_session");
+  localStorage.removeItem(SESSION_TOKEN_KEY);
+  localStorage.removeItem(SESSION_USER_KEY);
   clearUserData();
 }
 
@@ -111,549 +103,332 @@ export function logout() {
 // JORIY FOYDALANUVCHI
 // ============================================================
 export function getCurrentUser() {
+  const token = getUserToken();
+  if (!isTokenValid(token)) {
+    logout();
+    return null;
+  }
   try {
-    const s = localStorage.getItem("eduai_session");
-    if (!s) return null;
-    const session = JSON.parse(s);
-    // 7 kundan eski sessiyani o'chirish
-    if (Date.now() - session.loginTime > 7 * 24 * 60 * 60 * 1000) {
-      localStorage.removeItem("eduai_session");
-      return null;
-    }
-    return session;
+    const user = JSON.parse(localStorage.getItem(SESSION_USER_KEY));
+    return user ? { ...user, token } : null;
   } catch { return null; }
 }
 
 export function isTeacher() {
-  const u = getCurrentUser();
-  return u?.role === "teacher";
+  return getCurrentUser()?.role === "teacher";
 }
 
 export function isStudent() {
-  const u = getCurrentUser();
-  return u?.role === "student";
+  return getCurrentUser()?.role === "student";
 }
 
 // ============================================================
 // O'QITUVCHI: Talaba qo'shish
 // ============================================================
-export async function addStudent({ fullName, username, password, className, teacherId }) {
-  const hash = await hashPassword(password);
-  const result = await sbFetch("users", {
-    method: "POST",
-    body: JSON.stringify({
-      full_name: fullName.trim(),
-      username: username.trim().toLowerCase(),
-      password_hash: hash,
-      role: "student",
-      class_name: className.trim(),
-      teacher_id: teacherId,
-      is_active: true,
-      created_at: new Date().toISOString(),
-    }),
-  });
-  if (!result.ok) {
-    const msg = result.data?.message || result.data?.details || "Xato yuz berdi";
-    if (msg.includes("duplicate") || msg.includes("unique")) {
-      return { success: false, error: "Bu username allaqachon mavjud" };
-    }
-    return { success: false, error: msg };
+export async function addStudent({ fullName, username, password, className }) {
+  try {
+    const user = await apiFetch("/teacher/students", {
+      method: "POST",
+      token: getUserToken(),
+      body: JSON.stringify({ full_name: fullName, username, password, class_name: className }),
+    });
+    return { success: true, user };
+  } catch (e) {
+    return { success: false, error: e.message };
   }
-  return { success: true, user: result.data?.[0] };
 }
 
-// ============================================================
-// O'QITUVCHI: Talabalar ro'yxati
-// ============================================================
-export async function getStudents(teacherId) {
-  const result = await sbFetch(
-    `users?teacher_id=eq.${teacherId}&role=eq.student&order=created_at.desc&select=*`
-  );
-  if (!result.ok) return [];
-  return result.data || [];
+export async function getStudents() {
+  try {
+    return await apiFetch("/teacher/students", { token: getUserToken() });
+  } catch { return []; }
 }
 
-// ============================================================
-// O'QITUVCHI: Talabani bloklash/ochish
-// ============================================================
 export async function toggleStudentActive(studentId, isActive) {
-  const result = await sbFetch(`users?id=eq.${studentId}`, {
-    method: "PATCH",
-    body: JSON.stringify({ is_active: isActive }),
-  });
-  return result.ok;
+  try {
+    await apiFetch(`/teacher/students/${studentId}/active`, {
+      method: "PATCH",
+      token: getUserToken(),
+      body: JSON.stringify({ is_active: isActive }),
+    });
+    return true;
+  } catch { return false; }
 }
 
-// ============================================================
-// O'QITUVCHI: Talabani o'chirish
-// ============================================================
 export async function deleteStudent(studentId) {
-  const result = await sbFetch(`users?id=eq.${studentId}`, {
-    method: "DELETE",
-  });
-  return result.ok;
+  try {
+    await apiFetch(`/teacher/students/${studentId}`, { method: "DELETE", token: getUserToken() });
+    return true;
+  } catch { return false; }
 }
 
-// ============================================================
-// O'QITUVCHI: Talaba parolini o'zgartirish
-// ============================================================
 export async function changeStudentPassword(studentId, newPassword) {
-  const hash = await hashPassword(newPassword);
-  const result = await sbFetch(`users?id=eq.${studentId}`, {
-    method: "PATCH",
-    body: JSON.stringify({ password_hash: hash }),
-  });
-  return result.ok;
+  try {
+    await apiFetch(`/teacher/students/${studentId}/password`, {
+      method: "PATCH",
+      token: getUserToken(),
+      body: JSON.stringify({ new_password: newPassword }),
+    });
+    return true;
+  } catch { return false; }
 }
 
 // ============================================================
 // TALABA NATIJALARI
 // ============================================================
-export async function getStudentResults(studentId) {
-  const result = await sbFetch(
-    `results?student_id=eq.${studentId}&order=created_at.desc&select=*`
-  );
-  if (!result.ok) return [];
-  return result.data || [];
+export async function getStudentResults() {
+  try {
+    return await apiFetch("/results/me", { token: getUserToken() });
+  } catch { return []; }
 }
 
-export async function saveResult({ studentId, topicId, topicName, fanId, fanName, score, transcript, details }) {
-  const result = await sbFetch("results", {
-    method: "POST",
-    body: JSON.stringify({
-      student_id: studentId,
-      topic_id: topicId,
-      topic_name: topicName,
-      fan_id: fanId,
-      fan_name: fanName,
-      score,
-      transcript: transcript?.slice(0, 1000) || "",
-      details: details ? JSON.stringify(details) : null,
-      created_at: new Date().toISOString(),
-    }),
-  });
-  return result.ok;
+export async function saveResult({ topicId, topicName, fanId, fanName, score, transcript, details }) {
+  try {
+    await apiFetch("/results", {
+      method: "POST",
+      token: getUserToken(),
+      body: JSON.stringify({
+        topic_id: topicId,
+        topic_name: topicName,
+        fan_id: fanId,
+        fan_name: fanName,
+        score,
+        transcript,
+        details,
+      }),
+    });
+    return true;
+  } catch { return false; }
 }
 
-export async function getAllStudentResults(teacherId) {
-  // O'qituvchining barcha talabalarining natijalari
-  const result = await sbFetch(
-    `results?select=*,users!inner(full_name,username,class_name,teacher_id)&users.teacher_id=eq.${teacherId}&order=created_at.desc`
-  );
-  if (!result.ok) return [];
-  return result.data || [];
+export async function updateTeacherProfile({ fullName, phone, school, subject, experience, about, newPassword } = {}) {
+  try {
+    const updated = await apiFetch("/teacher/me", {
+      method: "PATCH",
+      token: getUserToken(),
+      body: JSON.stringify({
+        full_name: fullName,
+        phone,
+        school,
+        subject,
+        experience,
+        about,
+        new_password: newPassword,
+      }),
+    });
+    if (updated) localStorage.setItem(SESSION_USER_KEY, JSON.stringify(updated));
+    return { success: true, user: updated };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+export async function getAllStudentResults() {
+  try {
+    return await apiFetch("/teacher/results", { token: getUserToken() });
+  } catch { return []; }
 }
 
 // ============================================================
 // O'QITUVCHI YARATISH (birinchi marta)
 // ============================================================
-export async function createTeacher({ fullName, username, password, regionId, regionName }) {
-  // Avval mavjudligini tekshirish
-  const check = await sbFetch(`users?username=eq.${encodeURIComponent(username.trim().toLowerCase())}&select=id`);
-  if (check.ok && check.data?.length > 0) {
-    return { success: false, error: "Bu username allaqachon mavjud" };
-  }
-  const hash = await hashPassword(password);
-  const result = await sbFetch("users", {
-    method: "POST",
-    body: JSON.stringify({
-      full_name: fullName.trim(),
-      username: username.trim().toLowerCase(),
-      password_hash: hash,
-      role: "teacher",
-      is_active: true,
-      created_at: new Date().toISOString(),
-    }),
-  });
-  if (!result.ok) {
-    return { success: false, error: result.data?.message || "Xato" };
-  }
-  const newTeacher = result.data?.[0];
-  if (newTeacher?.id && regionId) {
-    await setTeacherRegion(newTeacher.id, regionId, regionName);
-  }
-  return { success: true, user: newTeacher };
-}
-
-// ============================================================
-// HUDUDLAR (regions) — admin orqali boshqariladi, eduai_data'da
-// global ro'yxat sifatida saqlanadi (schema o'zgarishi talab qilmaydi)
-// ============================================================
-const REGIONS_KEY = "regions";
-
-export async function getAllRegions() {
-  const r = await sbFetch(`eduai_data?user_id=eq.admin_global&key=eq.${REGIONS_KEY}&select=value`);
-  if (r.ok && r.data?.[0]?.value) {
-    try { return JSON.parse(r.data[0].value); } catch { return []; }
-  }
-  return [];
-}
-
-async function saveAllRegions(regions) {
-  const existing = await sbFetch(`eduai_data?user_id=eq.admin_global&key=eq.${REGIONS_KEY}&select=id`);
-  const body = JSON.stringify({ value: JSON.stringify(regions), updated_at: new Date().toISOString() });
-  if (existing.ok && existing.data?.length > 0) {
-    await sbFetch(`eduai_data?user_id=eq.admin_global&key=eq.${REGIONS_KEY}`, { method: "PATCH", body });
-  } else {
-    await sbFetch("eduai_data", {
+export async function createTeacher({ fullName, username, password, regionId }) {
+  try {
+    const user = await apiFetch("/teacher", {
       method: "POST",
-      body: JSON.stringify({ user_id: "admin_global", key: REGIONS_KEY, value: JSON.stringify(regions) }),
+      body: JSON.stringify({ full_name: fullName, username, password, region_id: regionId }),
     });
+    return { success: true, user };
+  } catch (e) {
+    return { success: false, error: e.message };
   }
+}
+
+// ============================================================
+// HUDUDLAR (regions)
+// ============================================================
+export async function getAllRegions() {
+  try {
+    return await apiFetch("/regions");
+  } catch { return []; }
 }
 
 export async function createRegion(name) {
-  const trimmed = name.trim();
-  if (!trimmed) return { success: false, error: "Hudud nomini kiriting" };
-  const regions = await getAllRegions();
-  if (regions.some(r => r.name.toLowerCase() === trimmed.toLowerCase())) {
-    return { success: false, error: "Bu hudud allaqachon mavjud" };
+  try {
+    const region = await apiFetch("/regions", {
+      method: "POST",
+      token: getAdminToken(),
+      body: JSON.stringify({ name }),
+    });
+    return { success: true, region };
+  } catch (e) {
+    return { success: false, error: e.message };
   }
-  const newRegion = { id: crypto.randomUUID(), name: trimmed };
-  await saveAllRegions([...regions, newRegion]);
-  return { success: true, region: newRegion };
 }
 
 export async function deleteRegion(regionId) {
-  const regions = await getAllRegions();
-  await saveAllRegions(regions.filter(r => r.id !== regionId));
-  return true;
+  try {
+    await apiFetch(`/regions/${regionId}`, { method: "DELETE", token: getAdminToken() });
+    return true;
+  } catch { return false; }
 }
 
-// O'qituvchi — hudud bog'lanishi (har bir o'qituvchi uchun alohida kalit)
-async function setTeacherRegion(teacherId, regionId, regionName) {
-  const key = `teacher_region_${teacherId}`;
-  const value = JSON.stringify({ regionId, regionName });
-  const existing = await sbFetch(`eduai_data?user_id=eq.admin_global&key=eq.${key}&select=id`);
-  if (existing.ok && existing.data?.length > 0) {
-    await sbFetch(`eduai_data?user_id=eq.admin_global&key=eq.${key}`, {
-      method: "PATCH",
-      body: JSON.stringify({ value, updated_at: new Date().toISOString() }),
-    });
-  } else {
-    await sbFetch("eduai_data", {
-      method: "POST",
-      body: JSON.stringify({ user_id: "admin_global", key, value }),
-    });
-  }
-}
-
-// Barcha o'qituvchilarning hududlarini bir martada olish: { teacherId: { regionId, regionName } }
 export async function getTeacherRegionsMap() {
-  const r = await sbFetch("eduai_data?user_id=eq.admin_global&key=like.teacher_region_*&select=key,value");
-  if (!r.ok || !r.data) return {};
-  const map = {};
-  r.data.forEach(row => {
-    const teacherId = row.key.replace("teacher_region_", "");
-    try { map[teacherId] = JSON.parse(row.value); } catch {}
-  });
-  return map;
+  try {
+    return await apiFetch("/teachers/regions", { token: getAdminToken() });
+  } catch { return {}; }
 }
 
 // ============================================================
 // ADMIN FUNKSIYALARI
 // ============================================================
-
-// Admin paroli (hash sifatida saqlanadi)
-const ADMIN_PASSWORD_HASH_KEY = "eduai_admin_hash";
-const DEFAULT_ADMIN_PASS = "123";
-const ADMIN_SETTINGS_KEY = "admin_password_hash"; // Supabase da saqlanadigan kalit
-
-// Supabase dan admin parolini olish
-async function getAdminHashFromCloud() {
-  try {
-    const r = await sbFetch("eduai_data?user_id=eq.admin_global&key=eq.admin_password_hash&select=value");
-    if (r.ok && r.data?.length > 0) return r.data[0].value;
-  } catch {}
-  return null;
-}
-
-// Supabase ga admin parolini saqlash
-async function saveAdminHashToCloud(hash) {
-  try {
-    await sbFetch("eduai_data", {
-      method: "POST",
-      headers: { "Prefer": "resolution=merge-duplicates" },
-      body: JSON.stringify({
-        user_id: "admin_global",
-        key: "admin_password_hash",
-        value: hash,
-        updated_at: new Date().toISOString()
-      })
-    });
-  } catch {}
-  // localStorage ga ham saqlash (offline backup)
-  localStorage.setItem(ADMIN_PASSWORD_HASH_KEY, hash);
-}
-
 export async function adminLogin(password) {
-  // Avval Supabase dan parolni olish
-  let savedHash = await getAdminHashFromCloud();
-  // Supabase da yo'q bo'lsa localStorage dan
-  if (!savedHash) savedHash = localStorage.getItem(ADMIN_PASSWORD_HASH_KEY);
-
-  if (!savedHash) {
-    // Hali o'rnatilmagan — default parol
-    if (password === DEFAULT_ADMIN_PASS) {
-      localStorage.setItem("eduai_admin_session", "1");
-      return { success: true };
-    }
-    const hash = await hashPassword(password);
-    const defaultHash = await hashPassword(DEFAULT_ADMIN_PASS);
-    if (hash === defaultHash) {
-      localStorage.setItem("eduai_admin_session", "1");
-      return { success: true };
-    }
-    return { success: false, error: "Parol noto'g'ri" };
-  }
-
-  const hash = await hashPassword(password);
-  if (hash === savedHash || password === savedHash) {
-    localStorage.setItem("eduai_admin_session", "1");
+  try {
+    const { token } = await apiFetch("/admin/login", {
+      method: "POST",
+      body: JSON.stringify({ password }),
+    });
+    localStorage.setItem(ADMIN_TOKEN_KEY, token);
     return { success: true };
+  } catch (e) {
+    return { success: false, error: e.message };
   }
-  return { success: false, error: "Parol noto'g'ri" };
 }
 
 export function isAdminLoggedIn() {
-  return localStorage.getItem("eduai_admin_session") === "1";
+  return isTokenValid(getAdminToken());
 }
 
 export function adminLogout() {
-  localStorage.removeItem("eduai_admin_session");
+  localStorage.removeItem(ADMIN_TOKEN_KEY);
   clearUserData();
 }
 
 export async function changeAdminPassword(oldPass, newPass) {
-  // Eski parolni tekshirish
-  let savedHash = await getAdminHashFromCloud();
-  if (!savedHash) savedHash = localStorage.getItem(ADMIN_PASSWORD_HASH_KEY);
-
-  let isCorrect = false;
-  if (!savedHash) {
-    isCorrect = (oldPass === DEFAULT_ADMIN_PASS);
-    if (!isCorrect) {
-      const oldHash = await hashPassword(oldPass);
-      const defaultHash = await hashPassword(DEFAULT_ADMIN_PASS);
-      isCorrect = (oldHash === defaultHash);
-    }
-  } else {
-    const oldHash = await hashPassword(oldPass);
-    isCorrect = (oldHash === savedHash) || (oldPass === savedHash);
+  try {
+    await apiFetch("/admin/password", {
+      method: "PATCH",
+      token: getAdminToken(),
+      body: JSON.stringify({ old_password: oldPass, new_password: newPass }),
+    });
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e.message };
   }
-
-  if (!isCorrect) return { success: false, error: "Eski parol noto'g'ri" };
-
-  // Yangi parolni Supabase VA localStorage ga saqlash
-  const newHash = await hashPassword(newPass);
-  await saveAdminHashToCloud(newHash);
-  return { success: true };
 }
 
 export async function resetAdminPassword() {
-  // Supabase dan ham o'chirish
   try {
-    await sbFetch("eduai_data?user_id=eq.admin_global&key=eq.admin_password_hash", {
-      method: "DELETE"
-    });
+    await apiFetch("/admin/password/reset", { method: "POST", token: getAdminToken() });
   } catch {}
-  localStorage.removeItem(ADMIN_PASSWORD_HASH_KEY);
-  localStorage.removeItem("eduai_admin_session");
+  adminLogout();
 }
 
-// Barcha o'qituvchilar ro'yxati
 export async function getAllTeachers() {
-  const result = await sbFetch("users?role=eq.teacher&order=created_at.desc&select=*");
-  if (!result.ok) return [];
-  return result.data || [];
+  try {
+    return await apiFetch("/admin/teachers", { token: getAdminToken() });
+  } catch { return []; }
 }
 
-// O'qituvchi parolini ko'rish (admin uchun — yangi parol o'rnatish)
 export async function adminResetTeacherPassword(teacherId, newPassword) {
-  const hash = await hashPassword(newPassword);
-  const result = await sbFetch(`users?id=eq.${teacherId}`, {
-    method: "PATCH",
-    body: JSON.stringify({ password_hash: hash }),
-  });
-  return result.ok;
+  try {
+    await apiFetch(`/admin/teachers/${teacherId}/password`, {
+      method: "PATCH",
+      token: getAdminToken(),
+      body: JSON.stringify({ new_password: newPassword }),
+    });
+    return true;
+  } catch { return false; }
 }
 
-// O'qituvchini bloklash/ochish
 export async function toggleTeacherActive(teacherId, isActive) {
-  const result = await sbFetch(`users?id=eq.${teacherId}`, {
-    method: "PATCH",
-    body: JSON.stringify({ is_active: isActive }),
-  });
-  return result.ok;
+  try {
+    await apiFetch(`/admin/teachers/${teacherId}/active`, {
+      method: "PATCH",
+      token: getAdminToken(),
+      body: JSON.stringify({ is_active: isActive }),
+    });
+    return true;
+  } catch { return false; }
 }
 
-// O'qituvchini o'chirish (va uning talabalarini ham)
 export async function deleteTeacher(teacherId) {
-  // Avval talabalarni o'chirish
-  await sbFetch(`users?teacher_id=eq.${teacherId}&role=eq.student`, { method: "DELETE" });
-  // Keyin o'qituvchini o'chirish
-  const result = await sbFetch(`users?id=eq.${teacherId}`, { method: "DELETE" });
-  return result.ok;
+  try {
+    await apiFetch(`/admin/teachers/${teacherId}`, { method: "DELETE", token: getAdminToken() });
+    return true;
+  } catch { return false; }
 }
 
-// O'qituvchi statistikasi
 export async function getTeacherStats(teacherId) {
-  const [students, results] = await Promise.all([
-    sbFetch(`users?teacher_id=eq.${teacherId}&role=eq.student&select=id`),
-    sbFetch(`results?select=score,student_id`),
-  ]);
-  const studentIds = (students.data || []).map(s => s.id);
-  const teacherResults = (results.data || []).filter(r => studentIds.includes(r.student_id));
-  const avg = teacherResults.length
-    ? Math.round(teacherResults.reduce((a, b) => a + b.score, 0) / teacherResults.length)
-    : 0;
-  return {
-    studentCount: studentIds.length,
-    resultCount: teacherResults.length,
-    avgScore: avg,
-  };
+  try {
+    return await apiFetch(`/admin/teachers/${teacherId}/stats`, { token: getAdminToken() });
+  } catch { return { studentCount: 0, resultCount: 0, avgScore: 0 }; }
 }
 
-// Talabalarning biometrik ro'yxatdan o'tganligini aniqlash
 export async function getStudentsBiometrics(studentIds) {
   if (!studentIds || studentIds.length === 0) return [];
-  const userIds = studentIds.map(id => `student_${id}`);
-  const formattedUserIds = userIds.map(id => `"${id}"`).join(",");
-  const result = await sbFetch(
-    `eduai_data?key=eq.biometric_profile&user_id=in.(${formattedUserIds})&select=user_id,value`
-  );
-  if (!result.ok) return [];
-  return result.data || [];
+  try {
+    const qs = studentIds.map((id) => `student_ids=${encodeURIComponent(id)}`).join("&");
+    return await apiFetch(`/biometrics?${qs}`, { token: getUserToken() });
+  } catch { return []; }
 }
 
-// Talabaning biometrik ma'lumotlarini o'chirish (o'qituvchi uchun)
 export async function resetStudentBiometrics(studentId) {
-  const result = await sbFetch(
-    `eduai_data?user_id=eq.student_${studentId}&key=eq.biometric_profile`,
-    { method: "DELETE" }
-  );
-  return result.ok;
+  try {
+    await apiFetch(`/biometrics/${studentId}`, { method: "DELETE", token: getUserToken() });
+    return true;
+  } catch { return false; }
 }
 
 // ============================================================
-// VAZIRLIK (Ministry) kirish — faqat hisobotlarni ko'rish uchun
+// VAZIRLIK (Ministry) kirish
 // ============================================================
-const MINISTRY_PASSWORD_HASH_KEY = "eduai_ministry_hash";
-const DEFAULT_MINISTRY_PASS = "456";
-
-async function getMinistryHashFromCloud() {
-  try {
-    const r = await sbFetch("eduai_data?user_id=eq.ministry_global&key=eq.ministry_password_hash&select=value");
-    if (r.ok && r.data?.length > 0) return r.data[0].value;
-  } catch {}
-  return null;
-}
-
-async function saveMinistryHashToCloud(hash) {
-  try {
-    await sbFetch("eduai_data", {
-      method: "POST",
-      headers: { "Prefer": "resolution=merge-duplicates" },
-      body: JSON.stringify({
-        user_id: "ministry_global",
-        key: "ministry_password_hash",
-        value: hash,
-        updated_at: new Date().toISOString()
-      })
-    });
-  } catch {}
-  localStorage.setItem(MINISTRY_PASSWORD_HASH_KEY, hash);
-}
-
 export async function ministryLogin(password) {
-  let savedHash = await getMinistryHashFromCloud();
-  if (!savedHash) savedHash = localStorage.getItem(MINISTRY_PASSWORD_HASH_KEY);
-
-  if (!savedHash) {
-    if (password === DEFAULT_MINISTRY_PASS) {
-      localStorage.setItem("eduai_ministry_session", "1");
-      return { success: true };
-    }
-    const hash = await hashPassword(password);
-    const defaultHash = await hashPassword(DEFAULT_MINISTRY_PASS);
-    if (hash === defaultHash) {
-      localStorage.setItem("eduai_ministry_session", "1");
-      return { success: true };
-    }
-    return { success: false, error: "Parol noto'g'ri" };
-  }
-
-  const hash = await hashPassword(password);
-  if (hash === savedHash || password === savedHash) {
-    localStorage.setItem("eduai_ministry_session", "1");
+  try {
+    const { token } = await apiFetch("/ministry/login", {
+      method: "POST",
+      body: JSON.stringify({ password }),
+    });
+    localStorage.setItem(MINISTRY_TOKEN_KEY, token);
     return { success: true };
+  } catch (e) {
+    return { success: false, error: e.message };
   }
-  return { success: false, error: "Parol noto'g'ri" };
 }
 
 export function isMinistryLoggedIn() {
-  return localStorage.getItem("eduai_ministry_session") === "1";
+  return isTokenValid(getMinistryToken());
 }
 
 export function ministryLogout() {
-  localStorage.removeItem("eduai_ministry_session");
+  localStorage.removeItem(MINISTRY_TOKEN_KEY);
   clearUserData();
 }
 
 export async function changeMinistryPassword(oldPass, newPass) {
-  let savedHash = await getMinistryHashFromCloud();
-  if (!savedHash) savedHash = localStorage.getItem(MINISTRY_PASSWORD_HASH_KEY);
-
-  let isCorrect = false;
-  if (!savedHash) {
-    isCorrect = (oldPass === DEFAULT_MINISTRY_PASS);
-    if (!isCorrect) {
-      const oldHash = await hashPassword(oldPass);
-      const defaultHash = await hashPassword(DEFAULT_MINISTRY_PASS);
-      isCorrect = (oldHash === defaultHash);
-    }
-  } else {
-    const oldHash = await hashPassword(oldPass);
-    isCorrect = (oldHash === savedHash) || (oldPass === savedHash);
+  try {
+    await apiFetch("/ministry/password", {
+      method: "PATCH",
+      token: getMinistryToken(),
+      body: JSON.stringify({ old_password: oldPass, new_password: newPass }),
+    });
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e.message };
   }
-
-  if (!isCorrect) return { success: false, error: "Eski parol noto'g'ri" };
-
-  const newHash = await hashPassword(newPass);
-  await saveMinistryHashToCloud(newHash);
-  return { success: true };
 }
 
-// Vazirlik uchun umumiy hisobot — barcha o'qituvchi va talabalar bo'yicha
 export async function getMinistryReport() {
-  const teachers = await getAllTeachers();
-  const teacherReports = await Promise.all(
-    teachers.map(async (t) => ({
-      id: t.id,
-      fullName: t.full_name,
-      username: t.username,
-      isActive: t.is_active !== false,
-      ...(await getTeacherStats(t.id)),
-    }))
-  );
-
-  const totalStudents = teacherReports.reduce((sum, t) => sum + t.studentCount, 0);
-  const totalResults = teacherReports.reduce((sum, t) => sum + t.resultCount, 0);
-  const scoredTeachers = teacherReports.filter((t) => t.resultCount > 0);
-  const overallAvgScore = scoredTeachers.length
-    ? Math.round(
-        scoredTeachers.reduce((sum, t) => sum + t.avgScore * t.resultCount, 0) /
-          scoredTeachers.reduce((sum, t) => sum + t.resultCount, 0)
-      )
-    : 0;
-  const atRiskTeachers = teacherReports.filter((t) => t.resultCount > 0 && t.avgScore < 60).length;
-
-  return {
-    totalTeachers: teachers.length,
-    totalStudents,
-    totalResults,
-    overallAvgScore,
-    atRiskTeachers,
-    teacherReports,
-  };
+  try {
+    return await apiFetch("/ministry/report", { token: getMinistryToken() });
+  } catch {
+    return {
+      totalTeachers: 0,
+      totalStudents: 0,
+      totalResults: 0,
+      overallAvgScore: 0,
+      atRiskTeachers: 0,
+      teacherReports: [],
+    };
+  }
 }

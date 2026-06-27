@@ -40,7 +40,7 @@ import TeacherPanel from "./TeacherPanel";
 import AdminPanel from "./AdminPanel";
 import MinistryPanel from "./MinistryPanel";
 import BiometricRegistrationModal from "./BiometricRegistrationModal";
-import { storage, resetSupabase, getUserId, setUserId, clearUserData } from "./supabase";
+import { storage, getUserId, setUserId, clearUserData } from "./supabase";
 import { getCurrentUser, logout, isAdminLoggedIn, adminLogout, isMinistryLoggedIn, ministryLogout } from "./auth";
 import { useEmojiIcons } from "./EmojiIconInjector";
 import { updateLoginStreak } from "./activityStats";
@@ -60,12 +60,6 @@ export default function App() {
   const [showGlobalTerminal, setShowGlobalTerminal] = useState(false);
   const [syncStatus, setSyncStatus] = useState("idle");
   const [showSupabaseSetup, setShowSupabaseSetup] = useState(false);
-  const [sbUrl, setSbUrl] = useState(
-    localStorage.getItem("supabase_url") || "",
-  );
-  const [sbKey, setSbKey] = useState(
-    localStorage.getItem("supabase_key") || "",
-  );
   const [userId, setUserIdState] = useState(getUserId());
   const [tempUserId, setTempUserId] = useState(getUserId());
 
@@ -303,66 +297,16 @@ export default function App() {
     );
 
   const saveSupabaseSettings = async () => {
-    localStorage.setItem("supabase_url", sbUrl.trim());
-    localStorage.setItem("supabase_key", sbKey.trim());
     if (tempUserId.trim()) {
       setUserId(tempUserId.trim());
       setUserIdState(tempUserId.trim());
     }
-    resetSupabase();
     setShowSupabaseSetup(false);
     setSyncStatus("syncing");
-    // Avval jadvalni yaratib olish, keyin sync
-    await autoCreateTable(sbUrl.trim(), sbKey.trim());
     const ok = await storage.syncFromCloud();
     if (!ok) await storage.syncToCloud();
     setSyncStatus(ok ? "ok" : "error");
     setTimeout(() => setSyncStatus("idle"), 3000);
-  };
-
-  // Supabase jadvalini avtomatik yaratish (SQL Editor kerak emas)
-  const autoCreateTable = async (url, key) => {
-    if (!url || !key) return;
-    try {
-      // Supabase REST API orqali jadval mavjudligini tekshirish
-      const checkResp = await fetch(`${url}/rest/v1/eduai_data?limit=1`, {
-        headers: { apikey: key, Authorization: `Bearer ${key}` },
-      });
-      if (checkResp.ok) return; // Jadval allaqachon bor
-
-      // Jadval yo'q — Management API orqali yaratish
-      // Supabase anon key bilan SQL ishlatish uchun rpc chaqiramiz
-      const sqlResp = await fetch(`${url}/rest/v1/rpc/exec_sql`, {
-        method: "POST",
-        headers: {
-          apikey: key,
-          Authorization: `Bearer ${key}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          sql: `
-          CREATE TABLE IF NOT EXISTS eduai_data (
-            id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-            user_id text NOT NULL,
-            key text NOT NULL,
-            value text,
-            updated_at timestamptz DEFAULT now(),
-            UNIQUE(user_id, key)
-          );
-          ALTER TABLE eduai_data ENABLE ROW LEVEL SECURITY;
-          DO $$ BEGIN
-            IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='eduai_data' AND policyname='allow_all') THEN
-              CREATE POLICY "allow_all" ON eduai_data FOR ALL USING (true);
-            END IF;
-          END $$;
-        `,
-        }),
-      });
-      if (!sqlResp.ok) {
-        // exec_sql yo'q bo'lsa — to'g'ridan Supabase client orqali urinib ko'ramiz
-        // (jadval yo'q bo'lsa birinchi upsert xato beradi, lekin keyingisi ishlaydi)
-      }
-    } catch {}
   };
 
   const renderPage = () => {
@@ -503,7 +447,7 @@ export default function App() {
                 color: "var(--text)",
               }}
             >
-              ☁ Supabase Bulut Saqlash
+              ☁ Bulut Sinxronizatsiya
             </div>
             <div
               style={{
@@ -513,53 +457,9 @@ export default function App() {
                 lineHeight: 1.6,
               }}
             >
-              Barcha ma'lumotlar (ma'ruzalar, quizlar, laboratoriyalar, API
-              kalitlar) bulutda saqlanadi va istalgan qurilmadan kirish mumkin
-              bo'ladi.
-            </div>
-
-            {/* Qadamlar */}
-            <div
-              style={{
-                background: "var(--surface)",
-                borderRadius: 12,
-                padding: 16,
-                marginBottom: 20,
-                fontSize: 13,
-                color: "var(--muted)",
-                lineHeight: 1.8,
-              }}
-            >
-              <strong style={{ color: "var(--text)" }}>
-                Supabase sozlash (bepul, 2 qadam):
-              </strong>
-              <br />
-              1.{" "}
-              <a
-                href="https://supabase.com"
-                target="_blank"
-                rel="noreferrer"
-                style={{ color: "#2563EB" }}
-              >
-                supabase.com
-              </a>{" "}
-              → "New project" yarating
-              <br />
-              2. <strong>Settings → API</strong> dan <code>Project URL</code> va{" "}
-              <code>anon public key</code> ni oling
-              <br />
-              <div
-                style={{
-                  marginTop: 8,
-                  padding: "8px 12px",
-                  background: "rgba(16,185,129,0.08)",
-                  borderRadius: 8,
-                  color: "#065F46",
-                  fontWeight: 600,
-                }}
-              >
-                ✅ Jadval avtomatik yaratiladi — SQL yozish shart emas!
-              </div>
+              Barcha ma'lumotlar (ma'ruzalar, quizlar, laboratoriyalar, profil)
+              hisobingiz orqali bulutda saqlanadi va istalgan qurilmadan kirish
+              mumkin bo'ladi.
             </div>
 
             <div style={{ marginBottom: 14 }}>
@@ -596,65 +496,6 @@ export default function App() {
                 ⚠️ Barcha qurilmalarda bir xil ID kiriting — shunda ma'lumotlar
                 sinxronlanadi
               </div>
-            </div>
-
-            <div style={{ marginBottom: 14 }}>
-              <label
-                style={{
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: "var(--text)",
-                  display: "block",
-                  marginBottom: 6,
-                }}
-              >
-                Project URL
-              </label>
-              <input
-                value={sbUrl}
-                onChange={(e) => setSbUrl(e.target.value)}
-                placeholder="https://xxxxxxxxxxxx.supabase.co"
-                style={{
-                  width: "100%",
-                  padding: "10px 14px",
-                  borderRadius: 10,
-                  border: "1px solid var(--border)",
-                  fontSize: 14,
-                  outline: "none",
-                  boxSizing: "border-box",
-                  background: "var(--input-bg)",
-                  color: "var(--text)",
-                }}
-              />
-            </div>
-            <div style={{ marginBottom: 20 }}>
-              <label
-                style={{
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: "var(--text)",
-                  display: "block",
-                  marginBottom: 6,
-                }}
-              >
-                Anon Public Key
-              </label>
-              <input
-                value={sbKey}
-                onChange={(e) => setSbKey(e.target.value)}
-                placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                style={{
-                  width: "100%",
-                  padding: "10px 14px",
-                  borderRadius: 10,
-                  border: "1px solid var(--border)",
-                  fontSize: 14,
-                  outline: "none",
-                  boxSizing: "border-box",
-                  background: "var(--input-bg)",
-                  color: "var(--text)",
-                }}
-              />
             </div>
 
             <div style={{ display: "flex", gap: 10 }}>
