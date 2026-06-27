@@ -435,15 +435,6 @@ export default function ProfilePage({ currentUser }) {
 
           <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 2, color: "var(--text)" }}>{displayName}</div>
           <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 4 }}>{displayUsername}</div>
-          {displayClass && (
-            <span style={{
-              display: "inline-block", padding: "4px 14px", borderRadius: 20, fontSize: 12,
-              background: "rgba(37,99,235,0.08)", color: "#2563EB", fontWeight: 700, marginBottom: 8
-            }}>
-              📚 {displayClass} sinf
-            </span>
-          )}
-
           {/* Bio */}
           {isEditing ? (
             <div style={{ textAlign: "left", marginTop: 12 }}>

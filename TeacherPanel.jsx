@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { getStudents, addStudent, toggleStudentActive, deleteStudent, changeStudentPassword, getAllStudentResults, getStudentsBiometrics, resetStudentBiometrics } from "./auth";
 import { FANS, FANS_7, FANS_1KURS, TOPICS_MAP, TOPICS_MAP_7, TOPICS_MAP_1KURS } from "./index";
 import { storage } from "./supabase";
+import ThemeToggle from "./ThemeToggle";
 import * as XLSX from "xlsx";
 import mammoth from "mammoth";
 const COLORS_MAP = {
@@ -951,6 +952,7 @@ export default function TeacherPanel({ teacher, onLogout }) {
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+          <ThemeToggle />
           <div style={{ color: "var(--muted)", cursor: "pointer" }}>🔍</div>
           <div style={{ color: "var(--muted)", cursor: "pointer", position: "relative" }}>
             🔔
@@ -1000,7 +1002,7 @@ export default function TeacherPanel({ teacher, onLogout }) {
                 </p>
               </div>
               <button style={{ 
-                background: "var(--card)", color: "black", border: "none", 
+                background: "var(--card)", color: "var(--text)", border: "none", 
                 padding: "10px 20px", borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: "pointer" 
               }}>
                 Hisobot yaratish
@@ -1237,7 +1239,7 @@ export default function TeacherPanel({ teacher, onLogout }) {
               {(statsSearchQ || statsFilterClass || statsFilterCategory !== "all") && (
                 <button
                   onClick={() => { setStatsSearchQ(""); setStatsFilterClass(""); setStatsFilterCategory("all"); }}
-                  style={{ background: "#F1F5F9", border: "none", color: "#475569", padding: "10px 16px", borderRadius: 10, cursor: "pointer", fontSize: 13, fontWeight: 600 }}
+                  style={{ background: "var(--surface)", border: "none", color: "var(--muted)", padding: "10px 16px", borderRadius: 10, cursor: "pointer", fontSize: 13, fontWeight: 600 }}
                 >
                   Filtrlarni tozalash
                 </button>
@@ -1315,11 +1317,11 @@ export default function TeacherPanel({ teacher, onLogout }) {
                     const percent = Math.round((row.count / total) * 100);
                     return (
                       <div key={i}>
-                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 600, color: "#475569", marginBottom: 4 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 600, color: "var(--muted)", marginBottom: 4 }}>
                           <span>{row.icon} {row.label}</span>
                           <span>{row.count} ta ({percent}%)</span>
                         </div>
-                        <div style={{ height: 10, background: "#F1F5F9", borderRadius: 5, overflow: "hidden", display: "flex" }}>
+                        <div style={{ height: 10, background: "var(--surface)", borderRadius: 5, overflow: "hidden", display: "flex" }}>
                           <div style={{ width: `${percent}%`, background: row.color, borderRadius: 5, transition: "width 0.5s ease" }} />
                         </div>
                       </div>
@@ -1337,11 +1339,11 @@ export default function TeacherPanel({ teacher, onLogout }) {
                   <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                     {classStats.map((cs, i) => (
                       <div key={i}>
-                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 600, color: "#475569", marginBottom: 4 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 600, color: "var(--muted)", marginBottom: 4 }}>
                           <span>{cs.className}-kurs ({cs.count} ta talaba)</span>
                           <span style={{ color: cs.avg >= 85 ? "#059669" : cs.avg >= 70 ? "#2563EB" : cs.avg >= 55 ? "#D97706" : "#DC2626" }}>{cs.avg}% o'rtacha ball</span>
                         </div>
-                        <div style={{ height: 8, background: "#F1F5F9", borderRadius: 4, overflow: "hidden" }}>
+                        <div style={{ height: 8, background: "var(--surface)", borderRadius: 4, overflow: "hidden" }}>
                           <div style={{
                             width: `${cs.avg}%`,
                             background: cs.avg >= 85 ? "#10B981" : cs.avg >= 70 ? "#3B82F6" : cs.avg >= 55 ? "#F59E0B" : "#EF4444",
@@ -1468,7 +1470,7 @@ export default function TeacherPanel({ teacher, onLogout }) {
                 <div style={{ overflowX: "auto" }}>
                   <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
                     <thead>
-                      <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0" }}>
+                      <tr style={{ background: "var(--bg)", borderBottom: "1px solid #E2E8F0" }}>
                         <th style={{ padding: "14px 20px", fontSize: 12, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase" }}>Talaba</th>
                         <th style={{ padding: "14px 20px", fontSize: 12, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase" }}>Guruh</th>
                         <th style={{ padding: "14px 20px", fontSize: 12, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase" }}>Faollik</th>
@@ -1505,11 +1507,11 @@ export default function TeacherPanel({ teacher, onLogout }) {
                                 </div>
                               </div>
                             </td>
-                            <td style={{ padding: "14px 20px", fontWeight: 600, color: "#475569", fontSize: 14 }}>
+                            <td style={{ padding: "14px 20px", fontWeight: 600, color: "var(--muted)", fontSize: 14 }}>
                               {stud.class_name || "Mavjud emas"}
                             </td>
                             <td style={{ padding: "14px 20px" }}>
-                              <div style={{ fontSize: 13, fontWeight: 600, color: "#475569" }}>{stud.totalSubmissions} ta topshiriq</div>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)" }}>{stud.totalSubmissions} ta topshiriq</div>
                               {stud.totalSubmissions > 0 && (
                                 <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 2 }}>
                                   Eng yuqori: {stud.maxScore}% • Eng past: {stud.minScore}%
@@ -1525,7 +1527,7 @@ export default function TeacherPanel({ teacher, onLogout }) {
                                   }}>{stud.avgScore}%</span>
                                   
                                   {/* Mini visual progress bar under score */}
-                                  <div style={{ width: 60, height: 4, background: "#F1F5F9", borderRadius: 2, margin: "4px auto 0 auto", overflow: "hidden" }}>
+                                  <div style={{ width: 60, height: 4, background: "var(--surface)", borderRadius: 2, margin: "4px auto 0 auto", overflow: "hidden" }}>
                                     <div style={{ width: `${stud.avgScore}%`, height: "100%", background: config.dot, borderRadius: 2 }} />
                                   </div>
                                 </div>
@@ -1765,10 +1767,10 @@ export default function TeacherPanel({ teacher, onLogout }) {
                         {/* ⏳ HALI BOSHLAMAGANLAR */}
                         <div style={{ background: "var(--card)", borderRadius: 20, border: "1px solid #E2E8F0", padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, borderBottom: "1px solid #F1F5F9", paddingBottom: 10 }}>
-                            <span style={{ fontSize: 15, fontWeight: 800, color: "#374151", display: "flex", alignItems: "center", gap: 6 }}>
+                            <span style={{ fontSize: 15, fontWeight: 800, color: "var(--text)", display: "flex", alignItems: "center", gap: 6 }}>
                               ⏳ Topshiriq topshirmaganlar ({idleClassStudents.length})
                             </span>
-                            <span style={{ background: "#F1F5F9", color: "#374151", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 10 }}>0 ta topshiriq</span>
+                            <span style={{ background: "var(--surface)", color: "var(--text)", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 10 }}>0 ta topshiriq</span>
                           </div>
 
                           {idleClassStudents.length === 0 ? (
@@ -1778,12 +1780,12 @@ export default function TeacherPanel({ teacher, onLogout }) {
                           ) : (
                             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                               {idleClassStudents.map(stud => (
-                                <div key={stud.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: 10, background: "#F8FAFC", borderRadius: 10, border: "1px solid #E2E8F0" }}>
+                                <div key={stud.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: 10, background: "var(--bg)", borderRadius: 10, border: "1px solid #E2E8F0" }}>
                                   <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8 }}>
                                     <div style={{ width: 28, height: 28, borderRadius: 6, background: "#94A3B8", color: "white", fontWeight: 700, fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center" }}>
                                       {stud.full_name?.[0]?.toUpperCase()}
                                     </div>
-                                    <div style={{ fontSize: 13, fontWeight: 700, color: "#475569" }}>{stud.full_name}</div>
+                                    <div style={{ fontSize: 13, fontWeight: 700, color: "var(--muted)" }}>{stud.full_name}</div>
                                   </div>
                                   <button
                                     type="button"
@@ -1975,7 +1977,7 @@ export default function TeacherPanel({ teacher, onLogout }) {
                   )}
 
                   {/* Fan qo'shish formasi */}
-                  <form onSubmit={handleAddSubject} style={{ background: "#F8FAFC", borderRadius: 14, padding: 20, border: "1px solid #E2E8F0", marginBottom: 24 }}>
+                  <form onSubmit={handleAddSubject} style={{ background: "var(--bg)", borderRadius: 14, padding: 20, border: "1px solid #E2E8F0", marginBottom: 24 }}>
                     <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginBottom: 14 }}>➕ Yangi fan qo'shish</div>
                     <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr", gap: 12, marginBottom: 12 }}>
                       <div>
@@ -2027,7 +2029,7 @@ export default function TeacherPanel({ teacher, onLogout }) {
 
                   {/* ========= MAVZULAR ========= */}
                   {selectedSubject && (
-                    <div style={{ background: "#F8FAFC", borderRadius: 16, padding: 20, border: "1px solid #E2E8F0" }}>
+                    <div style={{ background: "var(--bg)", borderRadius: 16, padding: 20, border: "1px solid #E2E8F0" }}>
                       <div style={{ fontSize: 17, fontWeight: 800, color: "var(--text)", marginBottom: 4 }}>
                         {selectedSubject.icon} {selectedSubject.name} — Mavzular
                       </div>
@@ -2244,20 +2246,20 @@ export default function TeacherPanel({ teacher, onLogout }) {
                   { label: "⏳ Ish tajribasi", val: editExp, set: setEditExp, ph: "5 yil" },
                 ].map((f, i) => (
                   <div key={i} style={{ gridColumn: f.full ? "1 / -1" : "auto" }}>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", display: "block", marginBottom: 5 }}>{f.label}</label>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", display: "block", marginBottom: 5 }}>{f.label}</label>
                     <input value={f.val} onChange={e => f.set(e.target.value)} placeholder={f.ph}
-                      style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid #E2E8F0", fontSize: 14, outline: "none", boxSizing: "border-box", background: "#F8FAFC" }} />
+                      style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid #E2E8F0", fontSize: 14, outline: "none", boxSizing: "border-box", background: "var(--bg)" }} />
                   </div>
                 ))}
               </div>
 
               {/* Haqida */}
               <div style={{ marginBottom: 20 }}>
-                <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", display: "block", marginBottom: 5 }}>📝 O'zingiz haqingizda</label>
+                <label style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", display: "block", marginBottom: 5 }}>📝 O'zingiz haqingizda</label>
                 <textarea value={editAbout} onChange={e => setEditAbout(e.target.value)}
                   placeholder="Qisqacha o'zingiz haqingizda yozing..."
                   rows={3}
-                  style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid #E2E8F0", fontSize: 14, outline: "none", boxSizing: "border-box", background: "#F8FAFC", resize: "vertical" }} />
+                  style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid #E2E8F0", fontSize: 14, outline: "none", boxSizing: "border-box", background: "var(--bg)", resize: "vertical" }} />
               </div>
 
               {/* Parol o'zgartirish */}
@@ -2270,10 +2272,10 @@ export default function TeacherPanel({ teacher, onLogout }) {
                   { label: "🔒 Tasdiqlash", val: editPass2, set: setEditPass2, ph: "Qayta kiriting" },
                 ].map((f, i) => (
                   <div key={i}>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", display: "block", marginBottom: 5 }}>{f.label}</label>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", display: "block", marginBottom: 5 }}>{f.label}</label>
                     <div style={{ position: "relative" }}>
                       <input type={showEditPass ? "text" : "password"} value={f.val} onChange={e => f.set(e.target.value)} placeholder={f.ph}
-                        style={{ width: "100%", padding: "10px 36px 10px 12px", borderRadius: 10, border: `1px solid ${f.val && editPass !== editPass2 && i === 1 ? "#FCA5A5" : "#E2E8F0"}`, fontSize: 14, outline: "none", boxSizing: "border-box", background: "#F8FAFC" }} />
+                        style={{ width: "100%", padding: "10px 36px 10px 12px", borderRadius: 10, border: `1px solid ${f.val && editPass !== editPass2 && i === 1 ? "#FCA5A5" : "#E2E8F0"}`, fontSize: 14, outline: "none", boxSizing: "border-box", background: "var(--bg)" }} />
                       {i === 0 && (
                         <button type="button" onClick={() => setShowEditPass(p => !p)}
                           style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", fontSize: 16, color: "var(--dim)" }}>
@@ -2286,7 +2288,7 @@ export default function TeacherPanel({ teacher, onLogout }) {
               </div>
 
               {/* Statistika */}
-              <div style={{ background: "#F8FAFC", borderRadius: 14, padding: 16, marginBottom: 20, border: "1px solid #E2E8F0" }}>
+              <div style={{ background: "var(--bg)", borderRadius: 14, padding: 16, marginBottom: 20, border: "1px solid #E2E8F0" }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "var(--muted)", marginBottom: 12, textTransform: "uppercase", letterSpacing: 1 }}>
                   📊 Statistika
                 </div>
@@ -2318,7 +2320,7 @@ export default function TeacherPanel({ teacher, onLogout }) {
                   {profileLoading ? "⏳ Saqlanmoqda..." : "💾 Saqlash"}
                 </button>
                 <button onClick={() => setShowProfile(false)}
-                  style={{ padding: "13px 20px", borderRadius: 12, border: "1px solid #E2E8F0", background: "#F8FAFC", color: "var(--muted)", fontWeight: 600, cursor: "pointer" }}>
+                  style={{ padding: "13px 20px", borderRadius: 12, border: "1px solid #E2E8F0", background: "var(--bg)", color: "var(--muted)", fontWeight: 600, cursor: "pointer" }}>
                   Yopish
                 </button>
               </div>
@@ -2436,11 +2438,11 @@ export default function TeacherPanel({ teacher, onLogout }) {
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 24 }}>
                   {[
                     { label: "O'rtacha Ball", val: statsSelectedStudent.avgScore !== null ? `${statsSelectedStudent.avgScore}%` : "-", color: config.color },
-                    { label: "Topshirishlar", val: `${statsSelectedStudent.totalSubmissions} ta`, color: "#475569" },
+                    { label: "Topshirishlar", val: `${statsSelectedStudent.totalSubmissions} ta`, color: "var(--muted)" },
                     { label: "Eng yuqori ball", val: statsSelectedStudent.maxScore !== null ? `${statsSelectedStudent.maxScore}%` : "-", color: "#10B981" },
                     { label: "Eng past ball", val: statsSelectedStudent.minScore !== null ? `${statsSelectedStudent.minScore}%` : "-", color: "#EF4444" }
                   ].map((metric, i) => (
-                    <div key={i} style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", padding: 12, borderRadius: 12, textAlign: "center" }}>
+                    <div key={i} style={{ background: "var(--bg)", border: "1px solid #E2E8F0", padding: 12, borderRadius: 12, textAlign: "center" }}>
                       <div style={{ fontSize: 11, color: "var(--dim)", fontWeight: 600, marginBottom: 4 }}>{metric.label}</div>
                       <div style={{ fontSize: 18, fontWeight: 800, color: metric.color }}>{metric.val}</div>
                     </div>
@@ -2497,7 +2499,7 @@ export default function TeacherPanel({ teacher, onLogout }) {
                                   {sub.avg !== null ? `${sub.avg}%` : "-"}
                                 </div>
                                 {sub.avg !== null && (
-                                  <div style={{ width: 50, height: 4, background: "#F1F5F9", borderRadius: 2, marginTop: 4, overflow: "hidden" }}>
+                                  <div style={{ width: 50, height: 4, background: "var(--surface)", borderRadius: 2, marginTop: 4, overflow: "hidden" }}>
                                     <div style={{ width: `${sub.avg}%`, height: "100%", background: barColor, borderRadius: 2 }} />
                                   </div>
                                 )}
@@ -2508,7 +2510,7 @@ export default function TeacherPanel({ teacher, onLogout }) {
 
                           {/* Accordion Content (Fanga oid topshirilgan mavzular) */}
                           {isExpanded && (
-                            <div style={{ padding: "12px 18px", background: "#FAFBFD", borderTop: "1px solid #E2E8F0" }}>
+                            <div style={{ padding: "12px 18px", background: "var(--surface)", borderTop: "1px solid #E2E8F0" }}>
                               {!hasSubmissions ? (
                                 <div style={{ padding: 12, textAlign: "center", color: "var(--dim)", fontSize: 12, fontStyle: "italic" }}>
                                   Talaba ushbu fandan hali birorta ham dars yoki test topshirmagan.
@@ -2532,7 +2534,7 @@ export default function TeacherPanel({ teacher, onLogout }) {
                                         >
                                           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                                             <div style={{ fontSize: 14 }}>📝</div>
-                                            <div style={{ fontWeight: 600, fontSize: 13, color: "#334155" }}>{r.topic_name}</div>
+                                            <div style={{ fontWeight: 600, fontSize: 13, color: "var(--text)" }}>{r.topic_name}</div>
                                           </div>
                                           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                                             <span style={{ padding: "2px 8px", borderRadius: 6, background: `${scoreColor}15`, color: scoreColor, fontWeight: 700, fontSize: 12 }}>
@@ -2547,14 +2549,14 @@ export default function TeacherPanel({ teacher, onLogout }) {
 
                                         {/* Collapsible details for topic */}
                                         {isResultExpanded && (
-                                          <div style={{ padding: 12, borderTop: "1px solid #E2E8F0", background: "#FAFBFD" }}>
+                                          <div style={{ padding: 12, borderTop: "1px solid #E2E8F0", background: "var(--surface)" }}>
                                             <div style={{ fontSize: 10, fontWeight: 700, color: "var(--muted)", marginBottom: 6, textTransform: "uppercase" }}>
                                               📋 Javoblar va topshiriq tafsilotlari
                                             </div>
                                             {r.transcript ? (
                                               <div style={{
-                                                background: "#F1F5F9", padding: 10, borderRadius: 6,
-                                                fontSize: 12, color: "#334155", fontFamily: "monospace",
+                                                background: "var(--surface)", padding: 10, borderRadius: 6,
+                                                fontSize: 12, color: "var(--text)", fontFamily: "monospace",
                                                 maxHeight: 150, overflowY: "auto", whiteSpace: "pre-wrap"
                                               }}>
                                                 {r.transcript}
@@ -2591,7 +2593,7 @@ export default function TeacherPanel({ teacher, onLogout }) {
                     }}
                     style={{
                       flex: 1, padding: "12px", borderRadius: 12, border: "1px solid #CBD5E1",
-                      background: "var(--card)", color: "#475569", fontWeight: 700, fontSize: 14, cursor: "pointer",
+                      background: "var(--card)", color: "var(--muted)", fontWeight: 700, fontSize: 14, cursor: "pointer",
                       display: "flex", alignItems: "center", justifyContent: "center", gap: 8
                     }}
                   >
@@ -2642,7 +2644,7 @@ export default function TeacherPanel({ teacher, onLogout }) {
             </div>
 
             {/* Tab Bar */}
-            <div style={{ display: "flex", background: "#F1F5F9", padding: "6px 12px", borderBottom: "1px solid #E2E8F0", gap: 6 }}>
+            <div style={{ display: "flex", background: "var(--surface)", padding: "6px 12px", borderBottom: "1px solid #E2E8F0", gap: 6 }}>
               {[
                 { id: "kirish", label: "🎯 Kirish (Ma'ruza)" },
                 { id: "lab", label: "🧪 Lab (Laboratoriya)" },
@@ -2667,17 +2669,17 @@ export default function TeacherPanel({ teacher, onLogout }) {
             </div>
 
             {/* Modal Kontenti */}
-            <div style={{ padding: 24, overflowY: "auto", flex: 1, background: "#F8FAFC" }}>
+            <div style={{ padding: 24, overflowY: "auto", flex: 1, background: "var(--bg)" }}>
               {activeEditTab === "kirish" && (
                 <div>
                   <div style={{ marginBottom: 14 }}>
-                    <label style={{ fontSize: 12, fontWeight: 700, color: "#475569", display: "block", marginBottom: 6 }}>Mavzu nomi</label>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)", display: "block", marginBottom: 6 }}>Mavzu nomi</label>
                     <input value={editTopName} onChange={e => setEditTopName(e.target.value)}
                       style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid #CBD5E1", fontSize: 14, outline: "none", boxSizing: "border-box" }} />
                   </div>
 
                   <div style={{ marginBottom: 14 }}>
-                    <label style={{ fontSize: 12, fontWeight: 700, color: "#475569", display: "block", marginBottom: 6 }}>Ma'ruza matni</label>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)", display: "block", marginBottom: 6 }}>Ma'ruza matni</label>
                     <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
                       {/* Word Upload */}
                       <input type="file" id="wordUploadLecture" accept=".docx,.doc" style={{ display: "none" }}
@@ -2687,7 +2689,7 @@ export default function TeacherPanel({ teacher, onLogout }) {
                           e.target.value = "";
                         }} />
                       <button type="button" onClick={() => document.getElementById("wordUploadLecture").click()}
-                        style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid #CBD5E1", background: "var(--card)", color: "#475569", fontWeight: 600, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+                        style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid #CBD5E1", background: "var(--card)", color: "var(--muted)", fontWeight: 600, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
                         📄 Word hujjatdan o'qish
                       </button>
 
@@ -2709,7 +2711,7 @@ export default function TeacherPanel({ teacher, onLogout }) {
                 <div>
                   {/* Lab turi - O'qituvchi bemalol o'zgartira oladi */}
                   <div style={{ marginBottom: 16 }}>
-                    <label style={{ fontSize: 12, fontWeight: 700, color: "#475569", display: "block", marginBottom: 6 }}>Lab turi</label>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)", display: "block", marginBottom: 6 }}>Lab turi</label>
                     <select value={editTopLabType} onChange={e => setEditTopLabType(e.target.value)}
                       style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid #CBD5E1", fontSize: 14, outline: "none", background: "var(--card)" }}>
                       <option value="none">Yo'q</option>
@@ -2723,7 +2725,7 @@ export default function TeacherPanel({ teacher, onLogout }) {
                   {editTopLabType === "html" && (
                     <div>
                       {!isAdminUnlocked ? (
-                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "30px 20px", textAlign: "center", background: "#F1F5F9", borderRadius: 12, border: "1px solid #E2E8F0" }}>
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "30px 20px", textAlign: "center", background: "var(--surface)", borderRadius: 12, border: "1px solid #E2E8F0" }}>
                           <span style={{ fontSize: 36, marginBottom: 10 }}>🔒</span>
                           <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text)", marginBottom: 4 }}>Taqiqlangan bo'lim</div>
                           <div style={{ fontSize: 12, color: "var(--muted)", maxWidth: 400, marginBottom: 16, lineHeight: 1.6 }}>
@@ -2773,7 +2775,7 @@ export default function TeacherPanel({ teacher, onLogout }) {
                           </button>
 
                           <div>
-                            <label style={{ fontSize: 12, fontWeight: 700, color: "#475569", display: "block", marginBottom: 6 }}>HTML Kod (Lab)</label>
+                            <label style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)", display: "block", marginBottom: 6 }}>HTML Kod (Lab)</label>
                             <textarea value={editTopLabHtml} onChange={e => setEditTopLabHtml(e.target.value)} rows={10}
                               placeholder="<html>...</html>"
                               style={{ width: "100%", padding: "12px", borderRadius: 10, border: "1px solid #CBD5E1", fontSize: 13, fontFamily: "monospace", outline: "none", boxSizing: "border-box", resize: "vertical", background: "#1E293B", color: "#F8FAFC" }} />
@@ -2788,7 +2790,7 @@ export default function TeacherPanel({ teacher, onLogout }) {
               {activeEditTab === "mashq" && (
                 <div>
                   {!isAdminUnlocked ? (
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "30px 20px", textAlign: "center", background: "#F1F5F9", borderRadius: 12, border: "1px solid #E2E8F0" }}>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "30px 20px", textAlign: "center", background: "var(--surface)", borderRadius: 12, border: "1px solid #E2E8F0" }}>
                       <span style={{ fontSize: 36, marginBottom: 10 }}>🔒</span>
                       <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text)", marginBottom: 4 }}>Taqiqlangan bo'lim</div>
                       <div style={{ fontSize: 12, color: "var(--muted)", maxWidth: 400, marginBottom: 16, lineHeight: 1.6 }}>
@@ -2838,7 +2840,7 @@ export default function TeacherPanel({ teacher, onLogout }) {
                       </button>
 
                       <div>
-                        <label style={{ fontSize: 12, fontWeight: 700, color: "#475569", display: "block", marginBottom: 6 }}>HTML Kod (Mashq)</label>
+                        <label style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)", display: "block", marginBottom: 6 }}>HTML Kod (Mashq)</label>
                         <textarea value={editTopPracticeHtml} onChange={e => setEditTopPracticeHtml(e.target.value)} rows={10}
                           placeholder="<html>...</html>"
                           style={{ width: "100%", padding: "12px", borderRadius: 10, border: "1px solid #CBD5E1", fontSize: 13, fontFamily: "monospace", outline: "none", boxSizing: "border-box", resize: "vertical", background: "#1E293B", color: "#F8FAFC" }} />
@@ -2851,7 +2853,7 @@ export default function TeacherPanel({ teacher, onLogout }) {
               {activeEditTab === "quiz" && (
                 <div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: "#475569" }}>Test savollari ({editTopQuiz.length} ta)</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "var(--muted)" }}>Test savollari ({editTopQuiz.length} ta)</div>
                     <button type="button" onClick={handleAddQuestionToEdit}
                       style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "#2563EB", color: "white", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
                       ➕ Yangi savol qo'shish
@@ -2916,7 +2918,7 @@ export default function TeacherPanel({ teacher, onLogout }) {
 
               {activeEditTab === "vazifa" && (
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: "#475569", display: "block", marginBottom: 6 }}>Uy vazifasi topshirig'i matni</label>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)", display: "block", marginBottom: 6 }}>Uy vazifasi topshirig'i matni</label>
                   <textarea value={editTopHomework} onChange={e => setEditTopHomework(e.target.value)} rows={8}
                     placeholder="Talabalar bajarishi kerak bo'lgan uy vazifasini yozing..."
                     style={{ width: "100%", padding: "12px", borderRadius: 10, border: "1px solid #CBD5E1", fontSize: 14, outline: "none", boxSizing: "border-box", resize: "vertical", background: "var(--card)", lineHeight: 1.6 }} />
@@ -2925,7 +2927,7 @@ export default function TeacherPanel({ teacher, onLogout }) {
 
               {activeEditTab === "video" && (
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: "#475569", display: "block", marginBottom: 6 }}>Mavzuga oid video so'rov yoki link</label>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)", display: "block", marginBottom: 6 }}>Mavzuga oid video so'rov yoki link</label>
                   <input value={editTopVideoQuery} onChange={e => setEditTopVideoQuery(e.target.value)}
                     placeholder="Masalan: Nyuton qonunlari fizika dars yoki YouTube linki"
                     style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid #CBD5E1", fontSize: 14, outline: "none", boxSizing: "border-box" }} />
@@ -2937,9 +2939,9 @@ export default function TeacherPanel({ teacher, onLogout }) {
             </div>
 
             {/* Modal Pastki Qismi (Buttons) */}
-            <div style={{ padding: "16px 24px", borderTop: "1px solid #E2E8F0", display: "flex", justifyContent: "flex-end", gap: 12, background: "#F1F5F9" }}>
+            <div style={{ padding: "16px 24px", borderTop: "1px solid #E2E8F0", display: "flex", justifyContent: "flex-end", gap: 12, background: "var(--surface)" }}>
               <button type="button" onClick={() => setEditingTopic(null)}
-                style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid #CBD5E1", background: "var(--card)", color: "#475569", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid #CBD5E1", background: "var(--card)", color: "var(--muted)", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
                 Bekor qilish
               </button>
               <button type="button" onClick={handleSaveEditedTopic}

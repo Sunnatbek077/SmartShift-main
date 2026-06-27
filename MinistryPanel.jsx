@@ -4,6 +4,7 @@
 // ============================================================
 import { useState, useEffect } from "react";
 import { getMinistryReport, ministryLogout } from "./auth";
+import ThemeToggle from "./ThemeToggle";
 
 export default function MinistryPanel({ onLogout }) {
   const [report, setReport] = useState(null);
@@ -49,24 +50,27 @@ export default function MinistryPanel({ onLogout }) {
             <div style={{ color: "var(--muted)", fontSize: 11 }}>Faqat ko'rish uchun — barcha muassasalar bo'yicha statistika</div>
           </div>
         </div>
-        <button
-          onClick={() => {
-            ministryLogout();
-            onLogout();
-          }}
-          style={{
-            background: "rgba(220,38,38,0.2)",
-            border: "1px solid rgba(220,38,38,0.3)",
-            color: "#FCA5A5",
-            padding: "8px 16px",
-            borderRadius: 10,
-            cursor: "pointer",
-            fontSize: 13,
-            fontWeight: 600,
-          }}
-        >
-          🚪 Chiqish
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <ThemeToggle />
+          <button
+            onClick={() => {
+              ministryLogout();
+              onLogout();
+            }}
+            style={{
+              background: "rgba(220,38,38,0.2)",
+              border: "1px solid rgba(220,38,38,0.3)",
+              color: "#FCA5A5",
+              padding: "8px 16px",
+              borderRadius: 10,
+              cursor: "pointer",
+              fontSize: 13,
+              fontWeight: 600,
+            }}
+          >
+            🚪 Chiqish
+          </button>
+        </div>
       </div>
 
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "24px 20px" }}>

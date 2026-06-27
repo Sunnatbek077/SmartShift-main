@@ -3700,7 +3700,7 @@ Izoh: 'actions' massividagi 'time' (sekundda) ovozning tegishli qismiga mos bo'l
                 boxShadow: "0 2px 8px rgba(124,58,237,0.3)",
               }}
             >
-              🎤 {ui.submit}
+              {ui.submit}
             </button>
 
             <button
