@@ -177,7 +177,7 @@ export default function AdminPanel({ onLogout }) {
               padding: "9px 18px", borderRadius: 9, border: "none", cursor: "pointer",
               fontWeight: 700, fontSize: 13, transition: "all 0.2s",
               background: tab === t.id ? "#7C3AED" : "transparent",
-              color: tab === t.id ? "white" : "rgba(255,255,255,0.5)",
+              color: tab === t.id ? "white" : "var(--muted)",
             }}>
               {t.icon} {t.label}
             </button>
@@ -214,7 +214,7 @@ export default function AdminPanel({ onLogout }) {
                   return (
                     <div key={teacher.id} style={{
                       background: "var(--surface)", borderRadius: 16, padding: "16px 20px",
-                      border: `1px solid ${teacher.is_active ? "rgba(255,255,255,0.08)" : "rgba(220,38,38,0.2)"}`,
+                      border: `1px solid ${teacher.is_active ? "var(--border)" : "rgba(220,38,38,0.2)"}`,
                       opacity: teacher.is_active ? 1 : 0.7
                     }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
@@ -298,7 +298,7 @@ export default function AdminPanel({ onLogout }) {
                               ✅ O'rnatish
                             </button>
                             <button onClick={() => { setResetFor(null); setNewPassVal(""); }}
-                              style={{ background: "rgba(255,255,255,0.08)", color: "var(--muted)", border: "none", padding: "9px 12px", borderRadius: 8, cursor: "pointer" }}>
+                              style={{ background: "var(--surface)", color: "var(--muted)", border: "1px solid var(--border)", padding: "9px 12px", borderRadius: 8, cursor: "pointer" }}>
                               ✕
                             </button>
                           </div>
@@ -414,7 +414,7 @@ export default function AdminPanel({ onLogout }) {
                 </button>
               </form>
 
-              <div style={{ marginTop: 24, padding: 16, background: "var(--surface)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.06)" }}>
+              <div style={{ marginTop: 24, padding: 16, background: "var(--surface)", borderRadius: 12, border: "1px solid var(--border)" }}>
                 <div style={{ color: "var(--muted)", fontSize: 12, lineHeight: 1.8 }}>
                   <strong style={{ color: "var(--muted)" }}>ℹ️ Kirish yo'li:</strong><br/>
                   Login sahifasida 🎓 logoni <strong style={{ color: "#FBBF24" }}>7 marta</strong> bosing<br/>

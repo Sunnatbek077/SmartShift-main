@@ -96,8 +96,6 @@ body {
   position: relative;
   z-index: 1;
   padding: 24px;
-  max-width: 1400px;
-  margin: 0 auto;
 }
 
 /* ===== RESPONSIVE GRIDS ===== */
