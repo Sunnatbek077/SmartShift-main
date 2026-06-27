@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Funksiyalar | 3D Pro Vizualizatsiya</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; overflow: hidden; font-family: 'Segoe UI', system-ui, sans-serif; background: #070d1f; }
+
+  /* ===== INFO PANELI ===== */
+  .info-panel {
+    position: absolute; top: 18px; left: 18px;
+    background: linear-gradient(135deg, rgba(10,20,50,0.95), rgba(5,12,35,0.97));
+    backdrop-filter: blur(16px);
+    border-radius: 20px; padding: 14px 20px;
+    border-left: 5px solid var(--fc, #44aaff);
+    z-index: 20; pointer-events: none;
+    max-width: 340px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);
+    transition: border-color 0.4s;
+  }
+  .info-panel h1 { margin: 0 0 4px; font-size: 1.15rem; color: #e8f4ff; font-weight: 700; }
+  .info-panel h1 span { color: var(--fc, #44aaff); transition: color 0.4s; }
+  .info-panel .formula {
+    font-family: 'Courier New', monospace; font-size: 1.05rem;
+    background: rgba(255,255,255,0.06); display: inline-block;
+    padding: 4px 12px; border-radius: 30px; margin: 4px 0;
+    color: var(--fc, #44aaff); border: 1px solid rgba(68,170,255,0.2);
+    transition: color 0.4s;
+  }
+  .info-panel p { margin: 6px 0 0; font-size: 11.5px; color: #9ab; line-height: 1.5; }
+
+  /* ===== STATS PANELI ===== */
+  .stats-panel {
+    position: absolute; bottom: 20px; left: 18px;
+    background: rgba(5,12,35,0.95);
+    backdrop-filter: blur(12px);
+    border-radius: 18px; padding: 12px 18px;
+    max-width: 310px; z-index: 20; pointer-events: none;
+    border-top: 2px solid var(--fc, #44aaff);
+    box-shadow: 0 6px 24px rgba(0,0,0,0.4);
+    transition: border-color 0.4s;
+  }
+  .stats-panel .row {
+    display: flex; justify-content: space-between;
+    padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+    font-size: 12px; gap: 8px;
+  }
+  .stats-panel .row:last-child { border-bottom: none; }
+  .stats-panel .lbl { color: #6688aa; white-space: nowrap; }
+  .stats-panel .val { color: #ffbb77; font-weight: 700; font-family: monospace; text-align: right; }
+
+  /* ===== BOSHQARUV PANELI ===== */
+  .ctrl-panel {
+    position: absolute; bottom: 20px; right: 18px;
+    background: rgba(5,12,35,0.97); backdrop-filter: blur(16px);
+    border-radius: 20px; padding: 14px 18px;
+    z-index: 25; min-width: 270px;
+    border-right: 3px solid var(--fc, #44aaff);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    transition: border-color 0.4s;
+  }
+  .ctrl-panel .section-title {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px;
+    color: #556; margin: 10px 0 5px; padding-top: 8px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+  }
+  .ctrl-panel .section-title:first-child { margin-top: 0; border-top: none; padding-top: 0; }
+
+  /* Funksiya tugmalari */
+  .func-grid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 5px; margin-bottom: 2px;
+  }
+  .func-btn {
+    border: 1px solid transparent; border-radius: 10px;
+    padding: 6px 4px; font-size: 10.5px; font-weight: 700;
+    cursor: pointer; text-align: center; transition: all 0.15s;
+    background: rgba(255,255,255,0.04); color: #ccc;
+    line-height: 1.3;
+  }
+  .func-btn:hover { transform: translateY(-1px); filter: brightness(1.15); }
+  .func-btn.active { border-color: currentColor; filter: brightness(1.2); background: rgba(255,255,255,0.08); }
+  .func-btn.c1 { color: #44ffaa; }
+  .func-btn.c2 { color: #44aaff; }
+  .func-btn.c3 { color: #ffaa44; }
+  .func-btn.c4 { color: #bb88ff; }
+  .func-btn.c5 { color: #ff66bb; }
+  .func-btn.c6 { color: #66ffbb; }
+
+  /* Slayderlar */
+  .slider-row { margin: 5px 0; }
+  .slider-lbl { display: flex; justify-content: space-between; font-size: 11px; color: #9ab; margin-bottom: 3px; }
+  .slider-lbl span { color: var(--fc, #44aaff); font-family: monospace; font-weight: 700; transition: color 0.4s; }
+  input[type=range] {
+    width: 100%; height: 4px; cursor: pointer;
+    -webkit-appearance: none; background: rgba(255,255,255,0.08);
+    border-radius: 4px; outline: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 14px; height: 14px;
+    background: var(--fc, #44aaff); border-radius: 50%; cursor: pointer;
+    box-shadow: 0 0 6px var(--fc, #44aaff); transition: background 0.4s, box-shadow 0.4s;
+  }
+
+  /* f(x) natija */
+  .fx-display {
+    font-size: 13px; font-family: monospace; font-weight: 700;
+    color: var(--fc, #44aaff); text-align: center; padding: 6px 0;
+    background: rgba(255,255,255,0.04); border-radius: 8px; margin: 6px 0;
+    letter-spacing: 0.5px; transition: color 0.4s;
+  }
+
+  /* Tugmalar */
+  .btn-row { display: flex; gap: 5px; margin-top: 6px; }
+  .action-btn {
+    flex: 1; border: none; border-radius: 30px; padding: 6px 0;
+    font-size: 10.5px; font-weight: 700; cursor: pointer; transition: all 0.15s;
+  }
+  .action-btn:hover { filter: brightness(1.15); transform: translateY(-1px); }
+  .btn-center { background: #33557a; color: #aad; }
+  .btn-reset  { background: #7a2211; color: #faa; }
+
+  /* Tangent toggle */
+  .toggle-row {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; color: #9ab; margin-top: 6px; cursor: pointer;
+  }
+  .toggle-box {
+    width: 28px; height: 15px; background: rgba(255,255,255,0.1);
+    border-radius: 8px; position: relative; transition: background 0.2s; flex-shrink: 0;
+  }
+  .toggle-box.on { background: var(--fc, #44aaff); }
+  .toggle-box::after {
+    content: ''; position: absolute; width: 11px; height: 11px;
+    background: white; border-radius: 50%; top: 2px; left: 2px;
+    transition: left 0.2s;
+  }
+  .toggle-box.on::after { left: 15px; }
+
+  /* Burchak yordam */
+  .corner-tip {
+    position: absolute; top: 18px; right: 18px;
+    background: rgba(0,0,0,0.45); padding: 4px 12px;
+    border-radius: 20px; font-size: 10.5px; color: #778;
+    pointer-events: none; z-index: 20;
+  }
+
+  /* Animatsiya holati */
+  .anim-badge {
+    position: absolute; top: 18px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,0.6); border-radius: 30px; padding: 3px 14px;
+    font-size: 11px; color: #667; z-index: 20; pointer-events: none;
+    font-family: monospace;
+  }
+
+  @media (max-width:640px) {
+    .ctrl-panel { min-width: 210px; padding: 10px 12px; }
+    .info-panel  { max-width: 220px; font-size: 10px; }
+    .stats-panel { max-width: 220px; font-size: 10.5px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Info paneli -->
+<div class="info-panel" id="infoPanel">
+  <h1>📈 <span id="infoTitle">Funksiyalar</span> va xossalari</h1>
+  <div class="formula" id="infoFormula">y = f(x)</div>
+  <p id="infoDesc">Aniqlanish sohasi, qiymatlar sohasi, o'sish/kamayish, ekstremumlar</p>
+</div>
+
+<!-- Stats -->
+<div class="stats-panel" id="statsPanel">
+  <div class="row"><span class="lbl">📐 Funksiya</span><span class="val" id="sFunc">y = x²</span></div>
+  <div class="row"><span class="lbl">📈 Aniqlanish sohasi</span><span class="val" id="sDomain">(-∞, ∞)</span></div>
+  <div class="row"><span class="lbl">📉 Qiymatlar sohasi</span><span class="val" id="sRange">[0, ∞)</span></div>
+  <div class="row"><span class="lbl">⬆️ O'sish</span><span class="val" id="sInc">(0, ∞)</span></div>
+  <div class="row"><span class="lbl">⬇️ Kamayish</span><span class="val" id="sDec">(-∞, 0)</span></div>
+  <div class="row"><span class="lbl">🏔️ Ekstremum</span><span class="val" id="sExt">(0, 0) min</span></div>
+  <div class="row"><span class="lbl">📊 f'(x) (hosila)</span><span class="val" id="sDeriv">f'(x) = 2x</span></div>
+</div>
+
+<!-- Boshqaruv -->
+<div class="ctrl-panel" id="ctrlPanel">
+  <div class="section-title">Funksiya tanlash</div>
+  <div class="func-grid">
+    <button class="func-btn c1" data-fn="linear">y = x<br><small>chiziqli</small></button>
+    <button class="func-btn c2 active" data-fn="quadratic">y = x²<br><small>kvadratik</small></button>
+    <button class="func-btn c3" data-fn="cubic">y = x³<br><small>kubik</small></button>
+    <button class="func-btn c4" data-fn="sin">y=sin(x)<br><small>sinus</small></button>
+    <button class="func-btn c5" data-fn="cos">y=cos(x)<br><small>kosinus</small></button>
+    <button class="func-btn c6" data-fn="abs">y=|x|<br><small>modul</small></button>
+    <button class="func-btn c1" data-fn="sqrt">y=√x<br><small>ildiz</small></button>
+    <button class="func-btn c2" data-fn="log">y=ln(x)<br><small>logarifm</small></button>
+    <button class="func-btn c3" data-fn="exp">y=eˣ<br><small>eksponent</small></button>
+  </div>
+
+  <div class="section-title">Ko'rinish oralig'i</div>
+  <div class="slider-row">
+    <div class="slider-lbl">Ko'rinish <span id="rangeVal">[-5, 5]</span></div>
+    <input type="range" id="rangeSlider" min="2" max="10" step="0.5" value="5">
+  </div>
+
+  <div class="section-title">Nuqta tanlash</div>
+  <div class="slider-row">
+    <div class="slider-lbl">x = <span id="xVal">0.00</span></div>
+    <input type="range" id="xSlider" min="-10" max="10" step="0.05" value="0">
+  </div>
+  <div class="fx-display" id="fxDisplay">f(0.00) = 0.0000</div>
+
+  <div class="section-title">Qo'shimcha</div>
+  <label class="toggle-row" id="tangentToggle">
+    <div class="toggle-box" id="tangentBox"></div>
+    Tangent chiziq ko'rsatish
+  </label>
+  <label class="toggle-row" id="animToggle">
+    <div class="toggle-box" id="animBox"></div>
+    Nuqta animatsiyasi
+  </label>
+
+  <div class="btn-row">
+    <button class="action-btn btn-center" id="centerBtn">🎯 Markazlashtir</button>
+    <button class="action-btn btn-reset"  id="resetBtn">⟳ Tiklash</button>
+  </div>
+</div>
+
+<div class="corner-tip">🖱️ Aylantirish · Scroll: zoom</div>
+<div class="anim-badge" id="animBadge">⏸</div>
+
+<script type="importmap">
+{ "imports": {
+    "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+// ======================================================
+// FUNKSIYALAR MA'LUMOTLAR BAZASI
+// ======================================================
+const FUNCS = {
+  linear: {
+    name: 'y = x', formula: 'y = x', color: 0x44ffaa, cssColor: '#44ffaa',
+    f: x => x,
+    df: x => 1,         // hosila
+    domain: '(-∞, +∞)', range: '(-∞, +∞)',
+    inc: '(-∞, +∞)', dec: '—', ext: 'Yo\'q',
+    deriv: "f'(x) = 1",
+    desc: 'Chiziqli funksiya. Hamma joyda o\'sadi, ekstremum yo\'q.'
+  },
+  quadratic: {
+    name: 'y = x²', formula: 'y = x²', color: 0x44aaff, cssColor: '#44aaff',
+    f: x => x * x,
+    df: x => 2 * x,
+    domain: '(-∞, +∞)', range: '[0, +∞)',
+    inc: '(0, +∞)', dec: '(-∞, 0)', ext: '(0, 0) minimum',
+    deriv: "f'(x) = 2x",
+    desc: 'Parabolа. x=0 da minimum. Juft funksiya: f(-x)=f(x).'
+  },
+  cubic: {
+    name: 'y = x³', formula: 'y = x³', color: 0xffaa44, cssColor: '#ffaa44',
+    f: x => x ** 3,
+    df: x => 3 * x * x,
+    domain: '(-∞, +∞)', range: '(-∞, +∞)',
+    inc: '(-∞, +∞)', dec: '—', ext: 'Yo\'q (egilish nuqtasi: (0,0))',
+    deriv: "f'(x) = 3x²",
+    desc: 'Kubik funksiya. Toq funksiya: f(-x)=-f(x). Egilish nuqtasi bor.'
+  },
+  sin: {
+    name: 'y = sin(x)', formula: 'y = sin(x)', color: 0xbb88ff, cssColor: '#bb88ff',
+    f: x => Math.sin(x),
+    df: x => Math.cos(x),
+    domain: '(-∞, +∞)', range: '[-1, 1]',
+    inc: '(-π/2+2πk, π/2+2πk)', dec: '(π/2+2πk, 3π/2+2πk)',
+    ext: 'max: π/2+2πk, min: -π/2+2πk',
+    deriv: "f'(x) = cos(x)",
+    desc: 'Davriy funksiya T=2π. Toq: sin(-x)=-sin(x).'
+  },
+  cos: {
+    name: 'y = cos(x)', formula: 'y = cos(x)', color: 0xff66bb, cssColor: '#ff66bb',
+    f: x => Math.cos(x),
+    df: x => -Math.sin(x),
+    domain: '(-∞, +∞)', range: '[-1, 1]',
+    inc: '(-π+2πk, 2πk)', dec: '(2πk, π+2πk)',
+    ext: 'max: 2πk, min: π+2πk',
+    deriv: "f'(x) = -sin(x)",
+    desc: 'Davriy funksiya T=2π. Juft: cos(-x)=cos(x).'
+  },
+  abs: {
+    name: 'y = |x|', formula: 'y = |x|', color: 0x66ffbb, cssColor: '#66ffbb',
+    f: x => Math.abs(x),
+    df: x => x < 0 ? -1 : x > 0 ? 1 : NaN,
+    domain: '(-∞, +∞)', range: '[0, +∞)',
+    inc: '(0, +∞)', dec: '(-∞, 0)', ext: '(0, 0) minimum',
+    deriv: "f'(x) = sign(x) (x≠0)",
+    desc: 'Modul funksiyasi. x=0 da burchak — differensiallanmaydi.'
+  },
+  sqrt: {
+    name: 'y = √x', formula: 'y = √x', color: 0x44ffaa, cssColor: '#44ffaa',
+    f: x => x >= 0 ? Math.sqrt(x) : NaN,
+    df: x => x > 0 ? 0.5 / Math.sqrt(x) : NaN,
+    domain: '[0, +∞)', range: '[0, +∞)',
+    inc: '[0, +∞)', dec: '—', ext: '(0, 0) minimum',
+    deriv: "f'(x) = 1/(2√x)",
+    desc: 'Ildiz funksiyasi. Faqat x≥0 da aniqlanadi.'
+  },
+  log: {
+    name: 'y = ln(x)', formula: 'y = ln(x)', color: 0x44aaff, cssColor: '#44aaff',
+    f: x => x > 0 ? Math.log(x) : NaN,
+    df: x => x > 0 ? 1 / x : NaN,
+    domain: '(0, +∞)', range: '(-∞, +∞)',
+    inc: '(0, +∞)', dec: '—', ext: 'Yo\'q',
+    deriv: "f'(x) = 1/x",
+    desc: 'Natural logarifm. Faqat x>0 da aniqlanadi. x=1 da y=0.'
+  },
+  exp: {
+    name: 'y = eˣ', formula: 'y = eˣ', color: 0xffaa44, cssColor: '#ffaa44',
+    f: x => Math.exp(x),
+    df: x => Math.exp(x),
+    domain: '(-∞, +∞)', range: '(0, +∞)',
+    inc: '(-∞, +∞)', dec: '—', ext: 'Yo\'q',
+    deriv: "f'(x) = eˣ",
+    desc: 'Eksponensial. Hamma joyda o\'sadi. y>0 har doim.'
+  }
+};
+
+// ======================================================
+// HOLAT
+// ======================================================
+let currentFunc = 'quadratic';
+let viewRange    = 5;
+let xPos         = 0;
+let showTangent  = false;
+let animPoint    = false;
+let animT        = 0;
+
+// ======================================================
+// THREE.JS SOZLASH
+// ======================================================
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x070d1f);
+scene.fog = new THREE.FogExp2(0x070d1f, 0.007);
+
+const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 200);
+camera.position.set(6, 4, 10);
+camera.lookAt(0, 0, 0);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(devicePixelRatio);
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+const labelRenderer = new CSS2DRenderer();
+labelRenderer.setSize(innerWidth, innerHeight);
+Object.assign(labelRenderer.domElement.style, {
+  position: 'absolute', top: '0', left: '0', pointerEvents: 'none'
+});
+document.body.appendChild(labelRenderer.domElement);
+
+// Orbit Controls
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
+controls.zoomSpeed = 1.2;
+controls.minDistance = 2;
+controls.maxDistance = 50;
+
+// ======================================================
+// YORUG'LIK
+// ======================================================
+scene.add(new THREE.AmbientLight(0x304060, 1.2));
+const sunLight = new THREE.DirectionalLight(0xfff0d0, 1.5);
+sunLight.position.set(4, 7, 3);
+sunLight.castShadow = true;
+sunLight.shadow.mapSize.set(2048, 2048);
+scene.add(sunLight);
+const fillLight = new THREE.PointLight(0x6699ff, 0.8, 30);
+fillLight.position.set(-3, 3, 5);
+scene.add(fillLight);
+
+// ======================================================
+// GRID VA O'QLAR
+// ======================================================
+const grid = new THREE.GridHelper(20, 40, 0x334477, 0x223355);
+grid.position.y = -0.01;
+grid.material.transparent = true;
+grid.material.opacity = 0.4;
+scene.add(grid);
+
+const axes = new THREE.AxesHelper(8);
+scene.add(axes);
+
+// O'q yorliqlari
+function makeAxisLabel(text, color, x, y, z) {
+  const d = document.createElement('div');
+  d.textContent = text;
+  d.style.cssText = `color:${color};font-size:13px;font-weight:700;font-family:monospace;
+    text-shadow:0 0 8px ${color};pointer-events:none;`;
+  const lbl = new CSS2DObject(d);
+  lbl.position.set(x, y, z);
+  scene.add(lbl);
+}
+makeAxisLabel('x →', '#ff6666', 8.5, 0.1, 0);
+makeAxisLabel('y ↑', '#66ff66', 0.2, 8.5, 0);
+makeAxisLabel('z', '#6666ff', 0.2, 0.1, 8.5);
+
+// ======================================================
+// YULDUZLAR
+// ======================================================
+const starCount = 2000;
+const starPositions = new Float32Array(starCount * 3);
+for (let i = 0; i < starCount; i++) {
+  starPositions[i*3]   = (Math.random() - 0.5) * 300;
+  starPositions[i*3+1] = (Math.random() - 0.5) * 100 + 10;
+  starPositions[i*3+2] = (Math.random() - 0.5) * 200 - 50;
+}
+const starGeo = new THREE.BufferGeometry();
+starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({
+  color: 0xffffff, size: 0.06, transparent: true, opacity: 0.4
+}));
+scene.add(stars);
+
+// ======================================================
+// GRAFIK OB'YEKTLARI
+// ======================================================
+let graphLine   = null;
+let tangentLine = null;
+let pointMesh   = null;
+let pointLbl    = null;
+let pointGlow   = null;
+
+function clearGraph() {
+  [graphLine, tangentLine, pointMesh, pointLbl, pointGlow].forEach(o => {
+    if (o) scene.remove(o);
+  });
+  graphLine = tangentLine = pointMesh = pointLbl = pointGlow = null;
+}
+
+// Grafikni chizish (200 ta nuqta)
+function buildCurve(fn, color, steps = 300) {
+  const pts = [];
+  const xMin = -viewRange, xMax = viewRange;
+  for (let i = 0; i <= steps; i++) {
+    const x = xMin + (i / steps) * (xMax - xMin);
+    const y = fn(x);
+    if (isFinite(y) && Math.abs(y) < 50) {
+      pts.push(new THREE.Vector3(x, y, 0));
+    } else if (pts.length > 1) {
+      // Uzilish bo'lsa — qism qo'sh va davom et
+      const geo = new THREE.BufferGeometry().setFromPoints(pts.splice(0));
+      const mat = new THREE.LineBasicMaterial({ color, linewidth: 3 });
+      const line = new THREE.Line(geo, mat);
+      scene.add(line);
+      if (!graphLine) graphLine = line; // birinchisi asosiy
+    }
+  }
+  if (pts.length > 1) {
+    const geo = new THREE.BufferGeometry().setFromPoints(pts);
+    const mat = new THREE.LineBasicMaterial({ color, linewidth: 3 });
+    const line = new THREE.Line(geo, mat);
+    scene.add(line);
+    if (!graphLine) graphLine = line;
+  }
+}
+
+// Tangent chiziq (hosiladan foydalanib)
+function buildTangent(fn, dfn, x0, color) {
+  const y0 = fn(x0);
+  if (!isFinite(y0)) return;
+  const slope = dfn(x0);
+  if (!isFinite(slope)) return;
+  const L = viewRange * 0.8;
+  const pts = [
+    new THREE.Vector3(x0 - L, y0 - slope * L, 0),
+    new THREE.Vector3(x0 + L, y0 + slope * L, 0)
+  ];
+  const geo = new THREE.BufferGeometry().setFromPoints(pts);
+  const mat = new THREE.LineDashedMaterial({ color: 0xffffff, dashSize: 0.3, gapSize: 0.15, linewidth: 1 });
+  tangentLine = new THREE.Line(geo, mat);
+  tangentLine.computeLineDistances();
+  scene.add(tangentLine);
+}
+
+// Nuqta markeri
+function buildPoint(x0, y0, color) {
+  // Asosiy shar
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0xffaa44, emissive: 0x552200, metalness: 0.3, roughness: 0.3
+  });
+  pointMesh = new THREE.Mesh(new THREE.SphereGeometry(0.13, 32, 32), mat);
+  pointMesh.position.set(x0, y0, 0);
+  pointMesh.castShadow = true;
+  scene.add(pointMesh);
+
+  // Porloq halqa
+  const ringGeo = new THREE.TorusGeometry(0.22, 0.02, 8, 64);
+  const ringMat = new THREE.MeshBasicMaterial({ color: 0xffaa44, transparent: true, opacity: 0.5 });
+  pointGlow = new THREE.Mesh(ringGeo, ringMat);
+  pointGlow.position.set(x0, y0, 0);
+  scene.add(pointGlow);
+
+  // Yorliq
+  const div = document.createElement('div');
+  div.textContent = `(${x0.toFixed(2)}, ${y0.toFixed(2)})`;
+  div.style.cssText = `
+    background:rgba(0,0,0,0.75); color:#ffaa44;
+    font-size:11px; padding:2px 8px; border-radius:20px;
+    font-weight:700; border:1.5px solid #ffaa44;
+    font-family:monospace; white-space:nowrap;
+    box-shadow: 0 0 8px rgba(255,170,68,0.4);
+  `;
+  pointLbl = new CSS2DObject(div);
+  pointLbl.position.set(x0, y0 + 0.4, 0);
+  scene.add(pointLbl);
+}
+
+// ======================================================
+// ASOSIY YANGILASH FUNKSIYASI
+// ======================================================
+function updateAll() {
+  clearGraph();
+
+  const fd = FUNCS[currentFunc];
+  const fn = fd.f;
+  const dfn = fd.df;
+  const color = fd.color;
+
+  // Grafik chizish
+  buildCurve(fn, color);
+
+  // Joriy nuqta
+  const yVal = fn(xPos);
+  const safeY = isFinite(yVal) ? yVal : 0;
+
+  // Tangent
+  if (showTangent) buildTangent(fn, dfn, xPos, color);
+
+  // Nuqta
+  buildPoint(xPos, safeY, color);
+
+  // CSS rang o'zgartirish (CSS variable)
+  document.documentElement.style.setProperty('--fc', fd.cssColor);
+
+  // Stats
+  document.getElementById('sFunc').textContent   = fd.name;
+  document.getElementById('sDomain').textContent = fd.domain;
+  document.getElementById('sRange').textContent  = fd.range;
+  document.getElementById('sInc').textContent    = fd.inc;
+  document.getElementById('sDec').textContent    = fd.dec;
+  document.getElementById('sExt').textContent    = fd.ext;
+  document.getElementById('sDeriv').textContent  = fd.deriv;
+
+  // Info panel
+  document.getElementById('infoTitle').textContent  = fd.name;
+  document.getElementById('infoFormula').textContent = fd.formula;
+  document.getElementById('infoDesc').textContent   = fd.desc;
+
+  // f(x) natija
+  const fxStr = isFinite(yVal) ? yVal.toFixed(4) : '∞';
+  document.getElementById('fxDisplay').textContent = `f(${xPos.toFixed(2)}) = ${fxStr}`;
+  document.getElementById('xVal').textContent      = xPos.toFixed(2);
+  document.getElementById('rangeVal').textContent  = `[-${viewRange.toFixed(1)}, ${viewRange.toFixed(1)}]`;
+
+  // x slider oralig'ini yangilash
+  const xSlider = document.getElementById('xSlider');
+  xSlider.min = -viewRange;
+  xSlider.max = +viewRange;
+}
+
+// ======================================================
+// SLAYDERLAR
+// ======================================================
+document.getElementById('rangeSlider').addEventListener('input', e => {
+  viewRange = parseFloat(e.target.value);
+  updateAll();
+});
+document.getElementById('xSlider').addEventListener('input', e => {
+  xPos = parseFloat(e.target.value);
+  updateAll();
+});
+
+// ======================================================
+// FUNKSIYA TUGMALARI
+// ======================================================
+document.querySelectorAll('.func-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.func-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFunc = btn.dataset.fn;
+    // sqrt va log uchun x ni musbatga tuzatish
+    if (currentFunc === 'sqrt' || currentFunc === 'log') {
+      if (xPos < 0.1) { xPos = 0.5; document.getElementById('xSlider').value = '0.5'; }
+    }
+    updateAll();
+  });
+});
+
+// ======================================================
+// TANGENT TOGGLE
+// ======================================================
+document.getElementById('tangentToggle').addEventListener('click', () => {
+  showTangent = !showTangent;
+  document.getElementById('tangentBox').classList.toggle('on', showTangent);
+  updateAll();
+});
+
+// ======================================================
+// ANIMATSIYA TOGGLE
+// ======================================================
+document.getElementById('animToggle').addEventListener('click', () => {
+  animPoint = !animPoint;
+  document.getElementById('animBox').classList.toggle('on', animPoint);
+});
+
+// ======================================================
+// RESET VA MARKAZLASHTIRISH
+// ======================================================
+document.getElementById('resetBtn').addEventListener('click', () => {
+  currentFunc = 'quadratic';
+  viewRange = 5;
+  xPos = 0;
+  showTangent = false;
+  animPoint = false;
+  document.getElementById('rangeSlider').value = '5';
+  document.getElementById('xSlider').value = '0';
+  document.getElementById('tangentBox').classList.remove('on');
+  document.getElementById('animBox').classList.remove('on');
+  document.querySelectorAll('.func-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.fn === 'quadratic');
+  });
+  updateAll();
+});
+
+document.getElementById('centerBtn').addEventListener('click', () => {
+  camera.position.set(6, 4, 10);
+  controls.target.set(0, 0, 0);
+  controls.update();
+});
+
+// ======================================================
+// ANIMATSIYA SIKLI
+// ======================================================
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const delta = clock.getDelta();
+
+  // Yulduzlar aylansini
+  stars.rotation.y += 0.0002;
+
+  // Nuqta animatsiyasi — x ni funksiyaga qarab harakatlantiramiz
+  if (animPoint) {
+    animT += delta * 0.6;
+    const newX = Math.sin(animT) * viewRange * 0.9;
+    xPos = parseFloat(newX.toFixed(2));
+    document.getElementById('xSlider').value = xPos;
+    updateAll();
+    document.getElementById('animBadge').textContent = `▶ x = ${xPos.toFixed(2)}`;
+  } else {
+    document.getElementById('animBadge').textContent = '';
+  }
+
+  // Nuqta halqasi pulsatsiyasi
+  if (pointGlow) {
+    const pulse = 0.9 + Math.sin(Date.now() * 0.004) * 0.15;
+    pointGlow.scale.setScalar(pulse);
+    pointGlow.material.opacity = 0.3 + Math.sin(Date.now() * 0.004) * 0.2;
+  }
+
+  controls.update();
+  renderer.render(scene, camera);
+  labelRenderer.render(scene, camera);
+}
+
+// ======================================================
+// RESIZE
+// ======================================================
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+  labelRenderer.setSize(innerWidth, innerHeight);
+});
+
+// ======================================================
+// ISHGA TUSHURISH
+// ======================================================
+document.documentElement.style.setProperty('--fc', '#44aaff');
+updateAll();
+animate();
+</script>
+</body>
+</html>

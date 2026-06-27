@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ko'pburchaklar va ularning yuzlari</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            overflow:hidden;
+            font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;
+            background:#0a0a1a;
+            user-select:none;
+        }
+
+        #header {
+            position:absolute; top:15px; left:50%; transform:translateX(-50%);
+            background:rgba(0,0,0,0.85);
+            border:1px solid rgba(255,170,0,0.3);
+            padding:10px 30px; border-radius:20px;
+            color:#fff; text-align:center; z-index:20; pointer-events:none;
+            backdrop-filter:blur(12px);
+        }
+        #header h1 { font-size:1.2rem; font-weight:300; letter-spacing:1px; }
+        #header h1 span { color:#ffaa00; font-weight:700; }
+        #header .sub { font-size:0.65rem; opacity:0.4; margin-top:2px; }
+
+        #info-panel {
+            position:absolute; bottom:20px; left:50%; transform:translateX(-50%);
+            background:rgba(0,0,0,0.92);
+            border:1px solid rgba(255,255,255,0.06);
+            padding:15px 25px; border-radius:18px;
+            color:#fff; z-index:20; min-width:320px; max-width:90%;
+            text-align:center;
+            box-shadow:0 8px 40px rgba(0,0,0,0.7);
+            backdrop-filter:blur(15px);
+        }
+        #info-panel .name { font-size:1.1rem; font-weight:700; color:#ffaa00; }
+        #info-panel .stats { font-size:0.8rem; opacity:0.7; margin-top:4px; display:flex; gap:20px; justify-content:center; flex-wrap:wrap; }
+        #info-panel .stats span { padding:0 10px; border-right:1px solid rgba(255,255,255,0.1); }
+        #info-panel .stats span:last-child { border-right:none; }
+        #info-panel .desc { font-size:0.7rem; opacity:0.5; margin-top:6px; }
+
+        #controls {
+            position:absolute; top:80px; right:20px;
+            z-index:20; display:flex; flex-direction:column; gap:6px;
+        }
+        #controls button {
+            background:rgba(255,255,255,0.05);
+            border:1px solid rgba(255,255,255,0.08);
+            color:#fff; padding:7px 14px; border-radius:10px;
+            cursor:pointer; font-size:0.65rem; font-family:inherit;
+            transition:all 0.25s; text-align:left; min-width:120px;
+        }
+        #controls button:hover { background:rgba(255,170,0,0.12); border-color:#ffaa00; transform:translateX(-3px); }
+        #controls button.active { background:rgba(255,170,0,0.15); border-color:#ffaa00; }
+
+        #polygon-selector {
+            position:absolute; top:80px; left:50%; transform:translateX(-50%);
+            z-index:20; display:flex; gap:8px; flex-wrap:wrap; justify-content:center;
+        }
+        #polygon-selector button {
+            background:rgba(255,255,255,0.05);
+            border:1px solid rgba(255,255,255,0.1);
+            color:#fff; padding:5px 14px; border-radius:15px;
+            cursor:pointer; font-size:0.65rem; transition:all 0.3s;
+        }
+        #polygon-selector button:hover { background:rgba(255,170,0,0.1); }
+        #polygon-selector button.active { background:rgba(255,170,0,0.2); border-color:#ffaa00; }
+
+        /* 3D Canvas */
+        #canvas3d {
+            display:block;
+            width:100vw;
+            height:100vh;
+            background:#0a0a1a;
+            cursor:grab;
+        }
+        #canvas3d:active { cursor:grabbing; }
+
+        @media(max-width:700px) {
+            #controls { top:130px; right:10px; }
+            #controls button { min-width:80px; font-size:0.55rem; padding:5px 10px; }
+            #info-panel { min-width:auto; width:95%; padding:12px 15px; bottom:10px; }
+            #polygon-selector { top:75px; gap:4px; }
+            #polygon-selector button { font-size:0.55rem; padding:4px 10px; }
+            #header h1 { font-size:0.9rem; }
+            #header { padding:8px 15px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div id="header">
+    <h1>📐 <span>Ko'pburchaklar</span> va ularning yuzlari</h1>
+    <div class="sub">3D MUSTAQIL · PRİZMALAR · YUZALAR</div>
+</div>
+
+<!-- Ko'pburchak tanlash -->
+<div id="polygon-selector">
+    <button class="active" data-sides="3">🔺 Uchburchak</button>
+    <button data-sides="4">🔷 To'rtburchak</button>
+    <button data-sides="5">⬠ Beshburchak</button>
+    <button data-sides="6">⬡ Oltiburchak</button>
+    <button data-sides="8">⭒ Sakkizburchak</button>
+</div>
+
+<!-- Boshqaruv -->
+<div id="controls">
+    <button id="toggleRotate" class="active">🔄 Aylanish</button>
+    <button id="toggleFaces" class="active">🎨 Yuzalar</button>
+    <button id="toggleEdges" class="active">📏 Qirralar</button>
+    <button id="toggleVertices" class="active">⚪ Uchlar</button>
+    <button id="resetView">🏠 Ko'rinish</button>
+</div>
+
+<!-- Ma'lumot paneli -->
+<div id="info-panel">
+    <div class="name" id="polyName">🔺 Uchburchak prizma</div>
+    <div class="stats" id="polyStats">
+        <span>🔹 Yuzlar: <b id="faceCount">5</b></span>
+        <span>📏 Qirralar: <b id="edgeCount">9</b></span>
+        <span>⚪ Uchlar: <b id="vertexCount">6</b></span>
+    </div>
+    <div class="desc" id="polyDesc">3 burchakli prizma — 5 ta yuz, 9 ta qirra, 6 ta uch</div>
+</div>
+
+<!-- 3D Canvas -->
+<canvas id="canvas3d"></canvas>
+
+<script>
+// ============================================================
+// 1. KONSTANTALAR VA HOLAT
+// ============================================================
+const canvas = document.getElementById('canvas3d');
+const ctx = canvas.getContext('2d');
+
+let W, H;
+
+function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ============================================================
+// 2. 3D MATEMATIKA
+// ============================================================
+class Vector3 {
+    constructor(x=0, y=0, z=0) {
+        this.x = x; this.y = y; this.z = z;
+    }
+    add(v) { return new Vector3(this.x+v.x, this.y+v.y, this.z+v.z); }
+    sub(v) { return new Vector3(this.x-v.x, this.y-v.y, this.z-v.z); }
+    mul(s) { return new Vector3(this.x*s, this.y*s, this.z*s); }
+    len() { return Math.sqrt(this.x*this.x + this.y*this.y + this.z*this.z); }
+    norm() { const l=this.len(); return l>0 ? this.mul(1/l) : new Vector3(); }
+    dot(v) { return this.x*v.x + this.y*v.y + this.z*v.z; }
+    cross(v) {
+        return new Vector3(
+            this.y*v.z - this.z*v.y,
+            this.z*v.x - this.x*v.z,
+            this.x*v.y - this.y*v.x
+        );
+    }
+    clone() { return new Vector3(this.x, this.y, this.z); }
+}
+
+function rotateX(p, angle) {
+    const c=Math.cos(angle), s=Math.sin(angle);
+    return new Vector3(p.x, p.y*c-p.z*s, p.y*s+p.z*c);
+}
+function rotateY(p, angle) {
+    const c=Math.cos(angle), s=Math.sin(angle);
+    return new Vector3(p.x*c+p.z*s, p.y, -p.x*s+p.z*c);
+}
+function rotateZ(p, angle) {
+    const c=Math.cos(angle), s=Math.sin(angle);
+    return new Vector3(p.x*c-p.y*s, p.x*s+p.y*c, p.z);
+}
+
+// Proyeksiya (perspektiv)
+function project(p, fov=500) {
+    const z = p.z + 8;
+    if (z < 0.1) return null;
+    const scale = fov / z;
+    return { x: p.x * scale + W/2, y: -p.y * scale + H/2, z: z };
+}
+
+// ============================================================
+// 3. HOLAT
+// ============================================================
+const state = {
+    sides: 3,
+    showFaces: true,
+    showEdges: true,
+    showVertices: true,
+    autoRotate: true,
+    rotX: 0.3,
+    rotY: 0.5,
+    rotZ: 0.1,
+    zoom: 1,
+    mouseX: 0,
+    mouseY: 0,
+    isDragging: false,
+    lastMX: 0,
+    lastMY: 0
+};
+
+// ============================================================
+// 4. KO'PBURCHAK YARATISH
+// ============================================================
+function createPrismVertices(sides, height=3, radius=2.2) {
+    const verts = [];
+    for (let i=0; i<sides; i++) {
+        const angle = (i/sides)*Math.PI*2 - Math.PI/2;
+        const x = radius * Math.cos(angle);
+        const z = radius * Math.sin(angle);
+        verts.push(new Vector3(x, -height/2, z));
+        verts.push(new Vector3(x, height/2, z));
+    }
+    return verts;
+}
+
+function getFaces(sides) {
+    const faces = [];
+    // Pastki asos
+    const bottom = [];
+    for (let i=0; i<sides; i++) bottom.push(i*2);
+    faces.push({ indices: triangulate(bottom), color: '#ff6b6b' });
+
+    // Yuqori asos
+    const top = [];
+    for (let i=0; i<sides; i++) top.push(i*2+1);
+    faces.push({ indices: triangulate(top, true), color: '#6bcbff' });
+
+    // Yon yuzlar
+    const colors = ['#ffd93d', '#ff9a3c', '#ff6b6b', '#ff6b9d', '#c084fc', '#6bcbff', '#4dd0e1', '#66bb6a'];
+    for (let i=0; i<sides; i++) {
+        const next = (i+1)%sides;
+        const a = i*2, b = i*2+1, c = next*2+1, d = next*2;
+        faces.push({
+            indices: [a,b,c, a,c,d],
+            color: colors[i % colors.length]
+        });
+    }
+    return faces;
+}
+
+function triangulate(indices, reverse=false) {
+    const result = [];
+    if (indices.length < 3) return result;
+    for (let i=1; i<indices.length-1; i++) {
+        if (reverse) result.push(indices[0], indices[i+1], indices[i]);
+        else result.push(indices[0], indices[i], indices[i+1]);
+    }
+    return result;
+}
+
+// ============================================================
+// 5. RENDER
+// ============================================================
+function render() {
+    ctx.clearRect(0, 0, W, H);
+
+    // Vertices
+    const verts = createPrismVertices(state.sides);
+    const faces = getFaces(state.sides);
+
+    // Rotatsiya
+    let rotVerts = verts.map(v => {
+        let p = v.clone();
+        p = rotateX(p, state.rotX);
+        p = rotateY(p, state.rotY);
+        p = rotateZ(p, state.rotZ);
+        return p;
+    });
+
+    // Proyeksiya
+    const projVerts = rotVerts.map(v => project(v));
+    if (projVerts.some(p => p === null)) {
+        requestAnimationFrame(render);
+        return;
+    }
+
+    // Yuzalarni chizish (eng uzoqdan eng yaqingacha)
+    if (state.showFaces) {
+        const faceData = faces.map((face, idx) => {
+            const pts = face.indices.map(i => projVerts[i]);
+            const avgZ = pts.reduce((s,p) => s + p.z, 0) / pts.length;
+            return { idx, pts, avgZ, color: face.color };
+        });
+        faceData.sort((a,b) => b.avgZ - a.avgZ);
+
+        faceData.forEach(fd => {
+            const pts = fd.pts;
+            ctx.beginPath();
+            ctx.moveTo(pts[0].x, pts[0].y);
+            for (let i=1; i<pts.length; i++) {
+                ctx.lineTo(pts[i].x, pts[i].y);
+            }
+            ctx.closePath();
+
+            // Rang
+            const alpha = 0.6 + 0.2 * (fd.avgZ / 10);
+            ctx.fillStyle = fd.color;
+            ctx.globalAlpha = alpha;
+            ctx.fill();
+            ctx.globalAlpha = 1;
+
+            // Chegara
+            ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+        });
+    }
+
+    // Qirralar
+    if (state.showEdges) {
+        const edgeSet = new Set();
+        faces.forEach(face => {
+            for (let i=0; i<face.indices.length; i+=3) {
+                const a = face.indices[i];
+                const b = face.indices[i+1];
+                const c = face.indices[i+2];
+                addEdgeToSet(edgeSet, a, b);
+                addEdgeToSet(edgeSet, b, c);
+                addEdgeToSet(edgeSet, c, a);
+            }
+        });
+
+        ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+        ctx.lineWidth = 1.5;
+        edgeSet.forEach(key => {
+            const [i,j] = key.split('-').map(Number);
+            const p1 = projVerts[i];
+            const p2 = projVerts[j];
+            if (p1 && p2) {
+                ctx.beginPath();
+                ctx.moveTo(p1.x, p1.y);
+                ctx.lineTo(p2.x, p2.y);
+                ctx.stroke();
+            }
+        });
+    }
+
+    // Uchlar
+    if (state.showVertices) {
+        projVerts.forEach(p => {
+            if (p) {
+                // Glow
+                const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 6);
+                grad.addColorStop(0, 'rgba(136,255,136,0.8)');
+                grad.addColorStop(0.5, 'rgba(68,255,68,0.3)');
+                grad.addColorStop(1, 'rgba(68,255,68,0)');
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 6, 0, Math.PI*2);
+                ctx.fill();
+
+                // Nuqta
+                ctx.fillStyle = '#88ff88';
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 2.5, 0, Math.PI*2);
+                ctx.fill();
+            }
+        });
+    }
+
+    // Ma'lumot
+    const vCount = verts.length;
+    const eCount = countEdges(faces);
+    const fCount = faces.length;
+    updateInfo(state.sides, fCount, eCount, vCount);
+
+    requestAnimationFrame(render);
+}
+
+function addEdgeToSet(set, a, b) {
+    const key = a < b ? `${a}-${b}` : `${b}-${a}`;
+    set.add(key);
+}
+
+function countEdges(faces) {
+    const set = new Set();
+    faces.forEach(face => {
+        for (let i=0; i<face.indices.length; i+=3) {
+            addEdgeToSet(set, face.indices[i], face.indices[i+1]);
+            addEdgeToSet(set, face.indices[i+1], face.indices[i+2]);
+            addEdgeToSet(set, face.indices[i+2], face.indices[i]);
+        }
+    });
+    return set.size;
+}
+
+// ============================================================
+// 6. MA'LUMOT PANELI
+// ============================================================
+function updateInfo(sides, faces, edges, vertices) {
+    const names = {
+        3: '🔺 Uchburchak prizma',
+        4: '🔷 To\'rtburchak prizma',
+        5: '⬠ Beshburchak prizma',
+        6: '⬡ Oltiburchak prizma',
+        8: '⭒ Sakkizburchak prizma'
+    };
+    const descs = {
+        3: '3 burchakli prizma — 5 ta yuz, 9 ta qirra, 6 ta uch',
+        4: '4 burchakli prizma — 6 ta yuz, 12 ta qirra, 8 ta uch',
+        5: '5 burchakli prizma — 7 ta yuz, 15 ta qirra, 10 ta uch',
+        6: '6 burchakli prizma — 8 ta yuz, 18 ta qirra, 12 ta uch',
+        8: '8 burchakli prizma — 10 ta yuz, 24 ta qirra, 16 ta uch'
+    };
+    document.getElementById('polyName').textContent = names[sides] || `${sides} burchakli prizma`;
+    document.getElementById('faceCount').textContent = faces;
+    document.getElementById('edgeCount').textContent = edges;
+    document.getElementById('vertexCount').textContent = vertices;
+    document.getElementById('polyDesc').textContent = descs[sides] || `${sides} burchakli prizma`;
+}
+
+// ============================================================
+// 7. REBUILD
+// ============================================================
+function rebuild() {
+    // Hech narsa qilish shart emas, render avtomatik yangilanadi
+}
+
+// ============================================================
+// 8. MOUSE BOSHQARUVI
+// ============================================================
+canvas.addEventListener('mousedown', (e) => {
+    state.isDragging = true;
+    state.lastMX = e.clientX;
+    state.lastMY = e.clientY;
+    canvas.style.cursor = 'grabbing';
+});
+
+window.addEventListener('mousemove', (e) => {
+    if (state.isDragging) {
+        const dx = e.clientX - state.lastMX;
+        const dy = e.clientY - state.lastMY;
+        state.rotY += dx * 0.005;
+        state.rotX += dy * 0.005;
+        state.lastMX = e.clientX;
+        state.lastMY = e.clientY;
+    }
+});
+
+window.addEventListener('mouseup', () => {
+    state.isDragging = false;
+    canvas.style.cursor = 'grab';
+});
+
+// Zoom (sichqoncha g'ildiragi)
+canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? 0.05 : -0.05;
+    state.zoom = Math.max(0.3, Math.min(2, state.zoom + delta));
+    // Zoom ni kameraga ta'sir qilish
+    // Biz proyeksiyada fov ni o'zgartiramiz
+    render();
+}, { passive: false });
+
+// ============================================================
+// 9. BOSHQARUV TUGMALARI
+// ============================================================
+document.getElementById('toggleRotate').addEventListener('click', function() {
+    state.autoRotate = !state.autoRotate;
+    this.classList.toggle('active');
+});
+
+document.getElementById('toggleFaces').addEventListener('click', function() {
+    state.showFaces = !state.showFaces;
+    this.classList.toggle('active');
+});
+
+document.getElementById('toggleEdges').addEventListener('click', function() {
+    state.showEdges = !state.showEdges;
+    this.classList.toggle('active');
+});
+
+document.getElementById('toggleVertices').addEventListener('click', function() {
+    state.showVertices = !state.showVertices;
+    this.classList.toggle('active');
+});
+
+document.getElementById('resetView').addEventListener('click', function() {
+    state.rotX = 0.3;
+    state.rotY = 0.5;
+    state.rotZ = 0.1;
+    state.zoom = 1;
+});
+
+// Ko'pburchak tanlash
+document.querySelectorAll('#polygon-selector button').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('#polygon-selector button').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        state.sides = parseInt(this.dataset.sides);
+    });
+});
+
+// ============================================================
+// 10. EKRAN O'LCHAMIGA MOSLASH
+// ============================================================
+window.addEventListener('resize', resize);
+
+// ============================================================
+// 11. ANIMATSIYA
+// ============================================================
+function animate() {
+    if (state.autoRotate) {
+        state.rotY += 0.005;
+        state.rotX += 0.001;
+    }
+    render();
+    requestAnimationFrame(animate);
+}
+
+// ============================================================
+// 12. ISHGA TUSHIRISH
+// ============================================================
+animate();
+
+console.log('📐 Ko\'pburchaklar va ularning yuzlari (Mustaqil 3D)');
+console.log('🖱 Sichqoncha bilan aylantirish · G\'ildirak bilan zoom');
+console.log('🔘 O\'ngdagi tugmalar yordamida ko\'rinishni boshqaring');
+console.log('✅ Hech qanday tashqi kutubxona talab qilinmaydi!');
+</script>
+</body>
+</html>

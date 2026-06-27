@@ -7,6 +7,7 @@ import { COLORS, FANS, FANS_7, FANS_1KURS, USER_PROFILE, TOPICS_MAP, TOPICS_MAP_
 import { storage } from "./supabase";
 import { getStudentResults } from "./auth";
 import { computeTopicProgress, loadVisitedStepsMap, getTopicQuizScorePercent } from "./lessonProgress";
+import { updateLoginStreak, buildActivityHeatmap } from "./activityStats";
 
 const getGradeKey = (className) => {
   const match = String(className || "").match(/^\d+/);
@@ -220,14 +221,17 @@ export default function ProfilePage({ currentUser }) {
       setStats(updatedStats);
       await storage.set("profile_stats", JSON.stringify(updatedStats));
 
-      // Login countni oshiramiz va streakni hisoblash
-      await updateLoginStats();
+      // Login countni oshiramiz va streakni hisoblash (Navbar bilan bir xil manba)
+      const streakUpdate = await updateLoginStreak(storage);
+      if (streakUpdate) setStats(prev => ({ ...prev, ...streakUpdate }));
 
-      // Faollik xaritasi
-      const savedActivity = await storage.get("profile_activity");
-      if (savedActivity) {
-        try { setActivityMap(JSON.parse(savedActivity)); } catch {}
-      }
+      // Faollik xaritasi — login kunlari + real test/dars natijalari birlashtiriladi
+      let loginActivity = {};
+      try {
+        const savedActivity = await storage.get("profile_activity");
+        if (savedActivity) loginActivity = JSON.parse(savedActivity);
+      } catch {}
+      setActivityMap(buildActivityHeatmap(loginActivity, progressObj, dbResults));
 
       // Custom fanlar
       if (displayClass) {
@@ -246,49 +250,6 @@ export default function ProfilePage({ currentUser }) {
       console.error("Profil yuklashda xato:", e);
     }
     setLoading(false);
-  };
-
-  const updateLoginStats = async () => {
-    const today = new Date().toISOString().split("T")[0];
-    const savedStats = await storage.get("profile_stats");
-    let currentStats = stats;
-    if (savedStats) {
-      try { currentStats = { ...stats, ...JSON.parse(savedStats) }; } catch {}
-    }
-
-    const lastLogin = currentStats.last_login ? currentStats.last_login.split("T")[0] : "";
-    
-    if (lastLogin !== today) {
-      // Yangi kun — streak hisoblash
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = yesterday.toISOString().split("T")[0];
-
-      let newStreak = currentStats.streak || 0;
-      if (lastLogin === yesterdayStr) {
-        newStreak += 1;
-      } else if (lastLogin !== today) {
-        newStreak = 1; // Streak buzildi
-      }
-
-      const updated = {
-        ...currentStats,
-        login_count: (currentStats.login_count || 0) + 1,
-        streak: newStreak,
-        best_streak: Math.max(newStreak, currentStats.best_streak || 0),
-        last_login: new Date().toISOString(),
-      };
-
-      setStats(updated);
-      await storage.set("profile_stats", JSON.stringify(updated));
-
-      // Faollik xaritasini yangilash
-      const newActivity = { ...activityMap, [today]: (activityMap[today] || 0) + 1 };
-      setActivityMap(newActivity);
-      await storage.set("profile_activity", JSON.stringify(newActivity));
-    } else {
-      setStats(currentStats);
-    }
   };
 
   // === Profil saqlash ===

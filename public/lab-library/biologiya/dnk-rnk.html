@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>DNK, RNK va genetik kod | 3D vizualizatsiya</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', 'Poppins', system-ui, sans-serif;
+        }
+        .info-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(12px);
+            border-radius: 28px;
+            padding: 15px 22px;
+            color: #ffecb0;
+            border-left: 6px solid #44ffaa;
+            z-index: 20;
+            pointer-events: none;
+            max-width: 380px;
+        }
+        .info-panel h1 {
+            margin: 0 0 5px;
+            font-size: 1.3rem;
+        }
+        .info-panel h1 span { color: #44ffaa; }
+        .info-panel .formula {
+            font-family: monospace;
+            font-size: 0.9rem;
+            background: #2a2a3a;
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 30px;
+            margin: 5px 0;
+            color: #aaffcc;
+        }
+        .controls-tip {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.5);
+            padding: 5px 12px;
+            border-radius: 18px;
+            font-size: 11px;
+            color: #ccc;
+            pointer-events: none;
+            z-index: 20;
+        }
+        .stats-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(8px);
+            border-radius: 24px;
+            padding: 12px 20px;
+            max-width: 400px;
+            z-index: 20;
+            pointer-events: none;
+            border-top: 2px solid #44ffaa;
+            color: #ddd;
+            font-size: 13px;
+            font-family: 'Courier New', monospace;
+        }
+        .stats-panel .row {
+            display: flex;
+            justify-content: space-between;
+            padding: 2px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .stats-panel .label { color: #88aacc; }
+        .stats-panel .value { color: #ffaa66; font-weight: bold; }
+        
+        .control-panel {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.88);
+            backdrop-filter: blur(12px);
+            border-radius: 28px;
+            padding: 15px 22px;
+            z-index: 25;
+            pointer-events: auto;
+            text-align: center;
+            border-right: 3px solid #44ffaa;
+            min-width: 280px;
+        }
+        .control-panel label {
+            display: block;
+            font-size: 12px;
+            margin: 6px 0 3px;
+            color: #ffdd99;
+        }
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+            background: #444;
+            height: 4px;
+            border-radius: 5px;
+        }
+        .value-display {
+            font-size: 13px;
+            font-weight: bold;
+            margin: 6px 0;
+            color: #44ffaa;
+            font-family: monospace;
+        }
+        button {
+            background: #44ffaa;
+            border: none;
+            color: #1a2a1a;
+            font-weight: bold;
+            padding: 6px 12px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-size: 11px;
+            margin-top: 6px;
+            transition: 0.1s;
+        }
+        button:hover {
+            background: #66ffcc;
+            transform: scale(1.01);
+        }
+        .btn-group {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 4px;
+        }
+        .btn-group button {
+            flex: 1;
+            min-width: 50px;
+        }
+        .btn-blue { background: #44aaff; color: white; }
+        .btn-blue:hover { background: #66ccff; }
+        .btn-purple { background: #aa66ff; color: white; }
+        .btn-purple:hover { background: #cc88ff; }
+        .btn-orange { background: #ffaa44; color: #1a1a2a; }
+        .btn-orange:hover { background: #ffcc66; }
+        @media (max-width: 700px) {
+            .control-panel { min-width: 240px; padding: 10px 15px; }
+            .info-panel { font-size: 11px; max-width: 260px; }
+            .stats-panel { font-size: 11px; max-width: 280px; padding: 10px 14px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="info-panel">
+        <h1>🧬 <span>DNK, RNK</span> va <span>Genetik kod</span></h1>
+        <div class="formula">DNK: A-T, G-C | RNK: A-U, G-C | Kodon: 3 ta nukleotid</div>
+        <p>📌 DNK – irsiy ma'lumot saqlovchi, RNK – oqsil sintezi, genetik kod – aminokislotalar</p>
+    </div>
+    
+    <div class="stats-panel" id="statsPanel">
+        <div class="row"><span class="label">🧬 Molekula</span><span class="value" id="molName">DNK (qo'sh spiral)</span></div>
+        <div class="row"><span class="label">🔤 Nukleotidlar</span><span class="value" id="nucSeq">A-T, G-C, A-T, G-C</span></div>
+        <div class="row"><span class="label">📐 Uzunlik</span><span class="value" id="lengthDisplay">12 ta juftlik</span></div>
+        <div class="row"><span class="label">🧬 Genetik kod</span><span class="value" id="geneticCode">AUG → Metionin</span></div>
+        <div class="row"><span class="label">🔬 Oqsil</span><span class="value" id="proteinName">—</span></div>
+    </div>
+    
+    <div class="control-panel">
+        <label>🧬 Molekula turi:</label>
+        <div class="btn-group">
+            <button id="modeDNA" class="btn-green">DNK (qo'sh spiral)</button>
+            <button id="modeRNA" class="btn-blue">RNK (bir zanjir)</button>
+            <button id="modeProtein" class="btn-purple">Oqsil</button>
+        </div>
+        
+        <label>🔢 Nukleotidlar soni: <span id="lengthSliderVal">12</span></label>
+        <input type="range" id="lengthSlider" min="6" max="24" step="2" value="12">
+        
+        <label>🔤 Kodoni ko'rsatish:</label>
+        <div class="btn-group">
+            <button id="showCodons" class="btn-orange">Kodonlarni ko'rsatish</button>
+            <button id="hideCodons" class="btn-orange">Yashirish</button>
+        </div>
+        
+        <div class="value-display" id="statusDisplay">Holat: DNK qo'sh spiral</div>
+        <button id="resetViewBtn" style="background:#666; color:white; margin-top:8px;">🎯 Kamerani markazlashtirish</button>
+        <button id="resetBtn" style="background:#ff6644; color:white; margin-top:4px;">⟳ Qayta tiklash</button>
+    </div>
+    <div class="controls-tip">
+        🖱️ Aylantirish | Scroll: kattalashtirish
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+        
+        // --- SAHNA ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0a1030);
+        scene.fog = new THREE.FogExp2(0x0a1030, 0.006);
+        
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(6, 4, 10);
+        camera.lookAt(0, 0, 0);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        document.body.appendChild(renderer.domElement);
+        
+        const labelRenderer = new CSS2DRenderer();
+        labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        labelRenderer.domElement.style.position = 'absolute';
+        labelRenderer.domElement.style.top = '0px';
+        labelRenderer.domElement.style.left = '0px';
+        labelRenderer.domElement.style.pointerEvents = 'none';
+        document.body.appendChild(labelRenderer.domElement);
+        
+        // --- Boshqaruv ---
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.06;
+        controls.zoomSpeed = 1.0;
+        
+        // --- Yorug'lik ---
+        const ambient = new THREE.AmbientLight(0x404060);
+        scene.add(ambient);
+        const mainLight = new THREE.DirectionalLight(0xfff5e0, 1.0);
+        mainLight.position.set(3, 5, 2);
+        mainLight.castShadow = true;
+        scene.add(mainLight);
+        const fillLight = new THREE.PointLight(0x88aaff, 0.5);
+        fillLight.position.set(-1, 2, 3);
+        scene.add(fillLight);
+        
+        // --- Zamin ---
+        const gridHelper = new THREE.GridHelper(10, 20, 0x88aaff, 0x4466aa);
+        gridHelper.position.y = -1.5;
+        gridHelper.material.transparent = true;
+        gridHelper.material.opacity = 0.3;
+        scene.add(gridHelper);
+        
+        // --- Yulduzlar ---
+        const starGeo = new THREE.BufferGeometry();
+        const starCount = 1200;
+        const starPos = new Float32Array(starCount * 3);
+        for (let i = 0; i < starCount; i++) {
+            starPos[i*3] = (Math.random() - 0.5) * 200;
+            starPos[i*3+1] = (Math.random() - 0.5) * 70 + 5;
+            starPos[i*3+2] = (Math.random() - 0.5) * 120 - 60;
+        }
+        starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+        const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.08, transparent: true, opacity: 0.5 }));
+        scene.add(stars);
+        
+        // ========== DNK / RNK / OQSIL MODELLARI ==========
+        let mainGroup = null;
+        let codonLabels = [];
+        let currentMode = 'dna';
+        let length = 12;
+        
+        const colors = {
+            A: 0xff6644,
+            T: 0x44aaff,
+            G: 0x44ffaa,
+            C: 0xffaa44,
+            U: 0x88ff88,
+            R: 0xff66aa
+        };
+        
+        // Genetik kod jadvali (DNK -> RNK -> oqsil)
+        const geneticCode = {
+            'AUG': 'Metionin (Start)',
+            'UUU': 'Fenilalanin', 'UUC': 'Fenilalanin',
+            'UUA': 'Leysin', 'UUG': 'Leysin',
+            'UCU': 'Serin', 'UCC': 'Serin', 'UCA': 'Serin', 'UCG': 'Serin',
+            'UAU': 'Tirozin', 'UAC': 'Tirozin',
+            'UGU': 'Sistein', 'UGC': 'Sistein',
+            'UGG': 'Triptofan',
+            'CUU': 'Leysin', 'CUC': 'Leysin', 'CUA': 'Leysin', 'CUG': 'Leysin',
+            'CCU': 'Prolin', 'CCC': 'Prolin', 'CCA': 'Prolin', 'CCG': 'Prolin',
+            'CAU': 'Gistidin', 'CAC': 'Gistidin',
+            'CAA': 'Glutamin', 'CAG': 'Glutamin',
+            'CGU': 'Arginin', 'CGC': 'Arginin', 'CGA': 'Arginin', 'CGG': 'Arginin',
+            'AUU': 'Izoleysin', 'AUC': 'Izoleysin', 'AUA': 'Izoleysin',
+            'AUG': 'Metionin',
+            'ACU': 'Treonin', 'ACC': 'Treonin', 'ACA': 'Treonin', 'ACG': 'Treonin',
+            'AAU': 'Asparagin', 'AAC': 'Asparagin',
+            'AAA': 'Lizin', 'AAG': 'Lizin',
+            'AGU': 'Serin', 'AGC': 'Serin',
+            'AGA': 'Arginin', 'AGG': 'Arginin',
+            'GUU': 'Valin', 'GUC': 'Valin', 'GUA': 'Valin', 'GUG': 'Valin',
+            'GCU': 'Alanin', 'GCC': 'Alanin', 'GCA': 'Alanin', 'GCG': 'Alanin',
+            'GAU': 'Aspartat', 'GAC': 'Aspartat',
+            'GAA': 'Glutamat', 'GAG': 'Glutamat',
+            'GGU': 'Glitsin', 'GGC': 'Glitsin', 'GGA': 'Glitsin', 'GGG': 'Glitsin',
+            'UAA': 'Stop', 'UAG': 'Stop', 'UGA': 'Stop'
+        };
+        
+        function createDNA() {
+            if (mainGroup) scene.remove(mainGroup);
+            codonLabels.forEach(l => scene.remove(l));
+            codonLabels = [];
+            mainGroup = new THREE.Group();
+            
+            const n = length / 2;
+            const height = n * 0.5;
+            const radius = 1.2;
+            const twist = 0.4;
+            
+            // Azot asoslari
+            const bases = ['A', 'T', 'G', 'C', 'A', 'T', 'G', 'C', 'A', 'T', 'G', 'C'];
+            
+            // Ikkita zanjir
+            for (let chain = 0; chain < 2; chain++) {
+                const points = [];
+                const color = chain === 0 ? 0x44ffaa : 0x44aaff;
+                
+                for (let i = 0; i < n; i++) {
+                    const t = i / n;
+                    const y = -height/2 + t * height;
+                    const angle = t * Math.PI * 4 + chain * Math.PI;
+                    const x = Math.cos(angle) * radius;
+                    const z = Math.sin(angle) * radius;
+                    points.push(new THREE.Vector3(x, y, z));
+                    
+                    // Nukleotid belgilari
+                    if (i < bases.length) {
+                        const base = chain === 0 ? bases[i] : (bases[i] === 'A' ? 'T' : (bases[i] === 'T' ? 'A' : (bases[i] === 'G' ? 'C' : 'G')));
+                        const baseColor = chain === 0 ? colors[base] : (base === 'A' ? 0xff6644 : (base === 'T' ? 0x44aaff : (base === 'G' ? 0x44ffaa : 0xffaa44)));
+                        const sphere = new THREE.Mesh(
+                            new THREE.SphereGeometry(0.12, 16, 16),
+                            new THREE.MeshStandardMaterial({ color: baseColor, emissive: 0x442200 })
+                        );
+                        const offset = chain === 0 ? 0.2 : -0.2;
+                        sphere.position.set(x + offset * 0.3, y, z + offset * 0.3);
+                        mainGroup.add(sphere);
+                    }
+                }
+                
+                // Zanjir chizig'i
+                const curve = new THREE.CatmullRomCurve3(points);
+                const tubeGeo = new THREE.TubeGeometry(curve, n * 4, 0.06, 8, false);
+                const tubeMat = new THREE.MeshStandardMaterial({ color: color, metalness: 0.3 });
+                const tube = new THREE.Mesh(tubeGeo, tubeMat);
+                tube.castShadow = true;
+                mainGroup.add(tube);
+            }
+            
+            // Ko'prikchalar (azot asoslari orasidagi bog'lar)
+            for (let i = 0; i < n; i++) {
+                const t = i / n;
+                const y = -height/2 + t * height;
+                const angle = t * Math.PI * 4;
+                const x1 = Math.cos(angle) * radius;
+                const z1 = Math.sin(angle) * radius;
+                const x2 = Math.cos(angle + Math.PI) * radius;
+                const z2 = Math.sin(angle + Math.PI) * radius;
+                
+                const points = [
+                    new THREE.Vector3(x1, y, z1),
+                    new THREE.Vector3((x1+x2)/2, y, (z1+z2)/2),
+                    new THREE.Vector3(x2, y, z2)
+                ];
+                const curve = new THREE.CatmullRomCurve3(points);
+                const tubeGeo = new THREE.TubeGeometry(curve, 8, 0.03, 6, false);
+                const tubeMat = new THREE.MeshStandardMaterial({ color: 0x88aaff, transparent: true, opacity: 0.3 });
+                const tube = new THREE.Mesh(tubeGeo, tubeMat);
+                mainGroup.add(tube);
+            }
+            
+            scene.add(mainGroup);
+            
+            // Kodonlarni ko'rsatish
+            showCodons();
+            
+            document.getElementById('molName').textContent = 'DNK (qo\'sh spiral)';
+            document.getElementById('lengthDisplay').textContent = `${n*2} ta nukleotid`;
+            document.getElementById('nucSeq').textContent = 'A-T, G-C, A-T, G-C, ...';
+            document.getElementById('geneticCode').textContent = 'AUG → Metionin';
+            document.getElementById('statusDisplay').textContent = 'DNK qo\'sh spiral';
+        }
+        
+        function createRNA() {
+            if (mainGroup) scene.remove(mainGroup);
+            codonLabels.forEach(l => scene.remove(l));
+            codonLabels = [];
+            mainGroup = new THREE.Group();
+            
+            const n = length;
+            const height = n * 0.4;
+            const radius = 0.8;
+            
+            const bases = ['A', 'U', 'G', 'C', 'A', 'U', 'G', 'C', 'A', 'U', 'G', 'C', 'A', 'U', 'G', 'C'];
+            const baseColors = {
+                'A': 0xff6644, 'U': 0x88ff88, 'G': 0x44ffaa, 'C': 0xffaa44
+            };
+            
+            const points = [];
+            for (let i = 0; i < n; i++) {
+                const t = i / n;
+                const y = -height/2 + t * height;
+                const angle = t * Math.PI * 2;
+                const x = Math.cos(angle) * radius * 0.5;
+                const z = Math.sin(angle) * radius * 0.5;
+                points.push(new THREE.Vector3(x, y, z));
+                
+                if (i < bases.length) {
+                    const base = bases[i % bases.length];
+                    const color = baseColors[base];
+                    const sphere = new THREE.Mesh(
+                        new THREE.SphereGeometry(0.13, 16, 16),
+                        new THREE.MeshStandardMaterial({ color: color, emissive: 0x442200 })
+                    );
+                    sphere.position.set(x + 0.3, y, z + 0.2);
+                    mainGroup.add(sphere);
+                }
+            }
+            
+            const curve = new THREE.CatmullRomCurve3(points);
+            const tubeGeo = new THREE.TubeGeometry(curve, n * 4, 0.08, 8, false);
+            const tubeMat = new THREE.MeshStandardMaterial({ color: 0xffaa66, metalness: 0.3 });
+            const tube = new THREE.Mesh(tubeGeo, tubeMat);
+            tube.castShadow = true;
+            mainGroup.add(tube);
+            
+            scene.add(mainGroup);
+            showCodons();
+            
+            document.getElementById('molName').textContent = 'RNK (bir zanjir)';
+            document.getElementById('lengthDisplay').textContent = `${n} ta nukleotid`;
+            document.getElementById('nucSeq').textContent = 'A-U, G-C, A-U, G-C, ...';
+            document.getElementById('geneticCode').textContent = 'AUG → Metionin (Start)';
+            document.getElementById('statusDisplay').textContent = 'RNK bir zanjir';
+        }
+        
+        function createProtein() {
+            if (mainGroup) scene.remove(mainGroup);
+            codonLabels.forEach(l => scene.remove(l));
+            codonLabels = [];
+            mainGroup = new THREE.Group();
+            
+            const n = Math.floor(length / 3);
+            const aminoAcids = ['Met', 'Ala', 'Gly', 'Ser', 'Pro', 'Val', 'Leu', 'Lys', 'Asp', 'Glu'];
+            
+            for (let i = 0; i < n && i < aminoAcids.length; i++) {
+                const y = i * 0.5 - (n * 0.25);
+                const sphere = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.25, 24, 24),
+                    new THREE.MeshStandardMaterial({ 
+                        color: 0xff66aa, 
+                        emissive: 0x442244,
+                        emissiveIntensity: 0.3
+                    })
+                );
+                sphere.position.set(Math.sin(i * 0.5) * 0.5, y, Math.cos(i * 1.2) * 0.5);
+                mainGroup.add(sphere);
+                
+                // Bog'lar
+                if (i > 0) {
+                    const prev = new THREE.Vector3(Math.sin((i-1) * 0.5) * 0.5, (i-1) * 0.5 - (n * 0.25), Math.cos((i-1) * 1.2) * 0.5);
+                    const curr = sphere.position;
+                    const points = [prev, curr];
+                    const geo = new THREE.BufferGeometry().setFromPoints(points);
+                    const mat = new THREE.LineBasicMaterial({ color: 0x88aaff, transparent: true, opacity: 0.4 });
+                    const line = new THREE.Line(geo, mat);
+                    mainGroup.add(line);
+                }
+            }
+            
+            scene.add(mainGroup);
+            
+            document.getElementById('molName').textContent = 'Oqsil (polipeptid zanjir)';
+            document.getElementById('lengthDisplay').textContent = `${n} ta aminokislota`;
+            document.getElementById('nucSeq').textContent = 'Met-Ala-Gly-Ser-Pro...';
+            document.getElementById('geneticCode').textContent = 'AUG → Metionin (Start)';
+            document.getElementById('statusDisplay').textContent = 'Oqsil zanjiri';
+            document.getElementById('proteinName').textContent = 'Met-Ala-Gly-Ser-Pro-Val-Leu-Lys';
+        }
+        
+        function showCodons() {
+            codonLabels.forEach(l => scene.remove(l));
+            codonLabels = [];
+            
+            const n = Math.floor(length / 3);
+            const codons = ['AUG', 'GCU', 'GGA', 'UCA', 'CCG', 'GUA', 'UUA', 'AAG', 'GAU'];
+            
+            for (let i = 0; i < n && i < codons.length; i++) {
+                const y = i * 0.6 - (n * 0.3);
+                const div = document.createElement('div');
+                const codon = codons[i];
+                const amino = geneticCode[codon] || '?';
+                div.textContent = `${codon} → ${amino}`;
+                div.style.backgroundColor = 'rgba(0,0,0,0.7)';
+                div.style.color = '#44ffaa';
+                div.style.fontSize = '10px';
+                div.style.padding = '2px 8px';
+                div.style.borderRadius = '16px';
+                div.style.fontWeight = 'bold';
+                div.style.border = '1px solid #44ffaa';
+                div.style.whiteSpace = 'nowrap';
+                const label = new CSS2DObject(div);
+                label.position.set(1.5, y, 0.5);
+                scene.add(label);
+                codonLabels.push(label);
+            }
+        }
+        
+        function hideCodons() {
+            codonLabels.forEach(l => scene.remove(l));
+            codonLabels = [];
+        }
+        
+        // ========== TUGMALAR ==========
+        document.getElementById('modeDNA').addEventListener('click', () => {
+            currentMode = 'dna';
+            createDNA();
+        });
+        document.getElementById('modeRNA').addEventListener('click', () => {
+            currentMode = 'rna';
+            createRNA();
+        });
+        document.getElementById('modeProtein').addEventListener('click', () => {
+            currentMode = 'protein';
+            createProtein();
+        });
+        
+        document.getElementById('showCodons').addEventListener('click', showCodons);
+        document.getElementById('hideCodons').addEventListener('click', hideCodons);
+        
+        document.getElementById('lengthSlider').addEventListener('input', (e) => {
+            length = parseInt(e.target.value);
+            document.getElementById('lengthSliderVal').textContent = length;
+            if (currentMode === 'dna') createDNA();
+            else if (currentMode === 'rna') createRNA();
+            else createProtein();
+        });
+        
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            length = 12;
+            document.getElementById('lengthSlider').value = '12';
+            document.getElementById('lengthSliderVal').textContent = '12';
+            currentMode = 'dna';
+            createDNA();
+        });
+        
+        document.getElementById('resetViewBtn').addEventListener('click', () => {
+            camera.position.set(6, 4, 10);
+            controls.target.set(0, 0, 0);
+            controls.update();
+        });
+        
+        // ========== ANIMATSIYA (yulduzlar) ==========
+        function animate() {
+            stars.rotation.y += 0.0003;
+            if (mainGroup) {
+                mainGroup.rotation.y += 0.003;
+            }
+            controls.update();
+            renderer.render(scene, camera);
+            labelRenderer.render(scene, camera);
+            requestAnimationFrame(animate);
+        }
+        
+        // Boshlash
+        createDNA();
+        animate();
+        
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+        console.log('DNK, RNK va genetik kod | 3D vizualizatsiya');
+    </script>
+</body>
+</html>

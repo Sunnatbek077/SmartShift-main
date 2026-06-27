@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hujayra — Hayotning asosiy birligi</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { overflow:hidden; font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; background:#0a0a1a; }
+
+        #header {
+            position:absolute; top:15px; left:50%; transform:translateX(-50%);
+            background:rgba(0,0,0,0.85); backdrop-filter:blur(12px);
+            border:1px solid rgba(100,255,150,0.3);
+            padding:10px 30px; border-radius:20px;
+            color:#fff; text-align:center; z-index:20; pointer-events:none;
+        }
+        #header h1 { font-size:1.2rem; font-weight:300; letter-spacing:1px; }
+        #header h1 span { color:#88ff88; font-weight:700; }
+        #header .sub { font-size:0.65rem; opacity:0.4; margin-top:2px; }
+
+        #info-panel {
+            position:absolute; bottom:20px; left:50%; transform:translateX(-50%);
+            background:rgba(0,0,0,0.92); backdrop-filter:blur(15px);
+            border:1px solid rgba(255,255,255,0.06);
+            padding:15px 25px; border-radius:18px;
+            color:#fff; z-index:20; min-width:320px; max-width:90%;
+            text-align:center;
+            box-shadow:0 8px 40px rgba(0,0,0,0.7);
+        }
+        #info-panel .name { font-size:1.1rem; font-weight:700; color:#88ff88; }
+        #info-panel .desc { font-size:0.8rem; opacity:0.7; margin-top:4px; line-height:1.5; }
+        #info-panel .hint { font-size:0.55rem; opacity:0.3; margin-top:6px; }
+
+        #controls {
+            position:absolute; top:80px; right:20px;
+            z-index:20; display:flex; flex-direction:column; gap:6px;
+        }
+        #controls button {
+            background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08);
+            color:#fff; padding:7px 14px; border-radius:10px;
+            cursor:pointer; font-size:0.65rem; font-family:inherit;
+            transition:all 0.25s; text-align:left; min-width:110px;
+        }
+        #controls button:hover { background:rgba(100,255,150,0.12); border-color:#88ff88; transform:translateX(-3px); }
+        #controls button.active { background:rgba(100,255,150,0.15); border-color:#88ff88; }
+        #controls button .badge { float:right; opacity:0.5; font-size:0.55rem; }
+
+        #legend {
+            position:absolute; top:80px; left:20px;
+            z-index:20; background:rgba(0,0,0,0.7);
+            backdrop-filter:blur(8px); border-radius:12px;
+            padding:10px 14px; color:rgba(255,255,255,0.5);
+            font-size:0.6rem; line-height:1.8; min-width:120px;
+        }
+        #legend .dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; vertical-align:middle; }
+        #legend .item { display:flex; align-items:center; gap:6px; }
+
+        #cell-type {
+            position:absolute; top:80px; left:50%; transform:translateX(-50%);
+            z-index:20; display:flex; gap:10px;
+        }
+        #cell-type button {
+            background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);
+            color:#fff; padding:6px 18px; border-radius:20px;
+            cursor:pointer; font-size:0.7rem; transition:all 0.3s;
+        }
+        #cell-type button:hover { background:rgba(100,255,150,0.1); }
+        #cell-type button.active { background:rgba(100,255,150,0.2); border-color:#88ff88; }
+
+        @media(max-width:700px) {
+            #legend { display:none; }
+            #controls { top:130px; right:10px; }
+            #controls button { min-width:80px; font-size:0.55rem; padding:5px 10px; }
+            #info-panel { min-width:auto; width:95%; padding:12px 15px; bottom:10px; }
+            #cell-type { top:75px; }
+            #header h1 { font-size:0.9rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div id="header">
+    <h1>🧬 <span>Hujayra</span> — Hayotning asosiy birligi</h1>
+    <div class="sub">3D INTERAKTIV MODEL · ORGANELLALAR BILAN</div>
+</div>
+
+<!-- Hujayra turi -->
+<div id="cell-type">
+    <button id="btnAnimal" class="active">🐾 Hayvon hujayrasi</button>
+    <button id="btnPlant">🌱 O'simlik hujayrasi</button>
+</div>
+
+<!-- Afsona -->
+<div id="legend">
+    <div class="item"><span class="dot" style="background:#ff6666;"></span> Yadro</div>
+    <div class="item"><span class="dot" style="background:#ffaa44;"></span> Mitoxondriya</div>
+    <div class="item"><span class="dot" style="background:#66ddff;"></span> Endoplazmatik to'r</div>
+    <div class="item"><span class="dot" style="background:#ff66aa;"></span> Golji apparati</div>
+    <div class="item"><span class="dot" style="background:#88ff88;"></span> Xloroplast</div>
+    <div class="item"><span class="dot" style="background:#aa88ff;"></span> Vakuola</div>
+</div>
+
+<!-- Boshqaruv tugmalari -->
+<div id="controls">
+    <button id="toggleRotate" class="active">🔄 Aylanish</button>
+    <button id="toggleLabels">🏷️ Yorliqlar</button>
+    <button id="toggleNucleus" class="active">🧬 Yadro</button>
+    <button id="toggleMitochondria" class="active">⚡ Mitoxondriya</button>
+    <button id="toggleER" class="active">🌀 EPR</button>
+    <button id="toggleGolgi" class="active">📦 Golji</button>
+    <button id="toggleChloroplast" class="active">🌿 Xloroplast</button>
+    <button id="toggleVacuole" class="active">💧 Vakuola</button>
+</div>
+
+<!-- Ma'lumot paneli -->
+<div id="info-panel">
+    <div class="name" id="orgName">🔬 Hujayra</div>
+    <div class="desc" id="orgDesc">Hujayra — barcha tirik organizmlarning tuzilish va funksional birligi</div>
+    <div class="hint">🖱 Sichqoncha bilan aylantirish · Zoom · Organellalarni boshqarish</div>
+</div>
+
+<!-- Three.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS2DRenderer.js"></script>
+
+<script>
+// ============================================================
+// 1. SAHNA, KAMERA, RENDERER
+// ============================================================
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x080818);
+
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+camera.position.set(10, 6, 12);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+document.body.prepend(renderer.domElement);
+
+const labelRenderer = new THREE.CSS2DRenderer();
+labelRenderer.setSize(window.innerWidth, window.innerHeight);
+labelRenderer.domElement.style.cssText = 'position:absolute;top:0;left:0;pointer-events:none;z-index:5;';
+document.body.prepend(labelRenderer.domElement);
+
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 4;
+controls.maxDistance = 25;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 1.8;
+
+// ============================================================
+// 2. YORUG'LIK
+// ============================================================
+scene.add(new THREE.AmbientLight(0x223355, 0.4));
+
+const mainLight = new THREE.DirectionalLight(0xffeedd, 1.2);
+mainLight.position.set(8, 15, 10);
+mainLight.castShadow = true;
+scene.add(mainLight);
+
+const rimLight = new THREE.DirectionalLight(0x4488ff, 0.5);
+rimLight.position.set(-5, 0, -10);
+scene.add(rimLight);
+
+const bottomLight = new THREE.PointLight(0x44ff88, 0.2);
+bottomLight.position.set(0, -5, 0);
+scene.add(bottomLight);
+
+// ============================================================
+// 3. ASOSIY GURUHLAR
+// ============================================================
+const cellGroup = new THREE.Group();
+scene.add(cellGroup);
+
+const labelGroup = new THREE.Group();
+scene.add(labelGroup);
+
+let allLabels = [];
+let showLabels = true;
+
+// ============================================================
+// 4. ORGANELLALAR HOLATI
+// ============================================================
+const state = {
+    nucleus: true,
+    mitochondria: true,
+    er: true,
+    golgi: true,
+    chloroplast: true,
+    vacuole: true,
+    cellType: 'animal' // 'animal' | 'plant'
+};
+
+// ============================================================
+// 5. HUJAYRA YARATISH
+// ============================================================
+function createCell() {
+    // Eski obyektlarni tozalash
+    while (cellGroup.children.length) cellGroup.remove(cellGroup.children[0]);
+    while (labelGroup.children.length) labelGroup.remove(labelGroup.children[0]);
+    allLabels = [];
+
+    const isPlant = state.cellType === 'plant';
+    const cellRadius = isPlant ? 4.5 : 4.0;
+
+    // --- Hujayra membranasi ---
+    const membraneGeo = new THREE.SphereGeometry(cellRadius, 64, 64);
+    const membraneMat = new THREE.MeshPhysicalMaterial({
+        color: isPlant ? 0x88dd88 : 0x88bbff,
+        transparent: true,
+        opacity: 0.08,
+        roughness: 0.1,
+        metalness: 0.1,
+        wireframe: false,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+        envMapIntensity: 0.3
+    });
+    const membrane = new THREE.Mesh(membraneGeo, membraneMat);
+    cellGroup.add(membrane);
+
+    // --- Membrana chiziqlari ---
+    const wireMat = new THREE.LineBasicMaterial({
+        color: isPlant ? 0x88dd88 : 0x88bbff,
+        transparent: true,
+        opacity: 0.08
+    });
+    for (let i = 0; i < 8; i++) {
+        const phi = (i / 8) * Math.PI;
+        const pts = [];
+        for (let j = 0; j <= 32; j++) {
+            const theta = (j / 32) * Math.PI * 2;
+            const x = cellRadius * Math.sin(phi) * Math.cos(theta);
+            const y = cellRadius * Math.cos(phi);
+            const z = cellRadius * Math.sin(phi) * Math.sin(theta);
+            pts.push(new THREE.Vector3(x, y, z));
+        }
+        const g = new THREE.BufferGeometry().setFromPoints(pts);
+        cellGroup.add(new THREE.Line(g, wireMat));
+    }
+    for (let i = 0; i < 8; i++) {
+        const theta = (i / 8) * Math.PI * 2;
+        const pts = [];
+        for (let j = 0; j <= 32; j++) {
+            const phi = (j / 32) * Math.PI;
+            const x = cellRadius * Math.sin(phi) * Math.cos(theta);
+            const y = cellRadius * Math.cos(phi);
+            const z = cellRadius * Math.sin(phi) * Math.sin(theta);
+            pts.push(new THREE.Vector3(x, y, z));
+        }
+        const g = new THREE.BufferGeometry().setFromPoints(pts);
+        cellGroup.add(new THREE.Line(g, wireMat));
+    }
+
+    // --- YADRO (Nucleus) ---
+    if (state.nucleus) {
+        const nucleus = createOrganelle(
+            1.0,
+            0xff6666,
+            0x661111,
+            new THREE.Vector3(0, 0.5, 0),
+            'Yadro',
+            'Hujayraning boshqaruv markazi — DNK saqlaydi'
+        );
+        cellGroup.add(nucleus.mesh);
+        if (showLabels) {
+            const label = createLabel('Yadro', '#ff6666', new THREE.Vector3(0, 2.2, 0));
+            labelGroup.add(label);
+            allLabels.push(label);
+        }
+    }
+
+    // --- MITOXONDRIYA ---
+    if (state.mitochondria) {
+        const positions = [
+            [-2.0, -0.5, 1.5], [2.0, -0.5, -1.5],
+            [-1.5, -1.5, -1.0], [1.5, -1.5, 1.0],
+            [-2.5, 0.5, -1.0], [2.5, 0.5, 1.0],
+            [0, -2.0, 2.0], [0, 2.0, -2.0]
+        ];
+        positions.forEach((p, i) => {
+            const mito = createOrganelle(
+                0.35,
+                0xffaa44,
+                0x663300,
+                new THREE.Vector3(p[0], p[1], p[2]),
+                'Mitoxondriya',
+                'Hujayraning energiya stansiyasi — ATP sintezlaydi'
+            );
+            cellGroup.add(mito.mesh);
+            if (showLabels && i < 2) {
+                const label = createLabel('Mitoxondriya', '#ffaa44', new THREE.Vector3(p[0], p[1] + 0.9, p[2]));
+                labelGroup.add(label);
+                allLabels.push(label);
+            }
+        });
+    }
+
+    // --- ENDOPLAZMATIK TO'R (ER) ---
+    if (state.er) {
+        const erPositions = [
+            [-1.8, 0.8, 1.2], [1.8, 0.8, -1.2],
+            [-1.2, 1.5, -1.0], [1.2, 1.5, 1.0],
+            [-2.0, -0.8, -1.5], [2.0, -0.8, 1.5]
+        ];
+        erPositions.forEach((p, i) => {
+            const er = createOrganelle(
+                0.25,
+                0x66ddff,
+                0x004466,
+                new THREE.Vector3(p[0], p[1], p[2]),
+                'Endoplazmatik to\'r',
+                'Oqsillar sintezi va transporti'
+            );
+            cellGroup.add(er.mesh);
+            if (showLabels && i < 2) {
+                const label = createLabel('EPR', '#66ddff', new THREE.Vector3(p[0], p[1] + 0.7, p[2]));
+                labelGroup.add(label);
+                allLabels.push(label);
+            }
+        });
+    }
+
+    // --- GOLJI APPARATI ---
+    if (state.golgi) {
+        const golgiPositions = [
+            [-2.5, 1.2, 0.5], [2.5, 1.2, -0.5],
+            [-1.0, -1.8, 1.8], [1.0, -1.8, -1.8]
+        ];
+        golgiPositions.forEach((p, i) => {
+            const golgi = createOrganelle(
+                0.3,
+                0xff66aa,
+                0x660033,
+                new THREE.Vector3(p[0], p[1], p[2]),
+                'Golji apparati',
+                'Oqsillarni qadoqlash va tashish'
+            );
+            cellGroup.add(golgi.mesh);
+            if (showLabels && i < 2) {
+                const label = createLabel('Golji', '#ff66aa', new THREE.Vector3(p[0], p[1] + 0.8, p[2]));
+                labelGroup.add(label);
+                allLabels.push(label);
+            }
+        });
+    }
+
+    // --- XLOROPLAST (faqat o'simlik) ---
+    if (isPlant && state.chloroplast) {
+        const chloroPositions = [
+            [-2.8, -1.0, 1.5], [2.8, -1.0, -1.5],
+            [-1.0, -2.5, -1.5], [1.0, -2.5, 1.5],
+            [-3.0, 0.5, -1.0], [3.0, 0.5, 1.0]
+        ];
+        chloroPositions.forEach((p, i) => {
+            const chloro = createOrganelle(
+                0.45,
+                0x88ff88,
+                0x006600,
+                new THREE.Vector3(p[0], p[1], p[2]),
+                'Xloroplast',
+                'Fotosintez — quyosh energiyasini oziq-ovqatga aylantiradi'
+            );
+            cellGroup.add(chloro.mesh);
+            if (showLabels && i < 2) {
+                const label = createLabel('Xloroplast', '#88ff88', new THREE.Vector3(p[0], p[1] + 1.0, p[2]));
+                labelGroup.add(label);
+                allLabels.push(label);
+            }
+        });
+    }
+
+    // --- VAKUOLA (faqat o'simlik) ---
+    if (isPlant && state.vacuole) {
+        const vacuole = createOrganelle(
+            1.2,
+            0xaa88ff,
+            0x440066,
+            new THREE.Vector3(0, -1.2, 0),
+            'Vakuola',
+            'Suv va ozuqa moddalarini saqlaydi, turgorni ta\'minlaydi'
+        );
+        cellGroup.add(vacuole.mesh);
+        if (showLabels) {
+            const label = createLabel('Vakuola', '#aa88ff', new THREE.Vector3(0, -2.8, 0));
+            labelGroup.add(label);
+            allLabels.push(label);
+        }
+    }
+
+    // --- Hujayra devori (faqat o'simlik) ---
+    if (isPlant) {
+        const wallGeo = new THREE.SphereGeometry(cellRadius + 0.3, 48, 48);
+        const wallMat = new THREE.MeshPhysicalMaterial({
+            color: 0x88bb66,
+            transparent: true,
+            opacity: 0.05,
+            roughness: 0.5,
+            metalness: 0.0,
+            wireframe: false,
+            side: THREE.DoubleSide,
+            depthWrite: false
+        });
+        const wall = new THREE.Mesh(wallGeo, wallMat);
+        cellGroup.add(wall);
+
+        // Hujayra devori chiziqlari
+        const wallWire = new THREE.LineBasicMaterial({
+            color: 0x88bb66,
+            transparent: true,
+            opacity: 0.06
+        });
+        for (let i = 0; i < 6; i++) {
+            const phi = (i / 6) * Math.PI;
+            const pts = [];
+            for (let j = 0; j <= 24; j++) {
+                const theta = (j / 24) * Math.PI * 2;
+                const r = cellRadius + 0.3;
+                pts.push(new THREE.Vector3(
+                    r * Math.sin(phi) * Math.cos(theta),
+                    r * Math.cos(phi),
+                    r * Math.sin(phi) * Math.sin(theta)
+                ));
+            }
+            const g = new THREE.BufferGeometry().setFromPoints(pts);
+            cellGroup.add(new THREE.Line(g, wallWire));
+        }
+    }
+
+    // Ma'lumot panelini yangilash
+    updateInfo(null);
+}
+
+// ============================================================
+// 6. ORGANELLA YARATISH YORDAMCHI FUNKSIYASI
+// ============================================================
+function createOrganelle(radius, color, emissive, position, name, desc) {
+    const geo = new THREE.SphereGeometry(radius, 24, 24);
+    const mat = new THREE.MeshPhysicalMaterial({
+        color: color,
+        emissive: emissive,
+        emissiveIntensity: 0.3,
+        roughness: 0.2,
+        metalness: 0.1,
+        transparent: true,
+        opacity: 0.85
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.copy(position);
+    mesh.castShadow = true;
+    mesh.userData = { name, desc, color };
+
+    // Ichki glow
+    const glowGeo = new THREE.SphereGeometry(radius * 0.6, 16, 16);
+    const glowMat = new THREE.MeshBasicMaterial({
+        color: color,
+        transparent: true,
+        opacity: 0.2,
+        blending: THREE.AdditiveBlending
+    });
+    const glow = new THREE.Mesh(glowGeo, glowMat);
+    glow.position.copy(position);
+    mesh.add(glow);
+
+    return { mesh, glow };
+}
+
+// ============================================================
+// 7. YORLIQ YARATISH
+// ============================================================
+function createLabel(text, color, position) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    div.style.cssText = `
+        color: ${color};
+        font-size: 11px;
+        font-weight: bold;
+        font-family: 'Segoe UI', sans-serif;
+        text-shadow: 0 0 20px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.8);
+        background: rgba(0,0,0,0.5);
+        padding: 3px 10px;
+        border-radius: 8px;
+        border: 1px solid ${color}44;
+        backdrop-filter: blur(4px);
+        pointer-events: none;
+        letter-spacing: 0.5px;
+    `;
+    const label = new THREE.CSS2DObject(div);
+    label.position.copy(position);
+    return label;
+}
+
+// ============================================================
+// 8. MA'LUMOT PANELINI YANGILASH
+// ============================================================
+function updateInfo(clicked) {
+    const nameEl = document.getElementById('orgName');
+    const descEl = document.getElementById('orgDesc');
+
+    if (clicked) {
+        nameEl.textContent = clicked.name;
+        descEl.textContent = clicked.desc;
+    } else {
+        const isPlant = state.cellType === 'plant';
+        nameEl.textContent = isPlant ? '🌱 O\'simlik hujayrasi' : '🐾 Hayvon hujayrasi';
+        descEl.textContent = isPlant
+            ? 'O\'simlik hujayrasi — xloroplast, vakuola va hujayra devoriga ega'
+            : 'Hayvon hujayrasi — yadro, mitoxondriya va boshqa organellalarga ega';
+    }
+}
+
+// ============================================================
+// 9. RAYCAST (organellalarni bosish uchun)
+// ============================================================
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
+renderer.domElement.addEventListener('click', (event) => {
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects(cellGroup.children, true);
+
+    for (let hit of intersects) {
+        let obj = hit.object;
+        while (obj.parent && !obj.userData?.name) {
+            obj = obj.parent;
+        }
+        if (obj.userData?.name) {
+            updateInfo(obj.userData);
+            // Highlight
+            if (obj.material) {
+                const origEmissive = obj.material.emissiveIntensity;
+                obj.material.emissiveIntensity = 1.0;
+                setTimeout(() => { obj.material.emissiveIntensity = origEmissive; }, 500);
+            }
+            break;
+        }
+    }
+});
+
+// ============================================================
+// 10. BOSHQARUV TUGMALARI
+// ============================================================
+document.getElementById('toggleRotate').addEventListener('click', function() {
+    controls.autoRotate = !controls.autoRotate;
+    this.classList.toggle('active');
+});
+
+document.getElementById('toggleLabels').addEventListener('click', function() {
+    showLabels = !showLabels;
+    this.classList.toggle('active');
+    labelGroup.visible = showLabels;
+});
+
+function setupToggle(id, key) {
+    document.getElementById(id).addEventListener('click', function() {
+        state[key] = !state[key];
+        this.classList.toggle('active');
+        createCell();
+    });
+}
+
+setupToggle('toggleNucleus', 'nucleus');
+setupToggle('toggleMitochondria', 'mitochondria');
+setupToggle('toggleER', 'er');
+setupToggle('toggleGolgi', 'golgi');
+setupToggle('toggleChloroplast', 'chloroplast');
+setupToggle('toggleVacuole', 'vacuole');
+
+// Hujayra turi
+document.getElementById('btnAnimal').addEventListener('click', function() {
+    state.cellType = 'animal';
+    document.getElementById('btnAnimal').classList.add('active');
+    document.getElementById('btnPlant').classList.remove('active');
+    document.getElementById('toggleChloroplast').style.display = 'none';
+    document.getElementById('toggleVacuole').style.display = 'none';
+    createCell();
+});
+
+document.getElementById('btnPlant').addEventListener('click', function() {
+    state.cellType = 'plant';
+    document.getElementById('btnPlant').classList.add('active');
+    document.getElementById('btnAnimal').classList.remove('active');
+    document.getElementById('toggleChloroplast').style.display = 'block';
+    document.getElementById('toggleVacuole').style.display = 'block';
+    state.chloroplast = true;
+    state.vacuole = true;
+    document.getElementById('toggleChloroplast').classList.add('active');
+    document.getElementById('toggleVacuole').classList.add('active');
+    createCell();
+});
+
+// ============================================================
+// 11. ANIMATSIYA
+// ============================================================
+function animate() {
+    requestAnimationFrame(animate);
+
+    const time = Date.now() * 0.001;
+    // Organellalarning sekin pulsatsiyasi
+    cellGroup.children.forEach((child, i) => {
+        if (child.isMesh && child.geometry.type === 'SphereGeometry' && child.material.transparent) {
+            const scale = 1 + 0.02 * Math.sin(time * 0.5 + i * 0.3);
+            child.scale.set(scale, scale, scale);
+        }
+    });
+
+    controls.update();
+    renderer.render(scene, camera);
+    labelRenderer.render(scene, camera);
+}
+
+// ============================================================
+// 12. EKRAN O'LCHAMIGA MOSLASH
+// ============================================================
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    labelRenderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// ============================================================
+// 13. ISHGA TUSHIRISH
+// ============================================================
+// Dastlab o'simlik hujayrasi uchun xloroplast va vakuolani ko'rsatish
+document.getElementById('toggleChloroplast').style.display = 'none';
+document.getElementById('toggleVacuole').style.display = 'none';
+
+createCell();
+animate();
+
+console.log('🧬 Hujayra — Hayotning asosiy birligi');
+console.log('🖱 Organellalarni bosib ma\'lumot oling');
+console.log('🔘 O\'ngdagi tugmalar yordamida organellalarni boshqaring');
+</script>
+</body>
+</html>

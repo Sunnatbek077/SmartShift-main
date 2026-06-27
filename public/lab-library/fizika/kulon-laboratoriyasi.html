@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kulon Qonuni – Interaktiv Laboratoriya</title>
+    <style>
+        /* ===== ASOSIY SOZLAMALAR ===== */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            overflow: hidden;
+            font-family: 'Segoe UI', 'Courier New', monospace;
+            background: #050510;
+        }
+
+        /* ===== YUQORI SARLAVHA ===== */
+        #sarlavha {
+            position: absolute;
+            top: 14px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 170, 0, 0.35);
+            padding: 10px 32px;
+            border-radius: 32px;
+            color: #fff;
+            text-align: center;
+            pointer-events: none;
+            box-shadow: 0 0 40px rgba(255, 170, 0, 0.1);
+            z-index: 10;
+        }
+        #sarlavha h1 {
+            font-size: 1.15rem;
+            font-weight: 300;
+            letter-spacing: 2px;
+        }
+        #sarlavha h1 .urg {
+            color: #ffaa00;
+            font-weight: 700;
+        }
+        #sarlavha h1 .ko {
+            color: #66ccff;
+        }
+        #sarlavha .tavsif {
+            font-size: 0.65rem;
+            opacity: 0.4;
+            letter-spacing: 3px;
+            margin-top: 2px;
+        }
+
+        /* ===== TUSHUNTIRISH PANELI (chap) ===== */
+        #tushuntirish {
+            position: absolute;
+            top: 80px;
+            left: 16px;
+            z-index: 10;
+            pointer-events: all;
+            width: 210px;
+        }
+
+        /* Formula kartochkasi */
+        .formula-karta {
+            background: rgba(0, 0, 0, 0.88);
+            border: 1px solid rgba(255, 170, 0, 0.25);
+            border-radius: 14px;
+            padding: 14px 16px;
+            color: #fff;
+            margin-bottom: 10px;
+        }
+        .formula-karta h3 {
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #ffaa00;
+            margin-bottom: 10px;
+            opacity: 0.8;
+        }
+        .formula-asosiy {
+            font-size: 1.3rem;
+            text-align: center;
+            margin: 6px 0;
+            color: #ffdd88;
+            letter-spacing: 1px;
+        }
+        .formula-izoh {
+            font-size: 0.6rem;
+            opacity: 0.5;
+            line-height: 1.7;
+            margin-top: 8px;
+        }
+        .formula-izoh b { color: #66ccff; opacity: 1; }
+
+        /* Hozirgi holat kuchlari */
+        .holat-qator {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .holat-qator:last-child { border-bottom: none; }
+        .holat-nom { font-size: 0.6rem; opacity: 0.5; }
+        .holat-qiymat { font-size: 0.85rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+        /* Sozlamalar paneli */
+        #sozlamalar {
+            background: rgba(0, 0, 0, 0.88);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 14px;
+            padding: 14px 16px;
+            color: #fff;
+            display: none;
+        }
+        #sozlamalar.ochiq { display: block; }
+        #sozlamalar h3 {
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #aaa;
+            margin-bottom: 10px;
+        }
+        .slider-qator { margin-bottom: 10px; }
+        .slider-qator label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.62rem;
+            margin-bottom: 3px;
+        }
+        .slider-qator label .sl-nom { opacity: 0.55; }
+        .slider-qator label .sl-qiymat { color: #ffaa00; font-weight: 700; }
+        .slider-qator input[type="range"] {
+            width: 100%;
+            accent-color: #ffaa00;
+            background: transparent;
+        }
+
+        /* ===== O'NG TOMON TUGMALAR ===== */
+        #boshqaruv {
+            position: absolute;
+            top: 80px;
+            right: 16px;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+            pointer-events: all;
+        }
+        #boshqaruv button {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 0.72rem;
+            font-family: inherit;
+            letter-spacing: 0.4px;
+            text-align: left;
+            min-width: 128px;
+            transition: all 0.25s;
+        }
+        #boshqaruv button:hover {
+            background: rgba(255, 170, 0, 0.15);
+            border-color: #ffaa00;
+            transform: translateX(-3px);
+        }
+        #boshqaruv button.faol {
+            background: rgba(255, 50, 50, 0.22);
+            border-color: #ff4444;
+        }
+        .tezlik-guruh {
+            display: flex;
+            gap: 4px;
+        }
+        .tezlik-guruh button {
+            min-width: auto !important;
+            flex: 1;
+            text-align: center !important;
+            padding: 5px 6px !important;
+        }
+
+        /* ===== PASTKI STATISTIKA ===== */
+        #statistika {
+            position: absolute;
+            bottom: 18px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 18px;
+            padding: 14px 28px;
+            display: grid;
+            grid-template-columns: repeat(6, auto);
+            gap: 14px 32px;
+            pointer-events: none;
+            box-shadow: 0 10px 60px rgba(0, 0, 0, 0.8);
+        }
+        .stat-element { text-align: center; }
+        .stat-nom { font-size: 0.52rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.38; color: #fff; }
+        .stat-son { font-size: 1.05rem; font-weight: 700; margin-top: 3px; font-variant-numeric: tabular-nums; }
+        .rang-kuch   { color: #ff8844; }
+        .rang-masofa { color: #66ccff; }
+        .rang-tezlik { color: #88ff88; }
+        .rang-energiya { color: #ffdd44; }
+        .rang-vaqt   { color: #aa88ff; }
+
+        /* ===== ENERGIYA GRAFIGI ===== */
+        #energiya-grafik {
+            position: absolute;
+            bottom: 100px;
+            right: 16px;
+            z-index: 10;
+            width: 200px;
+            height: 100px;
+            background: rgba(0, 0, 0, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            padding: 8px;
+            pointer-events: none;
+        }
+        #energiya-grafik canvas { width: 100%; height: 100%; border-radius: 6px; }
+        #energiya-grafik .grafik-nom {
+            position: absolute;
+            top: 5px;
+            left: 12px;
+            font-size: 0.48rem;
+            opacity: 0.28;
+            color: #fff;
+            letter-spacing: 1px;
+        }
+
+        /* ===== ZARYADLAR IZOHLI BELGI ===== */
+        .zaryad-yorliq {
+            position: absolute;
+            pointer-events: none;
+            font-size: 0.7rem;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 3px 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.12);
+        }
+
+        /* ===== KUCH TURI INDIKATORI ===== */
+        #kuch-turi {
+            position: absolute;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            pointer-events: none;
+            font-size: 0.72rem;
+            padding: 6px 18px;
+            border-radius: 20px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            transition: all 0.3s;
+        }
+        #kuch-turi.tortish {
+            background: rgba(100, 200, 100, 0.15);
+            border: 1px solid rgba(100, 255, 100, 0.3);
+            color: #88ff88;
+        }
+        #kuch-turi.itarish {
+            background: rgba(255, 100, 100, 0.15);
+            border: 1px solid rgba(255, 100, 100, 0.3);
+            color: #ff8888;
+        }
+
+        /* ===== MOBIL ===== */
+        @media (max-width: 900px) {
+            #statistika { grid-template-columns: repeat(3, auto); gap: 10px 16px; padding: 10px 16px; width: 95%; }
+            #boshqaruv { top: 100px; right: 8px; }
+            #boshqaruv button { min-width: 86px; font-size: 0.62rem; padding: 6px 10px; }
+            #tushuntirish { left: 8px; top: 100px; width: 180px; }
+            #energiya-grafik { display: none; }
+            #sarlavha h1 { font-size: 0.88rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ====================== -->
+    <!--    UI QATLAMI (HTML)   -->
+    <!-- ====================== -->
+
+    <!-- 1. SARLAVHA -->
+    <div id="sarlavha">
+        <h1>⚡ <span class="urg">Kulon</span> Qonuni · <span class="ko">3D Simulyatsiya</span></h1>
+        <div class="tavsif">ELEKTROSTATIKA · REAL VAQT FIZIKASI · INTERAKTIV</div>
+    </div>
+
+    <!-- 2. KUCH TURI (tortish / itarish) -->
+    <div id="kuch-turi" class="tortish">🔵 TORTISH KUCHI (qarama-qarshi zaryadlar)</div>
+
+    <!-- 3. CHAP: Formula + Holat + Sozlamalar -->
+    <div id="tushuntirish">
+
+        <!-- Kulon formulasi tushuntirishi -->
+        <div class="formula-karta">
+            <h3>📐 Kulon Formulasi</h3>
+            <div class="formula-asosiy">F = k·|q₁·q₂| / r²</div>
+            <div class="formula-izoh">
+                <b>F</b> – zaryadlar orasidagi kuch (N)<br>
+                <b>k</b> – Kulon konstantasi (8.99×10⁹)<br>
+                <b>q₁, q₂</b> – zaryadlar miqdori (Kulon)<br>
+                <b>r</b> – ular orasidagi masofa (m)<br><br>
+                💡 Masofa ikki marta qisqarsa, kuch <b>4 marta</b> ortadi!
+            </div>
+        </div>
+
+        <!-- Hozirgi fizikaviy holat -->
+        <div class="formula-karta">
+            <h3>📊 Hozirgi Holat</h3>
+            <div class="holat-qator">
+                <span class="holat-nom">Kulon kuchi F</span>
+                <span class="holat-qiymat rang-kuch" id="f-val">0.00 N</span>
+            </div>
+            <div class="holat-qator">
+                <span class="holat-nom">Masofa r</span>
+                <span class="holat-qiymat rang-masofa" id="r-val">0.00 m</span>
+            </div>
+            <div class="holat-qator">
+                <span class="holat-nom">Zaryad 1 tezligi</span>
+                <span class="holat-qiymat rang-tezlik" id="v1-val">0.00 m/s</span>
+            </div>
+            <div class="holat-qator">
+                <span class="holat-nom">Zaryad 2 tezligi</span>
+                <span class="holat-qiymat rang-tezlik" id="v2-val">0.00 m/s</span>
+            </div>
+            <div class="holat-qator">
+                <span class="holat-nom">Umumiy energiya</span>
+                <span class="holat-qiymat rang-energiya" id="e-val">0.00 J</span>
+            </div>
+        </div>
+
+        <!-- Sozlamalar (slider) paneli -->
+        <div id="sozlamalar">
+            <h3>⚙️ Parametrlar</h3>
+
+            <div class="slider-qator">
+                <label>
+                    <span class="sl-nom">q₁ musbat zaryad (µC)</span>
+                    <span class="sl-qiymat" id="q1-ko">2.0</span>
+                </label>
+                <input type="range" id="q1-slider" min="0.5" max="5" step="0.1" value="2">
+            </div>
+
+            <div class="slider-qator">
+                <label>
+                    <span class="sl-nom">q₂ manfiy zaryad (µC)</span>
+                    <span class="sl-qiymat" id="q2-ko">-3.0</span>
+                </label>
+                <input type="range" id="q2-slider" min="-5" max="-0.5" step="0.1" value="-3">
+            </div>
+
+            <div class="slider-qator">
+                <label>
+                    <span class="sl-nom">m₁ massasi (kg)</span>
+                    <span class="sl-qiymat" id="m1-ko">0.50</span>
+                </label>
+                <input type="range" id="m1-slider" min="0.1" max="2" step="0.05" value="0.5">
+            </div>
+
+            <div class="slider-qator">
+                <label>
+                    <span class="sl-nom">m₂ massasi (kg)</span>
+                    <span class="sl-qiymat" id="m2-ko">0.70</span>
+                </label>
+                <input type="range" id="m2-slider" min="0.1" max="2" step="0.05" value="0.7">
+            </div>
+
+            <div class="slider-qator">
+                <label>
+                    <span class="sl-nom">Vaqt qadami (dt)</span>
+                    <span class="sl-qiymat" id="dt-ko">0.030</span>
+                </label>
+                <input type="range" id="dt-slider" min="0.005" max="0.08" step="0.001" value="0.03">
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. O'NG: Boshqaruv tugmalari -->
+    <div id="boshqaruv">
+        <button id="btn-pauza">⏸️ TO'XTAT</button>
+        <button id="btn-qayta">🔄 QAYTA BOSHLASH</button>
+        <button id="btn-iz">👣 TRAEKTORIYA IZLARI</button>
+        <button id="btn-maydон">🌀 MAYDON CHIZIQLARI</button>
+        <button id="btn-sozla">⚙️ SOZLAMALAR</button>
+
+        <!-- Simulyatsiya tezligi -->
+        <div class="tezlik-guruh">
+            <button id="tez-yarim">0.5×</button>
+            <button id="tez-bir" class="faol">1×</button>
+            <button id="tez-ikki">2×</button>
+        </div>
+    </div>
+
+    <!-- 5. PASTKI: Raqamli statistika -->
+    <div id="statistika">
+        <div class="stat-element">
+            <div class="stat-nom">Kuch F (N)</div>
+            <div class="stat-son rang-kuch" id="stat-f">0.00</div>
+        </div>
+        <div class="stat-element">
+            <div class="stat-nom">Masofa r (m)</div>
+            <div class="stat-son rang-masofa" id="stat-r">0.00</div>
+        </div>
+        <div class="stat-element">
+            <div class="stat-nom">Tezlik v₁</div>
+            <div class="stat-son rang-tezlik" id="stat-v1">0.00</div>
+        </div>
+        <div class="stat-element">
+            <div class="stat-nom">Tezlik v₂</div>
+            <div class="stat-son rang-tezlik" id="stat-v2">0.00</div>
+        </div>
+        <div class="stat-element">
+            <div class="stat-nom">Energiya E</div>
+            <div class="stat-son rang-energiya" id="stat-e">0.00</div>
+        </div>
+        <div class="stat-element">
+            <div class="stat-nom">Vaqt t (s)</div>
+            <div class="stat-son rang-vaqt" id="stat-t">0.00</div>
+        </div>
+    </div>
+
+    <!-- 6. O'NG PASTKI: Energiya grafigi -->
+    <div id="energiya-grafik">
+        <div class="grafik-nom">ENERGIYA GRAFIGI</div>
+        <canvas id="grafik-kanvas"></canvas>
+    </div>
+
+    <!-- Three.js import xaritasi -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+        // =============================================
+        // QISM 1 – FIZIKA KONSTANTALARI VA O'ZGARUVCHILAR
+        // =============================================
+        // Kulon konstantasi (k) = 8.99 × 10⁹ N·m²/C²
+        const K_KULON     = 8.99e9;
+
+        // Zaryadlar (Kulon)
+        let Q1 = 2e-6;   // musbat zaryad (sariq shar)
+        let Q2 = -3e-6;  // manfiy zaryad (ko'k shar)
+
+        // Massalar (kg)
+        let M1 = 0.5;
+        let M2 = 0.7;
+
+        // Vaqt qadami – har kadr uchun fizika yangilanish oralig'i
+        let DT = 0.03;
+
+        // Cheklashlar
+        const MAX_KUCH     = 200;   // kuchni juda katta bo'lishini oldini olish
+        const MIN_MASOFA   = 0.6;   // zaryadlar bir-biriga bundan yaqin kela olmaydi
+        const CHEGARA      = 14;    // simulyatsiya chegarasi (bu maydondan chiqsa qaytadi)
+
+
+        // =============================================
+        // QISM 2 – THREE.JS SAHNASI VA KAMERA
+        // =============================================
+        const sahna = new THREE.Scene();
+        sahna.background = new THREE.Color(0x050510);
+        sahna.fog = new THREE.Fog(0x050510, 25, 50); // uzoqdagi narsalar tumanga kiradi
+
+        const kamera = new THREE.PerspectiveCamera(
+            50,                                     // ko'rish burchagi
+            window.innerWidth / window.innerHeight, // ekran nisbati
+            0.1, 100                                // yaqin/uzoq kesish
+        );
+        kamera.position.set(9, 6, 12); // kamera boshlang'ich joyi
+
+        // Asosiy WebGL renderlash
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
+        document.body.prepend(renderer.domElement);
+
+        // CSS2D – 3D obyektlar ustiga HTML yorliqlar chiqarish uchun
+        const yorliqRenderer = new CSS2DRenderer();
+        yorliqRenderer.setSize(window.innerWidth, window.innerHeight);
+        yorliqRenderer.domElement.style.cssText = 'position:absolute;top:0;left:0;pointer-events:none;';
+        document.body.prepend(yorliqRenderer.domElement);
+
+        // Kamera sichqoncha bilan aylanishi – OrbitControls
+        const orbit = new OrbitControls(kamera, renderer.domElement);
+        orbit.enableDamping = true;
+        orbit.dampingFactor = 0.08;
+        orbit.minDistance = 3;
+        orbit.maxDistance = 35;
+        orbit.target.set(0, 0, 0);
+
+
+        // =============================================
+        // QISM 3 – YORUG'LIK
+        // =============================================
+        // Fon yoritgichi (hamma narsani bir oz ko'rsatadi)
+        sahna.add(new THREE.AmbientLight(0x223366, 0.4));
+
+        // Asosiy yo'nalgan yorug'lik (soya hosil qiladi)
+        const asosiyYorug = new THREE.DirectionalLight(0xffeedd, 1.5);
+        asosiyYorug.position.set(10, 18, 12);
+        asosiyYorug.castShadow = true;
+        asosiyYorug.shadow.mapSize.set(2048, 2048);
+        sahna.add(asosiyYorug);
+
+        // Orqa ko'k yorug'lik (chuqurlik effekti)
+        const orqaYorug = new THREE.DirectionalLight(0x4488ff, 0.5);
+        orqaYorug.position.set(-8, 2, -10);
+        sahna.add(orqaYorug);
+
+        // Pastdan qizg'ish nuqta yorug'lik
+        const pastYorug = new THREE.PointLight(0xff6633, 0.3);
+        pastYorug.position.set(0, -3, 5);
+        sahna.add(pastYorug);
+
+
+        // =============================================
+        // QISM 4 – TO'R VA O'QLAR
+        // =============================================
+        // Koordinata to'ri (pastda ko'rinadi)
+        const kor_tori = new THREE.GridHelper(30, 30, 0x4466aa, 0x224488);
+        kor_tori.position.y = -3;
+        sahna.add(kor_tori);
+
+        // X (qizil), Y (yashil), Z (ko'k) o'qlar
+        sahna.add(new THREE.AxesHelper(7));
+
+
+        // =============================================
+        // QISM 5 – ZARYADLARNI YARATISH
+        // =============================================
+        /**
+         * Zaryad sharini yaratadi.
+         * @param {number} rang     - sharning rangi (hex)
+         * @param {number} ichRang  - ichki yonish rangi
+         * @param {string} belgi    - '+' yoki '-'
+         */
+        function zaryadYarat(rang, ichRang, belgi) {
+            const guruh = new THREE.Group();
+
+            // -- Asosiy shar --
+            const shar = new THREE.Mesh(
+                new THREE.SphereGeometry(0.85, 48, 48),
+                new THREE.MeshPhysicalMaterial({
+                    color: rang,
+                    emissive: ichRang,
+                    emissiveIntensity: 0.5,
+                    roughness: 0.1,
+                    metalness: 0.3,
+                    clearcoat: 0.4,
+                    clearcoatRoughness: 0.2,
+                })
+            );
+            shar.castShadow = true;
+            guruh.add(shar);
+
+            // -- Ichki yorug'lik (glow) --
+            const glowGeo = new THREE.SphereGeometry(0.5, 24, 24);
+            const glowMat = new THREE.MeshBasicMaterial({
+                color: rang,
+                transparent: true,
+                opacity: 0.15,
+                blending: THREE.AdditiveBlending,
+            });
+            guruh.add(new THREE.Mesh(glowGeo, glowMat));
+
+            // -- Tashqi yonish (halo – Sprite) --
+            const kanvas = document.createElement('canvas');
+            kanvas.width = kanvas.height = 256;
+            const ctx = kanvas.getContext('2d');
+            const grad = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
+            const r = (rang >> 16) & 255;
+            const g = (rang >>  8) & 255;
+            const b =  rang        & 255;
+            grad.addColorStop(0,   'rgba(255,255,255,1)');
+            grad.addColorStop(0.05, `rgba(${r},${g},${b},0.8)`);
+            grad.addColorStop(0.5,  `rgba(${r},${g},${b},0.2)`);
+            grad.addColorStop(1,   'rgba(255,255,255,0)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 256, 256);
+            const halo = new THREE.Sprite(new THREE.SpriteMaterial({
+                map: new THREE.CanvasTexture(kanvas),
+                blending: THREE.AdditiveBlending,
+                transparent: true,
+                depthWrite: false,
+                opacity: 0.6,
+            }));
+            halo.scale.set(6, 6, 1);
+            guruh.add(halo);
+
+            // -- Belgi (+/-) shakli --
+            const belgiGuruh = new THREE.Group();
+            const oqMat = new THREE.MeshStandardMaterial({
+                color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.3
+            });
+            // Gorizontal chiziq (ikkala belgida bor)
+            belgiGuruh.add(new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.08, 0.08), oqMat));
+            // Vertikal chiziq (faqat '+' da bor)
+            if (belgi === '+') {
+                belgiGuruh.add(new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.6, 0.08), oqMat));
+            }
+            belgiGuruh.position.set(0, 0.95, 0);
+            guruh.add(belgiGuruh);
+
+            // -- HTML yorliq (belgi matn) --
+            const div = document.createElement('div');
+            div.textContent = belgi === '+' ? '⊕ Musbat' : '⊖ Manfiy';
+            div.style.cssText = `
+                color:#fff; font-size:12px; font-weight:bold;
+                text-shadow:0 0 20px rgba(0,0,0,0.8);
+                background:rgba(0,0,0,0.55);
+                padding:2px 10px; border-radius:10px;
+                backdrop-filter:blur(4px);
+                border:1px solid rgba(255,255,255,0.12);
+            `;
+            const yorliq = new CSS2DObject(div);
+            yorliq.position.set(0, -1.4, 0);
+            guruh.add(yorliq);
+
+            return guruh;
+        }
+
+        // Zaryadlarni sahnaga qo'shish
+        const zaryad1 = zaryadYarat(0xff3333, 0x661111, '+'); // musbat (qizil)
+        const zaryad2 = zaryadYarat(0x3399ff, 0x003366, '-'); // manfiy (ko'k)
+
+        // Boshlang'ich joylashuv
+        const joylashuv1 = new THREE.Vector3(-3.5,  0.5,  0);
+        const joylashuv2 = new THREE.Vector3( 3.5, -0.3,  1.8);
+
+        // Boshlang'ich tezliklar
+        const tezlik1 = new THREE.Vector3( 0.3,  0.1,  0.2);
+        const tezlik2 = new THREE.Vector3(-0.2, -0.05, -0.15);
+
+        zaryad1.position.copy(joylashuv1);
+        zaryad2.position.copy(joylashuv2);
+        sahna.add(zaryad1);
+        sahna.add(zaryad2);
+
+
+        // =============================================
+        // QISM 6 – KUCH VA TEZLIK VEKTORLARI (o'qlar)
+        // =============================================
+        // Kuch yo'nalishini ko'rsatadigan o'q (to'q sariq)
+        let kuchOqi = new THREE.ArrowHelper(
+            new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 0, 0),
+            1, 0xff8844, 0.7, 0.5
+        );
+        sahna.add(kuchOqi);
+
+        // Tezlik o'qlari (yashil)
+        let tezlikOq1 = new THREE.ArrowHelper(new THREE.Vector3(1,0,0), new THREE.Vector3(0,0,0), 1, 0x88ff88, 0.3, 0.2);
+        let tezlikOq2 = new THREE.ArrowHelper(new THREE.Vector3(1,0,0), new THREE.Vector3(0,0,0), 1, 0x88ff88, 0.3, 0.2);
+        sahna.add(tezlikOq1);
+        sahna.add(tezlikOq2);
+
+
+        // =============================================
+        // QISM 7 – ELEKTR MAYDON CHIZIQLARI
+        // =============================================
+        const maydонGroup = new THREE.Group();
+        sahna.add(maydонGroup);
+        let maydонKorsatilsin = false;
+
+        /**
+         * Elektr maydon chiziqlarini generatsiya qiladi.
+         * Chiziqlar musbat zaryaddan chiqib, manfiy zaryadga kiradi.
+         */
+        function maydонChiziqlarYarat() {
+            // Avvalgilarni o'chirish
+            while (maydонGroup.children.length) {
+                maydонGroup.remove(maydонGroup.children[0]);
+            }
+            if (!maydонKorsatilsin) return;
+
+            const p1 = zaryad1.position;
+            const p2 = zaryad2.position;
+            const CHIZIQ_SONI  = 24;  // nechtа chiziq
+            const QADAM_SONI   = 40;  // har bir chiziqda nechta qadam
+            const QADAM_UZUNLIK = 0.15;
+
+            for (let i = 0; i < CHIZIQ_SONI; i++) {
+                const burchak = (i / CHIZIQ_SONI) * Math.PI * 2;
+                const r = 1.2;
+
+                // Musbat zaryaddan bir oz uzoqdan boshlash
+                const boshlash = new THREE.Vector3(
+                    p1.x + r * Math.cos(burchak),
+                    p1.y + r * Math.sin(burchak) * 0.6,
+                    p1.z + r * Math.sin(burchak) * 0.6
+                );
+
+                const nuqtalar = [boshlash.clone()];
+                let hozir = boshlash.clone();
+                let yopishib_qoldi = false;
+
+                for (let j = 0; j < QADAM_SONI; j++) {
+                    // Maydon vektorini hisoblash: E = kQ/r² yo'nalishida
+                    const v1ga = new THREE.Vector3().copy(p1).sub(hozir);
+                    const v2ga = new THREE.Vector3().copy(p2).sub(hozir);
+                    const d1 = v1ga.length();
+                    const d2 = v2ga.length();
+
+                    if (d1 < 0.3 || d2 < 0.3) { yopishib_qoldi = true; break; }
+
+                    // Maydon vektorlari (kuchlanish)
+                    const e1 = v1ga.clone().multiplyScalar(Q1 / (d1 * d1 * d1));
+                    const e2 = v2ga.clone().multiplyScalar(Q2 / (d2 * d2 * d2));
+                    const umumiyMaydon = e1.add(e2);
+
+                    if (umumiyMaydon.length() < 0.001) break;
+
+                    // Maydon yo'nalishida bir qadam yurib borish
+                    hozir.add(umumiyMaydon.clone().normalize().multiplyScalar(QADAM_UZUNLIK));
+                    nuqtalar.push(hozir.clone());
+
+                    if (hozir.distanceTo(p1) < 0.3 || hozir.distanceTo(p2) < 0.3) break;
+                    if (hozir.length() > 15) break;
+                }
+
+                if (nuqtalar.length > 3 && !yopishib_qoldi) {
+                    const chiziq = new THREE.Line(
+                        new THREE.BufferGeometry().setFromPoints(nuqtalar),
+                        new THREE.LineBasicMaterial({
+                            color: 0x66aaff,
+                            transparent: true,
+                            opacity: 0.15 + 0.1 * (i / CHIZIQ_SONI),
+                            blending: THREE.AdditiveBlending,
+                        })
+                    );
+                    maydонGroup.add(chiziq);
+                }
+            }
+        }
+
+
+        // =============================================
+        // QISM 8 – ZARRACHALAR OQIMI
+        // =============================================
+        // Maydon bo'ylab suzib yuruvchi kichik zarrachalar
+        const zarrachalarGuruh = new THREE.Group();
+        sahna.add(zarrachalarGuruh);
+        const zarrachalar = [];
+
+        function zarrachalarBoshlash() {
+            for (let i = 0; i < 80; i++) {
+                const o = Math.random() * Math.PI * 2;
+                const p = Math.random() * Math.PI * 2;
+                const r = 2 + Math.random() * 6;
+                const mesh = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.03 + Math.random() * 0.05, 6, 6),
+                    new THREE.MeshBasicMaterial({
+                        color: 0x88ddff,
+                        transparent: true,
+                        opacity: 0.3 + Math.random() * 0.4,
+                        blending: THREE.AdditiveBlending,
+                    })
+                );
+                mesh.position.set(
+                    r * Math.sin(o) * Math.cos(p),
+                    r * Math.sin(o) * Math.sin(p) * 0.5,
+                    r * Math.cos(o) * 0.5
+                );
+                mesh.userData.tezlik = 0.005 + Math.random() * 0.015;
+                zarrachalarGuruh.add(mesh);
+                zarrachalar.push(mesh);
+            }
+        }
+        zarrachalarBoshlash();
+
+        function zarrachalarYangilanish() {
+            const p1 = zaryad1.position;
+            const p2 = zaryad2.position;
+            zarrachalar.forEach(z => {
+                // Y o'qi atrofida orbital aylanish
+                z.position.applyAxisAngle(new THREE.Vector3(0, 1, 0), z.userData.tezlik * 0.5);
+                // Markazga yengil tortilish
+                const markazga = new THREE.Vector3().copy(p1).add(p2).multiplyScalar(0.5).sub(z.position);
+                z.position.add(markazga.normalize().multiplyScalar(0.002));
+                // Chegaradan chiqib ketmasin
+                if (z.position.length() > 12) z.position.multiplyScalar(0.99);
+            });
+        }
+
+
+        // =============================================
+        // QISM 9 – TRAEKTORIYA IZLARI
+        // =============================================
+        const MAX_IZ = 150; // iz nuqtalarining maksimal soni
+        let izNuqtalar1 = [];
+        let izNuqtalar2 = [];
+        let izChiziq1 = null;
+        let izChiziq2 = null;
+        let izKorsatilsin = true;
+
+        function izlarYangilanish() {
+            // Eski izlarni o'chirish
+            if (izChiziq1) { sahna.remove(izChiziq1); izChiziq1 = null; }
+            if (izChiziq2) { sahna.remove(izChiziq2); izChiziq2 = null; }
+
+            if (!izKorsatilsin) return;
+
+            // 1-zaryad izi (qizg'ish)
+            if (izNuqtalar1.length > 2) {
+                izChiziq1 = new THREE.Line(
+                    new THREE.BufferGeometry().setFromPoints(izNuqtalar1),
+                    new THREE.LineBasicMaterial({
+                        color: 0xff6666, transparent: true,
+                        opacity: 0.3, blending: THREE.AdditiveBlending
+                    })
+                );
+                sahna.add(izChiziq1);
+            }
+            // 2-zaryad izi (ko'kish)
+            if (izNuqtalar2.length > 2) {
+                izChiziq2 = new THREE.Line(
+                    new THREE.BufferGeometry().setFromPoints(izNuqtalar2),
+                    new THREE.LineBasicMaterial({
+                        color: 0x66aaff, transparent: true,
+                        opacity: 0.3, blending: THREE.AdditiveBlending
+                    })
+                );
+                sahna.add(izChiziq2);
+            }
+        }
+
+
+        // =============================================
+        // QISM 10 – ENERGIYA GRAFIGI
+        // =============================================
+        const grafikKanvas = document.getElementById('grafik-kanvas');
+        const gCtx = grafikKanvas.getContext('2d');
+        let energiyaTarixi = [];
+        const MAX_TARIX = 100;
+
+        function grafikOlchamini_sozla() {
+            const rect = grafikKanvas.parentElement.getBoundingClientRect();
+            grafikKanvas.width  = rect.width  - 16;
+            grafikKanvas.height = rect.height - 16;
+        }
+        grafikOlchamini_sozla();
+
+        function grafikChiz() {
+            const w = grafikKanvas.width;
+            const h = grafikKanvas.height;
+            gCtx.clearRect(0, 0, w, h);
+            if (energiyaTarixi.length < 2) return;
+
+            const maxE = Math.max(1, ...energiyaTarixi);
+            const minE = Math.min(0, ...energiyaTarixi);
+            const oraliq = maxE - minE || 1;
+
+            // Sariq chiziq
+            gCtx.strokeStyle = '#ffdd44';
+            gCtx.lineWidth   = 2;
+            gCtx.shadowColor = '#ffdd44';
+            gCtx.shadowBlur  = 10;
+            gCtx.beginPath();
+            energiyaTarixi.forEach((e, i) => {
+                const x = (i / MAX_TARIX) * w;
+                const y = h - ((e - minE) / oraliq) * h * 0.8 - h * 0.1;
+                i === 0 ? gCtx.moveTo(x, y) : gCtx.lineTo(x, y);
+            });
+            gCtx.stroke();
+            gCtx.shadowBlur = 0;
+
+            // Oxirgi nuqta
+            const oxirgi = energiyaTarixi.at(-1);
+            const lx = w;
+            const ly = h - ((oxirgi - minE) / oraliq) * h * 0.8 - h * 0.1;
+            gCtx.fillStyle = '#ffdd44';
+            gCtx.beginPath();
+            gCtx.arc(lx - 2, ly, 4, 0, Math.PI * 2);
+            gCtx.fill();
+        }
+
+
+        // =============================================
+        // QISM 11 – OVOZ EFFEKTI
+        // =============================================
+        // Zaryadlar yaqinlashganda ovoz balandligi ortadi
+        let audioCtx = null;
+        let osillyator = null;
+
+        function ovozBoshlash() {
+            if (audioCtx) return;
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            osillyator = audioCtx.createOscillator();
+            const kuchaytirgich = audioCtx.createGain();
+            kuchaytirgich.gain.value = 0.03;
+            osillyator.connect(kuchaytirgich);
+            kuchaytirgich.connect(audioCtx.destination);
+            osillyator.frequency.value = 100;
+            osillyator.type = 'sine';
+            osillyator.start();
+        }
+
+        function ovozYangilanish(masofa) {
+            if (!audioCtx) return;
+            // Masofa qisqarsa – chastota (tон) ortadi
+            const chastota = 50 + 400 / (masofa + 0.5);
+            osillyator.frequency.setTargetAtTime(chastota, audioCtx.currentTime, 0.05);
+        }
+
+
+        // =============================================
+        // QISM 12 – FIZIKA YANGILANISHI (asosiy hisob)
+        // =============================================
+        let simulyatsiyaVaqti = 0;
+        let toxtatiilgan = false;
+        let tezlikKoeffitsienti = 1;
+
+        function fizikaYangilanishi() {
+            if (toxtatiilgan) return;
+
+            // Tezlikni hisoblash uchun qadamlar soni
+            const qadamSoni = Math.ceil(tezlikKoeffitsienti);
+            const dt = DT / qadamSoni;
+
+            for (let q = 0; q < qadamSoni; q++) {
+                const p1 = joylashuv1;
+                const p2 = joylashuv2;
+                const v1 = tezlik1;
+                const v2 = tezlik2;
+
+                // 1. Masofani hisoblash
+                const rVektor = new THREE.Vector3().copy(p2).sub(p1);
+                let masofa = rVektor.length();
+
+                // 2. To'qnashuv: zaryadlar juda yaqin kelsa
+                if (masofa < MIN_MASOFA) {
+                    const normal = rVektor.clone().normalize();
+                    const nisbiyTezlik = new THREE.Vector3().copy(v1).sub(v2);
+                    const nProeksiya = nisbiyTezlik.dot(normal);
+                    if (nProeksiya > 0) {
+                        // Impuls formulasi (elastik to'qnashuv)
+                        const impuls = nProeksiya / (1/M1 + 1/M2);
+                        v1.add(normal.clone().multiplyScalar(-impuls / M1));
+                        v2.add(normal.clone().multiplyScalar( impuls / M2));
+                    }
+                    // Ularni ajratib qo'yish
+                    masofa = MIN_MASOFA;
+                    rVektor.normalize().multiplyScalar(MIN_MASOFA);
+                    p2.copy(p1).add(rVektor);
+                }
+
+                // 3. KULON KUCHINI HISOBLASH:  F = k × |q1 × q2| / r²
+                const kuchMiqdori = K_KULON * Math.abs(Q1 * Q2) / (masofa * masofa);
+                const cheklangankKuch = Math.min(kuchMiqdori, MAX_KUCH);
+
+                // Kuch yo'nalishi: qarama-qarshi zaryadda tortish, bir xil zaryadda itarish
+                const kuchYonalishi = rVektor.clone().normalize();
+                const tortishMiKi = (Q1 * Q2 > 0) ? 1 : -1; // 1=itarish, -1=tortish
+                const kuchVektori = kuchYonalishi.clone().multiplyScalar(cheklangankKuch * tortishMiKi);
+
+                // 4. Tezlanish: a = F / m  (Newton 2-qonuni)
+                const tezlanish1 = kuchVektori.clone().divideScalar( M1);
+                const tezlanish2 = kuchVektori.clone().divideScalar(-M2);
+
+                // 5. Tezlikni yangilash: v = v + a × dt
+                v1.add(tezlanish1.multiplyScalar(dt));
+                v2.add(tezlanish2.multiplyScalar(dt));
+
+                // 6. Maksimal tezlik chegarasi (juda tez ketib qolmasin)
+                const MAX_V = 10;
+                if (v1.length() > MAX_V) v1.normalize().multiplyScalar(MAX_V);
+                if (v2.length() > MAX_V) v2.normalize().multiplyScalar(MAX_V);
+
+                // 7. Joylashuvni yangilash: x = x + v × dt
+                p1.add(v1.clone().multiplyScalar(dt));
+                p2.add(v2.clone().multiplyScalar(dt));
+
+                // 8. Chegara devori (qaytish)
+                ['x', 'y', 'z'].forEach(o => {
+                    if (Math.abs(p1[o]) > CHEGARA) { v1[o] *= -0.5; p1[o] = Math.sign(p1[o]) * CHEGARA; }
+                    if (Math.abs(p2[o]) > CHEGARA) { v2[o] *= -0.5; p2[o] = Math.sign(p2[o]) * CHEGARA; }
+                });
+
+                simulyatsiyaVaqti += dt;
+
+                // 9. Traektoriya izlarini yangilash
+                if (izKorsatilsin) {
+                    izNuqtalar1.push(p1.clone());
+                    izNuqtalar2.push(p2.clone());
+                    if (izNuqtalar1.length > MAX_IZ) izNuqtalar1.shift();
+                    if (izNuqtalar2.length > MAX_IZ) izNuqtalar2.shift();
+                }
+
+                // 10. Energiyani hisoblash va saqlash
+                const kinetik1 = 0.5 * M1 * v1.lengthSq();
+                const kinetik2 = 0.5 * M2 * v2.lengthSq();
+                // Potentsial energiya: PE = -k|q1q2|/r  (manfiy = tortish)
+                const potentsial = -K_KULON * Math.abs(Q1 * Q2) / masofa;
+                const umumiyE = kinetik1 + kinetik2 + potentsial;
+                energiyaTarixi.push(umumiyE);
+                if (energiyaTarixi.length > MAX_TARIX) energiyaTarixi.shift();
+
+                // 11. Ovoz
+                ovozYangilanish(masofa);
+
+                // 12. 3D sahnada zaryadlarni yangilash
+                zaryad1.position.copy(p1);
+                zaryad2.position.copy(p2);
+
+                // 13. Kuch o'qini yangilash
+                sahna.remove(kuchOqi);
+                const markazNuqta = new THREE.Vector3().copy(p1).add(p2).multiplyScalar(0.5);
+                const oqUzunlik = Math.min(cheklangankKuch * 2e-9, 5);
+                kuchOqi = new THREE.ArrowHelper(
+                    kuchYonalishi.clone().multiplyScalar(Q1 * Q2 > 0 ? 1 : -1),
+                    markazNuqta,
+                    Math.max(oqUzunlik, 0.05),
+                    0xff8844,
+                    Math.min(oqUzunlik * 0.3, 0.8),
+                    Math.min(oqUzunlik * 0.2, 0.5)
+                );
+                sahna.add(kuchOqi);
+
+                // 14. Tezlik o'qlarini yangilash
+                sahna.remove(tezlikOq1);
+                sahna.remove(tezlikOq2);
+                const ustOffset = new THREE.Vector3(0, 1.3, 0);
+                const v1uz = Math.min(v1.length() * 0.3, 4);
+                const v2uz = Math.min(v2.length() * 0.3, 4);
+                tezlikOq1 = new THREE.ArrowHelper(
+                    v1.length() > 0.01 ? v1.clone().normalize() : new THREE.Vector3(1,0,0),
+                    p1.clone().add(ustOffset), Math.max(v1uz, 0.05), 0x88ff88, 0.3, 0.2
+                );
+                tezlikOq2 = new THREE.ArrowHelper(
+                    v2.length() > 0.01 ? v2.clone().normalize() : new THREE.Vector3(1,0,0),
+                    p2.clone().add(ustOffset), Math.max(v2uz, 0.05), 0x88ff88, 0.3, 0.2
+                );
+                sahna.add(tezlikOq1);
+                sahna.add(tezlikOq2);
+
+                // 15. UI raqamlarni yangilash
+                const fStr = cheklangankKuch.toExponential(3) + ' N';
+                const rStr = masofa.toFixed(3) + ' m';
+                const v1Str = v1.length().toFixed(3);
+                const v2Str = v2.length().toFixed(3);
+                const eStr = umumiyE.toExponential(3);
+
+                document.getElementById('f-val').textContent   = fStr;
+                document.getElementById('r-val').textContent   = rStr;
+                document.getElementById('v1-val').textContent  = v1Str + ' m/s';
+                document.getElementById('v2-val').textContent  = v2Str + ' m/s';
+                document.getElementById('e-val').textContent   = eStr + ' J';
+
+                document.getElementById('stat-f').textContent  = cheklangankKuch.toExponential(2);
+                document.getElementById('stat-r').textContent  = masofa.toFixed(3);
+                document.getElementById('stat-v1').textContent = v1.length().toFixed(3);
+                document.getElementById('stat-v2').textContent = v2.length().toFixed(3);
+                document.getElementById('stat-e').textContent  = umumiyE.toExponential(2);
+                document.getElementById('stat-t').textContent  = simulyatsiyaVaqti.toFixed(2);
+
+                // 16. Kuch turi ko'rsatgichi
+                const kuchTuri = document.getElementById('kuch-turi');
+                if (Q1 * Q2 < 0) {
+                    kuchTuri.textContent = '🔵 TORTISH KUCHI (qarama-qarshi zaryadlar)';
+                    kuchTuri.className = 'tortish';
+                } else {
+                    kuchTuri.textContent = '🔴 ITARISH KUCHI (bir xil zaryadlar)';
+                    kuchTuri.className = 'itarish';
+                }
+
+                // 17. Maydon chiziqlari
+                if (maydонKorsatilsin) maydонChiziqlarYarat();
+            }
+
+            // Zarrachalar va izlarni yangilash
+            zarrachalarYangilanish();
+            izlarYangilanish();
+            grafikChiz();
+        }
+
+
+        // =============================================
+        // QISM 13 – BOSHQARUV TUGMALARI
+        // =============================================
+
+        // Pauza / Davom etish
+        document.getElementById('btn-pauza').addEventListener('click', () => {
+            toxtatiilgan = !toxtatiilgan;
+            const btn = document.getElementById('btn-pauza');
+            btn.textContent = toxtatiilgan ? '▶️ DAVOM ETISH' : '⏸️ TO\'XTAT';
+            btn.classList.toggle('faol', toxtatiilgan);
+            if (!toxtatiilgan) ovozBoshlash();
+        });
+
+        // Qayta boshlash
+        document.getElementById('btn-qayta').addEventListener('click', () => {
+            joylashuv1.set(-3.5, 0.5, 0);
+            joylashuv2.set( 3.5, -0.3, 1.8);
+            tezlik1.set( 0.3,  0.1,  0.2);
+            tezlik2.set(-0.2, -0.05, -0.15);
+            simulyatsiyaVaqti = 0;
+            izNuqtalar1 = [];
+            izNuqtalar2 = [];
+            energiyaTarixi = [];
+            zaryad1.position.copy(joylashuv1);
+            zaryad2.position.copy(joylashuv2);
+            toxtatiilgan = false;
+            document.getElementById('btn-pauza').textContent = '⏸️ TO\'XTAT';
+            document.getElementById('btn-pauza').classList.remove('faol');
+            izlarYangilanish();
+        });
+
+        // Traektoriya izlari
+        document.getElementById('btn-iz').addEventListener('click', () => {
+            izKorsatilsin = !izKorsatilsin;
+            document.getElementById('btn-iz').classList.toggle('faol', izKorsatilsin);
+            if (!izKorsatilsin) {
+                izNuqtalar1 = [];
+                izNuqtalar2 = [];
+                if (izChiziq1) { sahna.remove(izChiziq1); izChiziq1 = null; }
+                if (izChiziq2) { sahna.remove(izChiziq2); izChiziq2 = null; }
+            }
+        });
+
+        // Maydon chiziqlari
+        document.getElementById('btn-maydон').addEventListener('click', () => {
+            maydонKorsatilsin = !maydонKorsatilsin;
+            document.getElementById('btn-maydон').classList.toggle('faol', maydонKorsatilsin);
+            if (maydонKorsatilsin) maydонChiziqlarYarat();
+            else while (maydонGroup.children.length) maydонGroup.remove(maydонGroup.children[0]);
+        });
+
+        // Sozlamalar panelini ochish/yopish
+        document.getElementById('btn-sozla').addEventListener('click', () => {
+            document.getElementById('sozlamalar').classList.toggle('ochiq');
+        });
+
+        // Tezlik tugmalari
+        [
+            ['tez-yarim', 0.5],
+            ['tez-bir',   1.0],
+            ['tez-ikki',  2.0],
+        ].forEach(([id, qiymat]) => {
+            document.getElementById(id).addEventListener('click', () => {
+                document.querySelectorAll('.tezlik-guruh button').forEach(b => b.classList.remove('faol'));
+                document.getElementById(id).classList.add('faol');
+                tezlikKoeffitsienti = qiymat;
+            });
+        });
+
+        // Sliderlar – zaryadlar va massalar
+        document.getElementById('q1-slider').addEventListener('input', e => {
+            Q1 = parseFloat(e.target.value) * 1e-6;
+            document.getElementById('q1-ko').textContent = parseFloat(e.target.value).toFixed(1);
+        });
+        document.getElementById('q2-slider').addEventListener('input', e => {
+            Q2 = parseFloat(e.target.value) * 1e-6;
+            document.getElementById('q2-ko').textContent = parseFloat(e.target.value).toFixed(1);
+        });
+        document.getElementById('m1-slider').addEventListener('input', e => {
+            M1 = parseFloat(e.target.value);
+            document.getElementById('m1-ko').textContent = M1.toFixed(2);
+        });
+        document.getElementById('m2-slider').addEventListener('input', e => {
+            M2 = parseFloat(e.target.value);
+            document.getElementById('m2-ko').textContent = M2.toFixed(2);
+        });
+        document.getElementById('dt-slider').addEventListener('input', e => {
+            DT = parseFloat(e.target.value);
+            document.getElementById('dt-ko').textContent = DT.toFixed(3);
+        });
+
+
+        // =============================================
+        // QISM 14 – ANIMATSIYA SIKLUSI
+        // =============================================
+        function animatsiya() {
+            requestAnimationFrame(animatsiya); // har kadrda qayta chaqirish
+
+            // Fizika hisobini yangilash
+            fizikaYangilanishi();
+
+            // Zaryadlarning sekin aylanishi (estetika uchun)
+            zaryad1.rotation.x += 0.008;
+            zaryad1.rotation.y += 0.015;
+            zaryad2.rotation.x += 0.010;
+            zaryad2.rotation.z += 0.012;
+
+            orbit.update();
+            renderer.render(sahna, kamera);
+            yorliqRenderer.render(sahna, kamera);
+        }
+
+
+        // =============================================
+        // QISM 15 – EKRAN O'LCHAMINI KUZATISH
+        // =============================================
+        window.addEventListener('resize', () => {
+            kamera.aspect = window.innerWidth / window.innerHeight;
+            kamera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            yorliqRenderer.setSize(window.innerWidth, window.innerHeight);
+            grafikOlchamini_sozla();
+        });
+
+
+        // =============================================
+        // QISM 16 – ISHGA TUSHIRISH
+        // =============================================
+        // Ovoz brauzer qoidasiga ko'ra faqat foydalanuvchi bosganida ishlaydi
+        document.addEventListener('click', ovozBoshlash, { once: true });
+
+        izlarYangilanish();
+        animatsiya();
+
+    </script>
+</body>
+</html>

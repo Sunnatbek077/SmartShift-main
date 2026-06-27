@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organik kimyo: Uglevodorodlar</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            overflow:hidden;
+            font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;
+            background:#0a0a1a;
+            user-select:none;
+        }
+
+        #header {
+            position:absolute; top:15px; left:50%; transform:translateX(-50%);
+            background:rgba(0,0,0,0.85);
+            border:1px solid rgba(100,200,255,0.3);
+            padding:10px 30px; border-radius:20px;
+            color:#fff; text-align:center; z-index:20; pointer-events:none;
+            backdrop-filter:blur(12px);
+        }
+        #header h1 { font-size:1.2rem; font-weight:300; letter-spacing:1px; }
+        #header h1 span { color:#66ddff; font-weight:700; }
+        #header .sub { font-size:0.65rem; opacity:0.4; margin-top:2px; }
+
+        #info-panel {
+            position:absolute; bottom:20px; left:50%; transform:translateX(-50%);
+            background:rgba(0,0,0,0.92);
+            border:1px solid rgba(255,255,255,0.06);
+            padding:15px 25px; border-radius:18px;
+            color:#fff; z-index:20; min-width:350px; max-width:90%;
+            text-align:center;
+            box-shadow:0 8px 40px rgba(0,0,0,0.7);
+            backdrop-filter:blur(15px);
+        }
+        #info-panel .name { font-size:1.2rem; font-weight:700; color:#66ddff; }
+        #info-panel .formula { font-size:1rem; opacity:0.6; font-family:monospace; margin-top:2px; }
+        #info-panel .desc { font-size:0.85rem; opacity:0.8; margin-top:4px; line-height:1.5; }
+        #info-panel .stats { font-size:0.7rem; opacity:0.5; margin-top:6px; display:flex; gap:20px; justify-content:center; flex-wrap:wrap; }
+        #info-panel .stats span { padding:0 10px; border-right:1px solid rgba(255,255,255,0.1); }
+        #info-panel .stats span:last-child { border-right:none; }
+
+        #controls {
+            position:absolute; top:80px; right:20px;
+            z-index:20; display:flex; flex-direction:column; gap:6px;
+        }
+        #controls button {
+            background:rgba(255,255,255,0.05);
+            border:1px solid rgba(255,255,255,0.08);
+            color:#fff; padding:7px 14px; border-radius:10px;
+            cursor:pointer; font-size:0.65rem; font-family:inherit;
+            transition:all 0.25s; text-align:left; min-width:120px;
+        }
+        #controls button:hover { background:rgba(100,200,255,0.12); border-color:#66ddff; transform:translateX(-3px); }
+        #controls button.active { background:rgba(100,200,255,0.15); border-color:#66ddff; }
+
+        #molecule-selector {
+            position:absolute; top:80px; left:50%; transform:translateX(-50%);
+            z-index:20; display:flex; gap:6px; flex-wrap:wrap; justify-content:center;
+            max-width:80%;
+        }
+        #molecule-selector button {
+            background:rgba(255,255,255,0.05);
+            border:1px solid rgba(255,255,255,0.08);
+            color:#fff; padding:5px 12px; border-radius:15px;
+            cursor:pointer; font-size:0.6rem; transition:all 0.3s;
+            font-family:inherit;
+        }
+        #molecule-selector button:hover { background:rgba(100,200,255,0.1); }
+        #molecule-selector button.active { background:rgba(100,200,255,0.2); border-color:#66ddff; }
+        #molecule-selector button .badge {
+            font-size:0.5rem;
+            opacity:0.4;
+            margin-left:4px;
+        }
+
+        #legend {
+            position:absolute; top:140px; left:20px;
+            z-index:20; background:rgba(0,0,0,0.7);
+            backdrop-filter:blur(8px); border-radius:12px;
+            padding:10px 14px; color:rgba(255,255,255,0.5);
+            font-size:0.55rem; line-height:2; min-width:80px;
+        }
+        #legend .dot { display:inline-block; width:12px; height:12px; border-radius:50%; margin-right:6px; vertical-align:middle; }
+
+        #canvas3d {
+            display:block;
+            width:100vw;
+            height:100vh;
+            background:#0a0a1a;
+            cursor:grab;
+        }
+        #canvas3d:active { cursor:grabbing; }
+
+        @media(max-width:700px) {
+            #controls { top:130px; right:10px; }
+            #controls button { min-width:70px; font-size:0.5rem; padding:4px 8px; }
+            #info-panel { min-width:auto; width:95%; padding:10px 15px; bottom:10px; }
+            #molecule-selector { top:75px; gap:3px; max-width:95%; }
+            #molecule-selector button { font-size:0.5rem; padding:3px 8px; }
+            #header h1 { font-size:0.85rem; }
+            #header { padding:6px 15px; }
+            #legend { display:none; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div id="header">
+    <h1>🧪 <span>Organik kimyo</span> · Uglevodorodlar</h1>
+    <div class="sub">3D MOLEKULYAR MODEL · ATOM · BOG'LAR</div>
+</div>
+
+<!-- Molekula tanlash -->
+<div id="molecule-selector">
+    <button class="active" data-molecule="metan">CH₄ <span class="badge">alkan</span></button>
+    <button data-molecule="etan">C₂H₆ <span class="badge">alkan</span></button>
+    <button data-molecule="propan">C₃H₈ <span class="badge">alkan</span></button>
+    <button data-molecule="butan">C₄H₁₀ <span class="badge">alkan</span></button>
+    <button data-molecule="pentan">C₅H₁₂ <span class="badge">alkan</span></button>
+    <button data-molecule="eten">C₂H₄ <span class="badge">alken</span></button>
+    <button data-molecule="propen">C₃H₆ <span class="badge">alken</span></button>
+    <button data-molecule="buten">C₄H₈ <span class="badge">alken</span></button>
+    <button data-molecule="etin">C₂H₂ <span class="badge">alkin</span></button>
+    <button data-molecule="propin">C₃H₄ <span class="badge">alkin</span></button>
+</div>
+
+<!-- Afsona -->
+<div id="legend">
+    <div><span class="dot" style="background:#444444;"></span> Uglerod (C)</div>
+    <div><span class="dot" style="background:#ffffff;"></span> Vodorod (H)</div>
+    <div><span class="dot" style="background:#66ddff;"></span> Yagona bog'</div>
+    <div><span class="dot" style="background:#ffdd44;"></span> Qo'sh bog'</div>
+    <div><span class="dot" style="background:#ff6644;"></span> Uch bog'</div>
+</div>
+
+<!-- Boshqaruv -->
+<div id="controls">
+    <button id="toggleRotate" class="active">🔄 Aylanish</button>
+    <button id="toggleLabels">🏷️ Yorliqlar</button>
+    <button id="resetView">🏠 Ko'rinish</button>
+</div>
+
+<!-- Ma'lumot paneli -->
+<div id="info-panel">
+    <div class="name" id="molName">Metan</div>
+    <div class="formula" id="molFormula">CH₄</div>
+    <div class="desc" id="molDesc">Eng oddiy uglevodorod — tabiiy gazning asosiy tarkibiy qismi</div>
+    <div class="stats" id="molStats">
+        <span>🔹 Uglerod: <b id="cCount">1</b></span>
+        <span>🔸 Vodorod: <b id="hCount">4</b></span>
+        <span>🔗 Bog'lar: <b id="bondCount">4</b></span>
+        <span>📐 Guruh: <b id="groupName">Alkan</b></span>
+    </div>
+</div>
+
+<!-- 3D Canvas -->
+<canvas id="canvas3d"></canvas>
+
+<script>
+// ============================================================
+// 1. KONSTANTALAR VA HOLAT
+// ============================================================
+const canvas = document.getElementById('canvas3d');
+const ctx = canvas.getContext('2d');
+
+let W, H;
+
+function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ============================================================
+// 2. 3D MATEMATIKA
+// ============================================================
+class Vector3 {
+    constructor(x=0, y=0, z=0) {
+        this.x = x; this.y = y; this.z = z;
+    }
+    add(v) { return new Vector3(this.x+v.x, this.y+v.y, this.z+v.z); }
+    sub(v) { return new Vector3(this.x-v.x, this.y-v.y, this.z-v.z); }
+    mul(s) { return new Vector3(this.x*s, this.y*s, this.z*s); }
+    len() { return Math.sqrt(this.x*this.x + this.y*this.y + this.z*this.z); }
+    norm() { const l=this.len(); return l>0 ? this.mul(1/l) : new Vector3(); }
+    dot(v) { return this.x*v.x + this.y*v.y + this.z*v.z; }
+    cross(v) {
+        return new Vector3(
+            this.y*v.z - this.z*v.y,
+            this.z*v.x - this.x*v.z,
+            this.x*v.y - this.y*v.x
+        );
+    }
+    clone() { return new Vector3(this.x, this.y, this.z); }
+}
+
+function rotateX(p, angle) {
+    const c=Math.cos(angle), s=Math.sin(angle);
+    return new Vector3(p.x, p.y*c-p.z*s, p.y*s+p.z*c);
+}
+function rotateY(p, angle) {
+    const c=Math.cos(angle), s=Math.sin(angle);
+    return new Vector3(p.x*c+p.z*s, p.y, -p.x*s+p.z*c);
+}
+function rotateZ(p, angle) {
+    const c=Math.cos(angle), s=Math.sin(angle);
+    return new Vector3(p.x*c-p.y*s, p.x*s+p.y*c, p.z);
+}
+
+function project(p, fov=450) {
+    const z = p.z + 10;
+    if (z < 0.1) return null;
+    const scale = fov / z;
+    return { x: p.x * scale + W/2, y: -p.y * scale + H/2, z: z };
+}
+
+// ============================================================
+// 3. MOLEKULALAR MA'LUMOTLARI
+// ============================================================
+const molecules = {
+    metan: {
+        name: 'Metan',
+        formula: 'CH₄',
+        desc: 'Eng oddiy uglevodorod — tabiiy gazning asosiy tarkibiy qismi',
+        group: 'Alkan',
+        atoms: {
+            C: [{x:0, y:0, z:0}],
+            H: [
+                {x:1.2, y:1.2, z:0},
+                {x:-1.2, y:-1.2, z:0},
+                {x:1.2, y:-1.2, z:1.2},
+                {x:-1.2, y:1.2, z:-1.2}
+            ]
+        },
+        bonds: [
+            {from: 'C', to: 'H', type: 'single'},
+            {from: 'C', to: 'H', type: 'single'},
+            {from: 'C', to: 'H', type: 'single'},
+            {from: 'C', to: 'H', type: 'single'}
+        ]
+    },
+    etan: {
+        name: 'Etan',
+        formula: 'C₂H₆',
+        desc: 'Ikkinchi eng oddiy alkan — tabiiy gaz tarkibida',
+        group: 'Alkan',
+        atoms: {
+            C: [{x:-0.8, y:0, z:0}, {x:0.8, y:0, z:0}],
+            H: [
+                {x:-1.6, y:1.2, z:0}, {x:-1.6, y:-1.2, z:0}, {x:-1.6, y:0, z:1.2},
+                {x:1.6, y:1.2, z:0}, {x:1.6, y:-1.2, z:0}, {x:1.6, y:0, z:-1.2}
+            ]
+        },
+        bonds: [
+            {from: 'C', to: 'C', type: 'single'},
+            {from: 'C', to: 'H', type: 'single'}, {from: 'C', to: 'H', type: 'single'}, {from: 'C', to: 'H', type: 'single'},
+            {from: 'C', to: 'H', type: 'single'}, {from: 'C', to: 'H', type: 'single'}, {from: 'C', to: 'H', type: 'single'}
+        ]
+    },
+    propan: {
+        name: 'Propan',
+        formula: 'C₃H₈',
+        desc: 'Uchinchi alkan — suyultirilgan gaz tarkibida',
+        group: 'Alkan',
+        atoms: {
+            C: [{x:-1.2, y:0, z:0}, {x:0, y:0, z:0}, {x:1.2, y:0, z:0}],
+            H: [
+                {x:-2.0, y:1.2, z:0}, {x:-2.0, y:-1.2, z:0}, {x:-2.0, y:0, z:1.2},
+                {x:0, y:1.2, z:1.2}, {x:0, y:-1.2, z:-1.2},
+                {x:2.0, y:1.2, z:0}, {x:2.0, y:-1.2, z:0}, {x:2.0, y:0, z:-1.2}
+            ]
+        },
+        bonds: [
+            {from: 'C', to: 'C', type: 'single'}, {from: 'C', to: 'C', type: 'single'},
+            {from: 'C', to: 'H', type: 'single'}, {from: 'C', to: 'H', type: 'single'}, {from: 'C', to: 'H', type: 'single'},
+            {from: 'C', to: 'H', type: 'single'}, {from: 'C', to: 'H', type: 'single'},
+            {from: 'C', to: 'H', type: 'single'}, {from: 'C', to: 'H', type: 'single'}, {from: 'C', to: 'H', type: 'single'}
+        ]
+    },
+    butan: {
+        name: 'Butan',
+        formula: 'C₄H₁₀',
+        desc: 'To\'rtinchi alkan — zajigalka gazining asosi',
+        group: 'Alkan',
+        atoms: {
+            C: [{x:-1.8, y:0, z:0}, {x:-0.6, y:0, z:0}, {x:0.6, y:0, z:0}, {x:1.8, y:0, z:0}],
+            H: [
+                {x:-2.6, y:1.2, z:0}, {x:-2.6, y:-1.2, z:0}, {x:-2.6, y:0, z:1.2},
+                {x:-0.6, y:1.2, z:1.2}, {x:-0.6, y:-1.2, z:-1.2},
+                {x:0.6, y:1.2, z:-1.2}, {x:0.6, y:-1.2, z:1.2},
+                {x:2.6, y:1.2, z:0}, {x:2.6, y:-1.2, z:0}, {x:2.6, y:0, z:-1.2}
+            ]
+        },
+        bonds: [
+            {from: 'C', to: 'C', type: 'single'}, {from: 'C', to: 'C', type: 'single'}, {from: 'C', to: 'C', type: 'single'},
+            {from: 'C', to: 'H', type: 'single'}, {from: 'C', to: 'H', type: 'single'}, {from: 'C', to: 'H', type: 'single'},
+            {from: 'C', to: 'H', type: 'single'}, {from: 'C', to: 'H', type: 'single'},
+            {from: 'C', to: 'H', type: 'single'}, {from: 'C', to: 'H', type: 'single'},
+            {from: 'C', to: 'H', type: 'single'}, {from: 'C', to: 'H', type: 'single'}, {from: 'C', to: 'H', type: 'single'}
+        ]
+    },
+    pentan: {
+        name: 'Pentan',
+        formula: 'C₅H₁₂',
+        desc: 'Beshinchi alkan — benzin tarkibida',
+        group: 'Alkan',
+        atoms: {
+            C: [{x:-2.4, y:0, z:0}, {x:-1.2, y:0, z:0}, {x:0, y:0, z:0}, {x:1.2, y:0, z:0}, {x:2.4, y:0, z:0}],
+            H: [
+                {x:-3.2, y:1.2, z:0}, {x:-3.2, y:-1.2, z:0}, {x:-3.2, y:0, z:1.2},
+                {x:-1.2, y:1.2, z:1.2}, {x:-1.2, y:-1.2, z:-1.2},
+                {x:0, y:1.2, z:-1.2}, {x:0, y:-1.2, z:1.2},
+                {x:1.2, y:1.2, z:1.2}, {x:1.2, y:-1.2, z:-1.2},
+                {x:3.2, y:1.2, z:0}, {x:3.2, y:-1.2, z:0}, {x:3.2, y:0, z:-1.2}
+            ]
+        },
+        bonds: [
+            {from: 'C', to: 'C', type: 'single'}, {from: 'C', to: 'C', type: 'single'},
+            {from: 'C', to: 'C', type: 'single'}, {from: 'C', to: 'C', type: 'single'},
+            {from: 'C', to: 'H', type: 'single'}, {from: 'C', to: 'H', type: 'single'}, {from: 'C', to: 'H', type: 'single'},
+            {from: 'C', to: 'H', type: 'single'}, {from: 'C', to: 'H', type: 'single'},
+            {from: 'C', to: 'H', type: 'single'}, {from: 'C', to: 'H', type: 'single'},
+            {from: 'C', to: 'H', type: 'single'}, {from: 'C', to: 'H', type: 'single'},
+            {from: 'C', to: 'H', type: 'single'}, {from: 'C', to: 'H', type: 'single'}, {from: 'C', to: 'H', type: 'single'}
+        ]
+    },
+    eten: {
+        name: 'Eten (Etilen)',
+        formula: 'C₂H₄',
+        desc: 'Eng oddiy alken — qo\'sh bog\'li uglevodorod',
+        group: 'Alken',
+        atoms: {
+            C: [{x:-0.8, y:0, z:0}, {x:0.8, y:0, z:0}],
+            H: [
+                {x:-1.6, y:0.8, z:0.8}, {x:-1.6, y:-0.8, z:-0.8},
+                {x:1.6, y:0.8, z:-0.8}, {x:1.6, y:-0.8, z:0.8}
+            ]
+        },
+        bonds: [
+            {from: 'C', to: 'C', type: 'double'},
+            {from: 'C', to: 'H', type: 'single'}, {from: 'C', to: 'H', type: 'single'},
+            {from: 'C', to: 'H', type: 'single'}, {from: 'C', to: 'H', type: 'single'}
+        ]
+    },
+    propen: {
+        name: 'Propen (Propilen)',
+        formula: 'C₃H₆',
+        desc: 'Ikkinchi alken — qo\'sh bog\'li uglevodorod',
+        group: 'Alken',
+        atoms: {
+            C: [{x:-1.2, y:0, z:0}, {x:0, y:0, z:0}, {x:1.2, y:0, z:0}],
+            H: [
+                {x:-2.0, y:0.8, z:0.8}, {x:-2.0, y:-0.8, z:-0.8},
+                {x:0, y:0.8, z:-1.2}, {x:0, y:-0.8, z:1.2},
+                {x:2.0, y:0.8, z:0.8}, {x:2.0, y:-0.8, z:-0.8}
+            ]
+        },
+        bonds: [
+            {from: 'C', to: 'C', type: 'double'},
+            {from: 'C', to: 'C', type: 'single'},
+            {from: 'C', to: 'H', type: 'single'}, {from: 'C', to: 'H', type: 'single'},
+            {from: 'C', to: 'H', type: 'single'}, {from: 'C', to: 'H', type: 'single'},
+            {from: 'C', to: 'H', type: 'single'}
+        ]
+    },
+    buten: {
+        name: 'Buten (Butilen)',
+        formula: 'C₄H₈',
+        desc: 'Uchinchi alken — qo\'sh bog\'li uglevodorod',
+        group: 'Alken',
+        atoms: {
+            C: [{x:-1.8, y:0, z:0}, {x:-0.6, y:0, z:0}, {x:0.6, y:0, z:0}, {x:1.8, y:0, z:0}],
+            H: [
+                {x:-2.6, y:0.8, z:0.8}, {x:-2.6, y:-0.8, z:-0.8},
+                {x:-0.6, y:0.8, z:-1.2}, {x:-0.6, y:-0.8, z:1.2},
+                {x:0.6, y:0.8, z:1.2}, {x:0.6, y:-0.8, z:-1.2},
+                {x:2.6, y:0.8, z:-0.8}, {x:2.6, y:-0.8, z:0.8}
+            ]
+        },
+        bonds: [
+            {from: 'C', to: 'C', type: 'double'},
+            {from: 'C', to: 'C', type: 'single'}, {from: 'C', to: 'C', type: 'single'},
+            {from: 'C', to: 'H', type: 'single'}, {from: 'C', to: 'H', type: 'single'},
+            {from: 'C', to: 'H', type: 'single'}, {from: 'C', to: 'H', type: 'single'},
+            {from: 'C', to: 'H', type: 'single'}, {from: 'C', to: 'H', type: 'single'}
+        ]
+    },
+    etin: {
+        name: 'Etin (Atsetilen)',
+        formula: 'C₂H₂',
+        desc: 'Eng oddiy alkin — uch bog\'li uglevodorod',
+        group: 'Alkin',
+        atoms: {
+            C: [{x:-0.8, y:0, z:0}, {x:0.8, y:0, z:0}],
+            H: [{x:-1.8, y:0, z:0}, {x:1.8, y:0, z:0}]
+        },
+        bonds: [
+            {from: 'C', to: 'C', type: 'triple'},
+            {from: 'C', to: 'H', type: 'single'},
+            {from: 'C', to: 'H', type: 'single'}
+        ]
+    },
+    propin: {
+        name: 'Propin (Metilatsetilen)',
+        formula: 'C₃H₄',
+        desc: 'Ikkinchi alkin — uch bog\'li uglevodorod',
+        group: 'Alkin',
+        atoms: {
+            C: [{x:-1.2, y:0, z:0}, {x:0, y:0, z:0}, {x:1.2, y:0, z:0}],
+            H: [
+                {x:-2.0, y:0.8, z:0.8}, {x:-2.0, y:-0.8, z:-0.8},
+                {x:2.0, y:0.8, z:-0.8}, {x:2.0, y:-0.8, z:0.8}
+            ]
+        },
+        bonds: [
+            {from: 'C', to: 'C', type: 'triple'},
+            {from: 'C', to: 'C', type: 'single'},
+            {from: 'C', to: 'H', type: 'single'}, {from: 'C', to: 'H', type: 'single'},
+            {from: 'C', to: 'H', type: 'single'}, {from: 'C', to: 'H', type: 'single'}
+        ]
+    }
+};
+
+// ============================================================
+// 4. HOLAT
+// ============================================================
+const state = {
+    molecule: 'metan',
+    showLabels: true,
+    autoRotate: true,
+    rotX: 0.3,
+    rotY: 0.5,
+    rotZ: 0.1,
+    zoom: 1,
+    mouseX: 0,
+    mouseY: 0,
+    isDragging: false,
+    lastMX: 0,
+    lastMY: 0
+};
+
+// ============================================================
+// 5. RENDER
+// ============================================================
+function render() {
+    ctx.clearRect(0, 0, W, H);
+
+    const mol = molecules[state.molecule];
+    if (!mol) return;
+
+    // Atomlarni yig'ish
+    const atoms = [];
+    const atomTypes = {};
+
+    // Uglerod
+    mol.atoms.C.forEach(pos => {
+        atoms.push({ type: 'C', pos: new Vector3(pos.x, pos.y, pos.z), radius: 0.5 });
+    });
+    atomTypes.C = mol.atoms.C.length;
+
+    // Vodorod
+    mol.atoms.H.forEach(pos => {
+        atoms.push({ type: 'H', pos: new Vector3(pos.x, pos.y, pos.z), radius: 0.3 });
+    });
+    atomTypes.H = mol.atoms.H.length;
+
+    // Rotatsiya
+    let rotAtoms = atoms.map(a => {
+        let p = a.pos.clone();
+        p = rotateX(p, state.rotX);
+        p = rotateY(p, state.rotY);
+        p = rotateZ(p, state.rotZ);
+        return { ...a, pos: p };
+    });
+
+    // Proyeksiya
+    const projAtoms = rotAtoms.map(a => {
+        const p = project(a.pos);
+        return { ...a, proj: p };
+    });
+
+    // Bog'larni chizish
+    mol.bonds.forEach((bond, idx) => {
+        const fromIdx = bond.from === 'C' ? 0 : mol.atoms.C.length;
+        const toIdx = bond.to === 'C' ? 0 : mol.atoms.C.length;
+
+        // Qaysi atomlar bog'lanishini aniqlash
+        const fromAtom = bond.from === 'C'
+            ? rotAtoms[bond.fromIndex || 0]
+            : rotAtoms[mol.atoms.C.length + (bond.fromIndex || 0)];
+        const toAtom = bond.to === 'C'
+            ? rotAtoms[bond.toIndex || 0]
+            : rotAtoms[mol.atoms.C.length + (bond.toIndex || 0)];
+
+        // Bog' indekslarini to'g'irlash
+        let fi = 0, ti = 0;
+        if (bond.from === 'C') {
+            fi = bond.fromIndex || 0;
+        } else {
+            fi = mol.atoms.C.length + (bond.fromIndex || 0);
+        }
+        if (bond.to === 'C') {
+            ti = bond.toIndex || 0;
+        } else {
+            ti = mol.atoms.C.length + (bond.toIndex || 0);
+        }
+
+        const p1 = projAtoms[fi];
+        const p2 = projAtoms[ti];
+
+        if (p1 && p1.proj && p2 && p2.proj) {
+            drawBond(p1.proj, p2.proj, bond.type);
+        }
+    });
+
+    // Atomlarni chizish
+    projAtoms.forEach((a, i) => {
+        if (a.proj) {
+            const color = a.type === 'C' ? '#444444' : '#ffffff';
+            drawAtom(a.proj, a.radius, color, a.type);
+        }
+    });
+
+    // Yorliqlar
+    if (state.showLabels) {
+        projAtoms.forEach((a, i) => {
+            if (a.proj && a.proj.z > 0) {
+                const label = a.type === 'C' ? 'C' : 'H';
+                const color = a.type === 'C' ? '#888888' : '#aaaacc';
+                ctx.fillStyle = color;
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+                ctx.shadowColor = 'rgba(0,0,0,0.8)';
+                ctx.shadowBlur = 8;
+                ctx.fillText(label, a.proj.x, a.proj.y - a.radius * 25 - 8);
+                ctx.shadowBlur = 0;
+            }
+        });
+    }
+
+    // Ma'lumot paneli
+    updateInfo(mol);
+}
+
+function drawAtom(p, radius, color, type) {
+    const r = radius * 20 * state.zoom;
+
+    // Glow
+    const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r * 1.5);
+    if (type === 'C') {
+        grad.addColorStop(0, 'rgba(80,80,80,0.6)');
+        grad.addColorStop(0.5, 'rgba(60,60,60,0.3)');
+        grad.addColorStop(1, 'rgba(60,60,60,0)');
+    } else {
+        grad.addColorStop(0, 'rgba(200,220,255,0.4)');
+        grad.addColorStop(0.5, 'rgba(180,200,255,0.2)');
+        grad.addColorStop(1, 'rgba(180,200,255,0)');
+    }
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, r * 1.5, 0, Math.PI*2);
+    ctx.fill();
+
+    // Soya
+    const shadowGrad = ctx.createRadialGradient(p.x - r*0.3, p.y - r*0.3, 0, p.x, p.y, r);
+    shadowGrad.addColorStop(0, 'rgba(255,255,255,0.3)');
+    shadowGrad.addColorStop(0.5, 'rgba(255,255,255,0.05)');
+    shadowGrad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = shadowGrad;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, r, 0, Math.PI*2);
+    ctx.fill();
+
+    // Atom
+    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+    ctx.shadowBlur = 10;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Chegara
+    ctx.strokeStyle = type === 'C' ? 'rgba(100,100,100,0.5)' : 'rgba(200,200,255,0.3)';
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+}
+
+function drawBond(p1, p2, type) {
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    const len = Math.sqrt(dx*dx + dy*dy);
+    const angle = Math.atan2(dy, dx);
+
+    const colors = {
+        single: '#66ddff',
+        double: '#ffdd44',
+        triple: '#ff6644'
+    };
+
+    const widths = {
+        single: 3,
+        double: 4,
+        triple: 4
+    };
+
+    const color = colors[type] || '#66ddff';
+    const width = widths[type] || 3;
+
+    ctx.save();
+    ctx.translate(p1.x, p1.y);
+    ctx.rotate(angle);
+
+    if (type === 'single') {
+        ctx.shadowColor = 'rgba(100,200,255,0.2)';
+        ctx.shadowBlur = 8;
+        ctx.fillStyle = color;
+        ctx.fillRect(0, -width/2, len, width);
+        ctx.shadowBlur = 0;
+    } else if (type === 'double') {
+        const offset = 3;
+        ctx.shadowColor = 'rgba(255,200,50,0.2)';
+        ctx.shadowBlur = 8;
+        ctx.fillStyle = color;
+        ctx.fillRect(0, -width/2 - offset, len, width*0.6);
+        ctx.fillRect(0, width/2 + offset - width*0.6, len, width*0.6);
+        ctx.shadowBlur = 0;
+    } else if (type === 'triple') {
+        const offset = 4;
+        ctx.shadowColor = 'rgba(255,100,50,0.2)';
+        ctx.shadowBlur = 8;
+        ctx.fillStyle = color;
+        ctx.fillRect(0, -width/2 - offset, len, width*0.5);
+        ctx.fillRect(0, -width/2, len, width*0.5);
+        ctx.fillRect(0, width/2 + offset - width*0.5, len, width*0.5);
+        ctx.shadowBlur = 0;
+    }
+
+    ctx.restore();
+}
+
+// ============================================================
+// 6. MA'LUMOT PANELI
+// ============================================================
+function updateInfo(mol) {
+    document.getElementById('molName').textContent = mol.name;
+    document.getElementById('molFormula').textContent = mol.formula;
+    document.getElementById('molDesc').textContent = mol.desc;
+    document.getElementById('cCount').textContent = mol.atoms.C.length;
+    document.getElementById('hCount').textContent = mol.atoms.H.length;
+    document.getElementById('bondCount').textContent = mol.bonds.length;
+    document.getElementById('groupName').textContent = mol.group;
+}
+
+// ============================================================
+// 7. MOUSE BOSHQARUVI
+// ============================================================
+canvas.addEventListener('mousedown', (e) => {
+    state.isDragging = true;
+    state.lastMX = e.clientX;
+    state.lastMY = e.clientY;
+    canvas.style.cursor = 'grabbing';
+});
+
+window.addEventListener('mousemove', (e) => {
+    if (state.isDragging) {
+        const dx = e.clientX - state.lastMX;
+        const dy = e.clientY - state.lastMY;
+        state.rotY += dx * 0.005;
+        state.rotX += dy * 0.005;
+        state.lastMX = e.clientX;
+        state.lastMY = e.clientY;
+    }
+});
+
+window.addEventListener('mouseup', () => {
+    state.isDragging = false;
+    canvas.style.cursor = 'grab';
+});
+
+// Zoom
+canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? 0.05 : -0.05;
+    state.zoom = Math.max(0.5, Math.min(2, state.zoom + delta));
+}, { passive: false });
+
+// ============================================================
+// 8. BOSHQARUV TUGMALARI
+// ============================================================
+document.getElementById('toggleRotate').addEventListener('click', function() {
+    state.autoRotate = !state.autoRotate;
+    this.classList.toggle('active');
+});
+
+document.getElementById('toggleLabels').addEventListener('click', function() {
+    state.showLabels = !state.showLabels;
+    this.classList.toggle('active');
+});
+
+document.getElementById('resetView').addEventListener('click', function() {
+    state.rotX = 0.3;
+    state.rotY = 0.5;
+    state.rotZ = 0.1;
+    state.zoom = 1;
+});
+
+// Molekula tanlash
+document.querySelectorAll('#molecule-selector button').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('#molecule-selector button').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        state.molecule = this.dataset.molecule;
+    });
+});
+
+// ============================================================
+// 9. EKRAN O'LCHAMIGA MOSLASH
+// ============================================================
+window.addEventListener('resize', resize);
+
+// ============================================================
+// 10. ANIMATSIYA
+// ============================================================
+function animate() {
+    if (state.autoRotate) {
+        state.rotY += 0.005;
+        state.rotX += 0.001;
+    }
+    render();
+    requestAnimationFrame(animate);
+}
+
+// ============================================================
+// 11. ISHGA TUSHIRISH
+// ============================================================
+animate();
+
+console.log('🧪 Organik kimyo: Uglevodorodlar');
+console.log('🖱 Sichqoncha bilan aylantirish · G\'ildirak bilan zoom');
+console.log('🔘 Yuqoridagi tugmalar yordamida molekulalarni tanlang');
+console.log('✅ Hech qanday tashqi kutubxona talab qilinmaydi!');
+</script>
+</body>
+</html>

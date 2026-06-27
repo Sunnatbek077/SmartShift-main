@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Vektor Vizualizatori</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0a1a;
+            color: #e0e0ff;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* TOP BAR */
+        #topBar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 20px;
+            background: rgba(10, 10, 30, 0.8);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            flex-shrink: 0;
+            z-index: 10;
+            backdrop-filter: blur(10px);
+        }
+        #topBar h1 {
+            font-size: 18px;
+            background: linear-gradient(135deg, #4488ff, #aa66ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
+        }
+        #topBar .info {
+            font-size: 12px;
+            color: #6688aa;
+        }
+
+        /* MAIN LAYOUT */
+        #main {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* 3D CANVAS */
+        #canvasWrap {
+            flex: 1;
+            position: relative;
+            background: #0a0a1a;
+        }
+        #canvasWrap canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* CONTROLS PANEL */
+        #controls {
+            width: 340px;
+            min-width: 340px;
+            background: rgba(10, 10, 30, 0.85);
+            border-left: 1px solid rgba(255, 255, 255, 0.06);
+            padding: 16px 18px;
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        #controls::-webkit-scrollbar {
+            width: 4px;
+        }
+        #controls::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+        }
+
+        .ctrl-section {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+            padding: 12px 14px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+        .ctrl-section h3 {
+            font-size: 12px;
+            color: #8899bb;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .vec-input {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+        .vec-input label {
+            font-size: 13px;
+            font-weight: 600;
+            width: 20px;
+            color: #6688aa;
+        }
+        .vec-input input {
+            width: 60px;
+            padding: 4px 6px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 4px;
+            color: #eee;
+            font-size: 13px;
+            text-align: center;
+            transition: 0.2s;
+        }
+        .vec-input input:focus {
+            border-color: #4488ff;
+            outline: none;
+            background: rgba(68, 136, 255, 0.08);
+        }
+        .vec-input input[type="range"] {
+            width: 80px;
+            padding: 0;
+            background: transparent;
+            accent-color: #4488ff;
+        }
+        .vec-input .val {
+            font-size: 12px;
+            color: #6688aa;
+            min-width: 30px;
+            text-align: center;
+        }
+
+        .color-dot {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 6px 14px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #fff;
+        }
+        .btn:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.1);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #4488ff, #aa66ff);
+        }
+        .btn-success {
+            background: linear-gradient(135deg, #44cc88, #44aa66);
+        }
+        .btn-danger {
+            background: linear-gradient(135deg, #ff4466, #cc3344);
+        }
+        .btn-warning {
+            background: linear-gradient(135deg, #ffaa44, #ff8844);
+        }
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.08);
+            color: #8899bb;
+        }
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+        }
+
+        .result-box {
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 13px;
+            font-family: 'Courier New', monospace;
+            color: #ccddff;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            min-height: 30px;
+        }
+        .result-box .label {
+            color: #6688aa;
+            font-size: 11px;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        .result-box .highlight {
+            color: #ffaa66;
+        }
+
+        .checkbox-group {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+        .checkbox-group label {
+            font-size: 12px;
+            color: #8899bb;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .checkbox-group input[type="checkbox"] {
+            accent-color: #4488ff;
+            cursor: pointer;
+        }
+
+        /* LEGEND */
+        #legend {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            z-index: 5;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 8px;
+            padding: 10px 14px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(5px);
+            font-size: 11px;
+        }
+        #legend .leg-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 2px 0;
+        }
+        #legend .leg-color {
+            width: 20px;
+            height: 3px;
+            border-radius: 2px;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            #main {
+                flex-direction: column;
+            }
+            #controls {
+                width: 100%;
+                min-width: unset;
+                max-height: 50vh;
+                border-left: none;
+                border-top: 1px solid rgba(255, 255, 255, 0.06);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- TOP BAR -->
+    <div id="topBar">
+        <h1>📐 3D Vektor Vizualizatori</h1>
+        <span class="info">🖱 Sichqoncha bilan aylantirish | ⚡ Vektor amallari</span>
+    </div>
+
+    <!-- MAIN -->
+    <div id="main">
+        <!-- 3D Canvas -->
+        <div id="canvasWrap">
+            <canvas id="cvs"></canvas>
+            <div id="legend">
+                <div class="leg-item"><span class="leg-color" style="background:#ff4444;"></span> Vektor A</div>
+                <div class="leg-item"><span class="leg-color" style="background:#4488ff;"></span> Vektor B</div>
+                <div class="leg-item"><span class="leg-color" style="background:#44ff88;"></span> A + B</div>
+                <div class="leg-item"><span class="leg-color" style="background:#ff8844;"></span> A - B</div>
+                <div class="leg-item"><span class="leg-color" style="background:#ff44ff;"></span> A × B</div>
+            </div>
+        </div>
+
+        <!-- CONTROLS -->
+        <div id="controls">
+            <!-- Vektor A -->
+            <div class="ctrl-section">
+                <h3><span class="color-dot" style="background:#ff4444;"></span> Vektor A</h3>
+                <div class="vec-input">
+                    <label>X</label>
+                    <input type="range" id="axRange" min="-5" max="5" step="0.1" value="3">
+                    <input type="number" id="axVal" value="3" step="0.1">
+                </div>
+                <div class="vec-input">
+                    <label>Y</label>
+                    <input type="range" id="ayRange" min="-5" max="5" step="0.1" value="2">
+                    <input type="number" id="ayVal" value="2" step="0.1">
+                </div>
+                <div class="vec-input">
+                    <label>Z</label>
+                    <input type="range" id="azRange" min="-5" max="5" step="0.1" value="1">
+                    <input type="number" id="azVal" value="1" step="0.1">
+                </div>
+            </div>
+
+            <!-- Vektor B -->
+            <div class="ctrl-section">
+                <h3><span class="color-dot" style="background:#4488ff;"></span> Vektor B</h3>
+                <div class="vec-input">
+                    <label>X</label>
+                    <input type="range" id="bxRange" min="-5" max="5" step="0.1" value="1">
+                    <input type="number" id="bxVal" value="1" step="0.1">
+                </div>
+                <div class="vec-input">
+                    <label>Y</label>
+                    <input type="range" id="byRange" min="-5" max="5" step="0.1" value="3">
+                    <input type="number" id="byVal" value="3" step="0.1">
+                </div>
+                <div class="vec-input">
+                    <label>Z</label>
+                    <input type="range" id="bzRange" min="-5" max="5" step="0.1" value="2">
+                    <input type="number" id="bzVal" value="2" step="0.1">
+                </div>
+            </div>
+
+            <!-- Amallar -->
+            <div class="ctrl-section">
+                <h3>⚡ Vektor Amallari</h3>
+                <div class="btn-group">
+                    <button class="btn btn-success" onclick="setOperation('add')">➕ Qo'shish</button>
+                    <button class="btn btn-warning" onclick="setOperation('sub')">➖ Ayirish</button>
+                    <button class="btn btn-primary" onclick="setOperation('cross')">✖️ Vektor ko'paytma</button>
+                    <button class="btn btn-secondary" onclick="setOperation('none')">❌ O'chirish</button>
+                </div>
+            </div>
+
+            <!-- Skalyar -->
+            <div class="ctrl-section">
+                <h3>🔢 Skalyar ko'paytirish</h3>
+                <div class="vec-input">
+                    <label>k =</label>
+                    <input type="range" id="kRange" min="-3" max="3" step="0.1" value="1.5">
+                    <input type="number" id="kVal" value="1.5" step="0.1">
+                    <button class="btn btn-secondary" onclick="applyScalar()" style="padding:4px 10px;font-size:11px;">▶</button>
+                </div>
+                <div style="display:flex;gap:8px;margin-top:4px;">
+                    <button class="btn btn-secondary" onclick="applyScalarTo('A')" style="padding:4px 10px;font-size:11px;">A ga</button>
+                    <button class="btn btn-secondary" onclick="applyScalarTo('B')" style="padding:4px 10px;font-size:11px;">B ga</button>
+                </div>
+            </div>
+
+            <!-- Natija -->
+            <div class="ctrl-section">
+                <h3>📊 Natija</h3>
+                <div class="result-box" id="resultDisplay">
+                    <span class="label">Vektorlar:</span><br>
+                    A = (<span id="dispA">3.0, 2.0, 1.0</span>) &nbsp; |A| = <span id="dispAMod">3.74</span><br>
+                    B = (<span id="dispB">1.0, 3.0, 2.0</span>) &nbsp; |B| = <span id="dispBMod">3.74</span>
+                </div>
+                <div class="result-box" id="resultOp" style="margin-top:6px;">
+                    <span class="label">Amal natijasi:</span><br>
+                    <span id="opResult" style="color:#44ff88;">A + B = (4.0, 5.0, 3.0)</span>
+                </div>
+            </div>
+
+            <!-- Ko'rsatish opsiyalari -->
+            <div class="ctrl-section">
+                <h3>👁 Ko'rsatish</h3>
+                <div class="checkbox-group">
+                    <label><input type="checkbox" id="showA" checked onchange="updateVectors()"> A</label>
+                    <label><input type="checkbox" id="showB" checked onchange="updateVectors()"> B</label>
+                    <label><input type="checkbox" id="showOp" checked onchange="updateVectors()"> Natija</label>
+                    <label><input type="checkbox" id="showGrid" checked onchange="updateVectors()"> To'r</label>
+                    <label><input type="checkbox" id="showLabels" checked onchange="updateVectors()"> Yorliqlar</label>
+                </div>
+            </div>
+
+            <!-- Reset -->
+            <div class="ctrl-section">
+                <div class="btn-group">
+                    <button class="btn btn-danger" onclick="resetVectors()">⟳ Qayta tiklash</button>
+                    <button class="btn btn-primary" onclick="randomVectors()">🎲 Tasodifiy</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- THREE.JS KODI -->
+    <!-- ============================================================ -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+        // ============================================================
+        // STATE
+        // ============================================================
+        const state = {
+            a: { x: 3, y: 2, z: 1 },
+            b: { x: 1, y: 3, z: 2 },
+            k: 1.5,
+            operation: 'add', // 'add' | 'sub' | 'cross' | 'none'
+            showA: true,
+            showB: true,
+            showOp: true,
+            showGrid: true,
+            showLabels: true,
+            opResult: { x: 0, y: 0, z: 0 }
+        };
+
+        // ============================================================
+        // THREE.JS SETUP
+        // ============================================================
+        const wrap = document.getElementById('canvasWrap');
+        const cvs = document.getElementById('cvs');
+
+        // Scene
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0a0a1a);
+
+        // Camera
+        const camera = new THREE.PerspectiveCamera(45, wrap.clientWidth / wrap.clientHeight, 0.1, 50);
+        camera.position.set(8, 6, 10);
+        camera.lookAt(0, 0, 0);
+
+        // Renderer
+        const renderer = new THREE.WebGLRenderer({
+            canvas: cvs,
+            antialias: true,
+            alpha: true
+        });
+        renderer.setSize(wrap.clientWidth, wrap.clientHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+        // CSS2D Renderer (labels)
+        const labelRenderer = new CSS2DRenderer();
+        labelRenderer.setSize(wrap.clientWidth, wrap.clientHeight);
+        labelRenderer.domElement.style.position = 'absolute';
+        labelRenderer.domElement.style.top = '0';
+        labelRenderer.domElement.style.left = '0';
+        labelRenderer.domElement.style.pointerEvents = 'none';
+        wrap.appendChild(labelRenderer.domElement);
+
+        // Controls
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.08;
+        controls.autoRotate = false;
+        controls.target.set(0, 0, 0);
+        controls.minDistance = 3;
+        controls.maxDistance = 30;
+
+        // ============================================================
+        // LIGHTS
+        // ============================================================
+        const ambientLight = new THREE.AmbientLight(0x404060, 0.5);
+        scene.add(ambientLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+        dirLight.position.set(10, 20, 10);
+        scene.add(dirLight);
+
+        const fillLight = new THREE.DirectionalLight(0x4488ff, 0.3);
+        fillLight.position.set(-10, 0, 10);
+        scene.add(fillLight);
+
+        // ============================================================
+        // GRID
+        // ============================================================
+        const gridHelper = new THREE.GridHelper(12, 12, 0x4488ff44, 0x2244aa33);
+        gridHelper.position.y = -0.01;
+        scene.add(gridHelper);
+
+        // Axis helper (custom)
+        function createAxis() {
+            const group = new THREE.Group();
+            const length = 6;
+            const colors = [0xff4444, 0x44ff44, 0x4488ff];
+            const dirs = [
+                new THREE.Vector3(1, 0, 0),
+                new THREE.Vector3(0, 1, 0),
+                new THREE.Vector3(0, 0, 1)
+            ];
+            const labels = ['X', 'Y', 'Z'];
+            dirs.forEach((dir, i) => {
+                const arrow = new THREE.ArrowHelper(dir, new THREE.Vector3(0, 0, 0), length, colors[i], 0.3, 0.15);
+                group.add(arrow);
+                // Label
+                const div = document.createElement('div');
+                div.textContent = labels[i];
+                div.style.color = ['#ff4444', '#44ff44', '#4488ff'][i];
+                div.style.fontSize = '14px';
+                div.style.fontWeight = 'bold';
+                div.style.textShadow = '0 0 10px rgba(0,0,0,0.8)';
+                const label = new CSS2DObject(div);
+                label.position.copy(dir.clone().multiplyScalar(length + 0.4));
+                group.add(label);
+            });
+            return group;
+        }
+        scene.add(createAxis());
+
+        // ============================================================
+        // VECTOR OBJECTS
+        // ============================================================
+        let arrowA = null;
+        let arrowB = null;
+        let arrowOp = null;
+        let labelA = null;
+        let labelB = null;
+        let labelOp = null;
+        const vectorGroup = new THREE.Group();
+        scene.add(vectorGroup);
+
+        function createArrow(dir, color, headLength = 0.3, headWidth = 0.15) {
+            const len = dir.length();
+            if (len < 0.01) return null;
+            const arrow = new THREE.ArrowHelper(dir.clone().normalize(), new THREE.Vector3(0, 0, 0), len, color, headLength,
+            headWidth);
+            return arrow;
+        }
+
+        function createLabel(text, pos, color = '#ffffff') {
+            const div = document.createElement('div');
+            div.textContent = text;
+            div.style.color = color;
+            div.style.fontSize = '14px';
+            div.style.fontWeight = 'bold';
+            div.style.textShadow = '0 0 15px rgba(0,0,0,0.9), 0 0 5px rgba(0,0,0,0.8)';
+            div.style.background = 'rgba(0,0,0,0.4)';
+            div.style.padding = '2px 8px';
+            div.style.borderRadius = '4px';
+            div.style.backdropFilter = 'blur(4px)';
+            div.style.border = '1px solid rgba(255,255,255,0.05)';
+            const label = new CSS2DObject(div);
+            label.position.copy(pos);
+            return label;
+        }
+
+        // ============================================================
+        // UPDATE VECTORS
+        // ============================================================
+        function updateVectors() {
+            // Clear old
+            while (vectorGroup.children.length > 0) {
+                const child = vectorGroup.children[0];
+                if (child.geometry) child.geometry.dispose();
+                if (child.material) child.material.dispose();
+                vectorGroup.remove(child);
+            }
+
+            const a = new THREE.Vector3(state.a.x, state.a.y, state.a.z);
+            const b = new THREE.Vector3(state.b.x, state.b.y, state.b.z);
+
+            // Result
+            let opVec = new THREE.Vector3(0, 0, 0);
+            let opLabel = '';
+            let opColor = '#44ff88';
+            switch (state.operation) {
+                case 'add':
+                    opVec.copy(a).add(b);
+                    opLabel = 'A + B';
+                    opColor = '#44ff88';
+                    break;
+                case 'sub':
+                    opVec.copy(a).sub(b);
+                    opLabel = 'A - B';
+                    opColor = '#ff8844';
+                    break;
+                case 'cross':
+                    opVec.copy(a).cross(b);
+                    opLabel = 'A × B';
+                    opColor = '#ff44ff';
+                    break;
+                default:
+                    opVec.set(0, 0, 0);
+                    opLabel = '';
+                    opColor = '#44ff88';
+            }
+            state.opResult = { x: opVec.x, y: opVec.y, z: opVec.z };
+
+            // Show A
+            if (state.showA && a.length() > 0.01) {
+                const arrow = createArrow(a, 0xff4444);
+                if (arrow) vectorGroup.add(arrow);
+                if (state.showLabels) {
+                    const lbl = createLabel('A', a.clone().multiplyScalar(1.1), '#ff4444');
+                    vectorGroup.add(lbl);
+                }
+            }
+
+            // Show B
+            if (state.showB && b.length() > 0.01) {
+                const arrow = createArrow(b, 0x4488ff);
+                if (arrow) vectorGroup.add(arrow);
+                if (state.showLabels) {
+                    const lbl = createLabel('B', b.clone().multiplyScalar(1.1), '#4488ff');
+                    vectorGroup.add(lbl);
+                }
+            }
+
+            // Show Operation result
+            if (state.showOp && state.operation !== 'none' && opVec.length() > 0.01) {
+                const arrow = createArrow(opVec, opColor);
+                if (arrow) vectorGroup.add(arrow);
+                if (state.showLabels) {
+                    const lbl = createLabel(opLabel, opVec.clone().multiplyScalar(1.1), opColor);
+                    vectorGroup.add(lbl);
+                }
+            }
+
+            // Update display
+            updateDisplay(a, b, opVec);
+        }
+
+        // ============================================================
+        // UPDATE DISPLAY
+        // ============================================================
+        function updateDisplay(a, b, op) {
+            const fmt = (v) => v.toFixed(1);
+            document.getElementById('dispA').textContent = `${fmt(a.x)}, ${fmt(a.y)}, ${fmt(a.z)}`;
+            document.getElementById('dispAMod').textContent = a.length().toFixed(2);
+            document.getElementById('dispB').textContent = `${fmt(b.x)}, ${fmt(b.y)}, ${fmt(b.z)}`;
+            document.getElementById('dispBMod').textContent = b.length().toFixed(2);
+
+            let opText = '';
+            switch (state.operation) {
+                case 'add':
+                    opText = `A + B = (${fmt(op.x)}, ${fmt(op.y)}, ${fmt(op.z)})  |A+B| = ${op.length().toFixed(2)}`;
+                    break;
+                case 'sub':
+                    opText = `A - B = (${fmt(op.x)}, ${fmt(op.y)}, ${fmt(op.z)})  |A-B| = ${op.length().toFixed(2)}`;
+                    break;
+                case 'cross':
+                    opText =
+                        `A × B = (${fmt(op.x)}, ${fmt(op.y)}, ${fmt(op.z)})  |A×B| = ${op.length().toFixed(2)}  (⊥ A va B)`;
+                    break;
+                default:
+                    opText = '❌ Amal tanlanmagan';
+            }
+            document.getElementById('opResult').textContent = opText;
+        }
+
+        // ============================================================
+        // CONTROLS BINDING
+        // ============================================================
+        // Range -> Number sync
+        function bindRangeNumber(rangeId, numId, callback) {
+            const range = document.getElementById(rangeId);
+            const num = document.getElementById(numId);
+            range.addEventListener('input', () => {
+                num.value = range.value;
+                if (callback) callback();
+            });
+            num.addEventListener('input', () => {
+                let val = parseFloat(num.value);
+                if (isNaN(val)) val = 0;
+                range.value = Math.max(-5, Math.min(5, val));
+                if (callback) callback();
+            });
+            num.addEventListener('change', () => {
+                let val = parseFloat(num.value);
+                if (isNaN(val)) val = 0;
+                range.value = Math.max(-5, Math.min(5, val));
+                if (callback) callback();
+            });
+            return { range, num };
+        }
+
+        function getVecFromInputs(prefix) {
+            const x = parseFloat(document.getElementById(prefix + 'xVal').value) || 0;
+            const y = parseFloat(document.getElementById(prefix + 'yVal').value) || 0;
+            const z = parseFloat(document.getElementById(prefix + 'zVal').value) || 0;
+            return { x, y, z };
+        }
+
+        function updateStateFromInputs() {
+            const a = getVecFromInputs('a');
+            const b = getVecFromInputs('b');
+            state.a = a;
+            state.b = b;
+            state.k = parseFloat(document.getElementById('kVal').value) || 1;
+            updateVectors();
+        }
+
+        // Bind all
+        ['a', 'b'].forEach(prefix => {
+            ['x', 'y', 'z'].forEach(axis => {
+                bindRangeNumber(prefix + axis + 'Range', prefix + axis + 'Val', updateStateFromInputs);
+            });
+        });
+
+        bindRangeNumber('kRange', 'kVal', () => {
+            state.k = parseFloat(document.getElementById('kVal').value) || 1;
+        });
+
+        // ============================================================
+        // OPERATIONS
+        // ============================================================
+        window.setOperation = function(op) {
+            state.operation = op;
+            updateVectors();
+        };
+
+        window.applyScalar = function() {
+            const k = parseFloat(document.getElementById('kVal').value) || 1;
+            const a = getVecFromInputs('a');
+            const b = getVecFromInputs('b');
+            // Apply to both
+            document.getElementById('axVal').value = (a.x * k).toFixed(1);
+            document.getElementById('ayVal').value = (a.y * k).toFixed(1);
+            document.getElementById('azVal').value = (a.z * k).toFixed(1);
+            document.getElementById('bxVal').value = (b.x * k).toFixed(1);
+            document.getElementById('byVal').value = (b.y * k).toFixed(1);
+            document.getElementById('bzVal').value = (b.z * k).toFixed(1);
+            // Update ranges
+            ['a', 'b'].forEach(p => {
+                ['x', 'y', 'z'].forEach(axis => {
+                    const val = parseFloat(document.getElementById(p + axis + 'Val').value) || 0;
+                    document.getElementById(p + axis + 'Range').value = Math.max(-5, Math.min(5, val));
+                });
+            });
+            updateStateFromInputs();
+        };
+
+        window.applyScalarTo = function(target) {
+            const k = parseFloat(document.getElementById('kVal').value) || 1;
+            const prefix = target.toLowerCase();
+            ['x', 'y', 'z'].forEach(axis => {
+                const val = parseFloat(document.getElementById(prefix + axis + 'Val').value) || 0;
+                document.getElementById(prefix + axis + 'Val').value = (val * k).toFixed(1);
+                document.getElementById(prefix + axis + 'Range').value = Math.max(-5, Math.min(5, val * k));
+            });
+            updateStateFromInputs();
+        };
+
+        window.resetVectors = function() {
+            const vals = { a: { x: 3, y: 2, z: 1 }, b: { x: 1, y: 3, z: 2 } };
+            ['a', 'b'].forEach(p => {
+                ['x', 'y', 'z'].forEach(axis => {
+                    const val = vals[p][axis];
+                    document.getElementById(p + axis + 'Val').value = val;
+                    document.getElementById(p + axis + 'Range').value = val;
+                });
+            });
+            document.getElementById('kVal').value = 1.5;
+            document.getElementById('kRange').value = 1.5;
+            state.operation = 'add';
+            updateStateFromInputs();
+        };
+
+        window.randomVectors = function() {
+            const rand = () => (Math.random() - 0.5) * 6;
+            ['a', 'b'].forEach(p => {
+                ['x', 'y', 'z'].forEach(axis => {
+                    const val = Math.round(rand() * 10) / 10;
+                    document.getElementById(p + axis + 'Val').value = val;
+                    document.getElementById(p + axis + 'Range').value = Math.max(-5, Math.min(5, val));
+                });
+            });
+            updateStateFromInputs();
+        };
+
+        // Checkbox bindings
+        document.querySelectorAll('#showA, #showB, #showOp, #showGrid, #showLabels').forEach(el => {
+            el.addEventListener('change', () => {
+                state.showA = document.getElementById('showA').checked;
+                state.showB = document.getElementById('showB').checked;
+                state.showOp = document.getElementById('showOp').checked;
+                state.showGrid = document.getElementById('showGrid').checked;
+                state.showLabels = document.getElementById('showLabels').checked;
+                gridHelper.visible = state.showGrid;
+                updateVectors();
+            });
+        });
+
+        // ============================================================
+        // RESIZE
+        // ============================================================
+        function resize() {
+            const w = wrap.clientWidth;
+            const h = wrap.clientHeight;
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+            renderer.setSize(w, h);
+            labelRenderer.setSize(w, h);
+        }
+        window.addEventListener('resize', resize);
+        new ResizeObserver(resize).observe(wrap);
+
+        // ============================================================
+        // ANIMATION LOOP
+        // ============================================================
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+            labelRenderer.render(scene, camera);
+        }
+
+        // ============================================================
+        // INIT
+        // ============================================================
+        // Set initial state
+        resetVectors();
+
+        // Start animation
+        animate();
+
+        console.log('📐 3D Vektor Vizualizatori ishga tushdi!');
+        console.log('🖱 Sichqoncha bilan aylantirish - vektorlarni tekshirish');
+        console.log('⚡ Amallar: Qo\'shish, Ayirish, Vektor ko\'paytma');
+
+        // Expose for debugging
+        window.scene = scene;
+        window.camera = camera;
+        window.controls = controls;
+        window.updateVectors = updateVectors;
+    </script>
+</body>
+</html>

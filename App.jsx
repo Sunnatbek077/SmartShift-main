@@ -43,6 +43,7 @@ import BiometricRegistrationModal from "./BiometricRegistrationModal";
 import { storage, resetSupabase, getUserId, setUserId, clearUserData } from "./supabase";
 import { getCurrentUser, logout, isAdminLoggedIn, adminLogout, isMinistryLoggedIn, ministryLogout } from "./auth";
 import { useEmojiIcons } from "./EmojiIconInjector";
+import { updateLoginStreak } from "./activityStats";
 import "./global.css";
 
 export default function App() {
@@ -69,6 +70,7 @@ export default function App() {
   const [isMinistry, setIsMinistry] = useState(() => isMinistryLoggedIn());
   const [showBiometricRegister, setShowBiometricRegister] = useState(false);
   const [showLanding, setShowLanding] = useState(true);
+  const [streakStats, setStreakStats] = useState({ streak: 0, best_streak: 0 });
 
   // ===== Yandex Cloud SpeechKit — Nigora ovozi =====
   // ===== Yandex Cloud SpeechKit — Nigora ovozi =====
@@ -200,6 +202,14 @@ export default function App() {
     };
     sync();
   }, [currentUser]);
+
+  // ===== REAL STREAK (Navbar + Profil bir xil manbadan o'qiydi) =====
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    updateLoginStreak(storage).then((s) => {
+      if (s) setStreakStats(s);
+    });
+  }, [currentUser?.id]);
 
   // ===== BIOMETRICS CHECK =====
   useEffect(() => {
@@ -400,6 +410,7 @@ export default function App() {
         onNavigate={handleNavigate}
         currentUser={currentUser}
         onLogout={handleLogout}
+        streak={streakStats.streak}
       />
 
       {/* Supabase holat ko'rsatkichi */}

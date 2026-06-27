@@ -1,0 +1,693 @@
+cat > /mnt/user-data/outputs/tenglamalar_sistemasi.html << 'HTMLEOF'
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chiziqli va Kvadrat Tenglamalar Sistemasi – 3D</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { overflow:hidden; font-family:'Segoe UI',sans-serif; background:#0a0a1a; }
+
+        #sarlavha {
+            position:absolute; top:14px; left:50%; transform:translateX(-50%);
+            background:rgba(0,0,0,0.88); backdrop-filter:blur(12px);
+            border:1px solid rgba(255,170,0,0.3); padding:10px 28px;
+            border-radius:22px; color:#fff; text-align:center; z-index:20; pointer-events:none;
+        }
+        #sarlavha h1 { font-size:1.1rem; font-weight:300; letter-spacing:1px; }
+        #sarlavha h1 .s { color:#ffaa00; font-weight:700; }
+        #sarlavha h1 .k { color:#66ccff; font-weight:700; }
+        #sarlavha .t { font-size:0.6rem; opacity:0.35; margin-top:3px; letter-spacing:2px; }
+
+        #chips {
+            position:absolute; top:78px; left:50%; transform:translateX(-50%);
+            z-index:20; pointer-events:none; display:flex; gap:10px;
+        }
+        .chip {
+            background:rgba(0,0,0,0.82); border-radius:10px;
+            padding:6px 14px; font-family:monospace; font-size:0.82rem;
+            font-weight:700; white-space:nowrap;
+        }
+        .chip-s { color:#ff8844; border:1px solid rgba(255,136,68,0.35); }
+        .chip-k { color:#66ccff; border:1px solid rgba(102,204,255,0.35); }
+
+        #chap {
+            position:absolute; top:130px; left:16px;
+            z-index:20; width:215px; display:flex; flex-direction:column; gap:8px;
+        }
+        .karta {
+            background:rgba(0,0,0,0.88); border-radius:13px;
+            padding:12px 14px; color:#fff;
+        }
+        .karta-s { border:1px solid rgba(255,136,68,0.28); }
+        .karta-k { border:1px solid rgba(102,204,255,0.28); }
+        .karta-y { border:1px solid rgba(136,255,136,0.25); }
+        .karta-g { border:1px solid rgba(255,255,255,0.07); }
+
+        .kbosh { font-size:0.55rem; text-transform:uppercase; letter-spacing:2px; margin-bottom:8px; }
+        .kbosh-s { color:#ff8844; }
+        .kbosh-k { color:#66ccff; }
+        .kbosh-y { color:#88ff88; }
+
+        .formula {
+            font-family:'Courier New',monospace; font-size:1.05rem; font-weight:700;
+            text-align:center; padding:6px 10px; border-radius:7px; margin-bottom:8px;
+        }
+        .formula-s { color:#ffdd88; background:rgba(255,170,0,0.08); border:1px solid rgba(255,170,0,0.18); }
+        .formula-k { color:#aaddff; background:rgba(102,204,255,0.06); border:1px solid rgba(102,204,255,0.18); }
+
+        .qator { display:flex; gap:7px; align-items:flex-start; margin-top:5px; }
+        .qator .b { font-size:0.75rem; min-width:18px; text-align:center; margin-top:1px; }
+        .qator .m { font-size:0.59rem; line-height:1.6; opacity:0.58; }
+        .qator .m b { opacity:1; }
+        .qs { color:#ffaa00; } .qk { color:#66ccff; } .qy { color:#88ff88; }
+
+        #holat {
+            text-align:center; padding:9px 12px; border-radius:10px;
+            font-size:0.78rem; font-weight:700; letter-spacing:0.5px; transition:all 0.4s;
+        }
+        #holat.x  { background:rgba(255,80,80,0.12);  border:1px solid rgba(255,80,80,0.3);  color:#ff8888; }
+        #holat.u  { background:rgba(255,220,0,0.1);   border:1px solid rgba(255,220,0,0.3);  color:#ffdd44; }
+        #holat.d  { background:rgba(100,255,100,0.1); border:1px solid rgba(100,255,100,0.3);color:#88ff88; }
+        #mazmun {
+            font-size:0.6rem; line-height:1.7; opacity:0.55; text-align:center;
+            padding:7px 9px; border-radius:8px;
+            background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06);
+            margin-top:8px;
+        }
+
+        #sozlamalar {
+            position:absolute; top:130px; left:16px;
+            z-index:20; width:215px; display:none; flex-direction:column; gap:8px;
+        }
+        #sozlamalar.ochiq { display:flex; }
+        .skarta {
+            background:rgba(0,0,0,0.9); border-radius:13px;
+            padding:13px 14px; color:#fff;
+        }
+        .skarta-s { border:1px solid rgba(255,136,68,0.22); }
+        .skarta-k { border:1px solid rgba(102,204,255,0.22); }
+        .snom { font-size:0.55rem; text-transform:uppercase; letter-spacing:2px; margin-bottom:9px; }
+        .snom-s { color:#ff8844; } .snom-k { color:#66ccff; }
+        .slayder { display:flex; align-items:center; gap:8px; margin-bottom:7px; }
+        .slayder label { font-size:0.72rem; font-family:monospace; min-width:14px; color:#ffaa00; }
+        .slayder input[type=range] { flex:1; accent-color:#ffaa00; background:transparent; }
+        .slayder .qiymat { font-size:0.7rem; font-family:monospace; min-width:32px; text-align:right; color:#ffdd88; font-weight:700; }
+        .shint { font-size:0.54rem; opacity:0.3; text-align:center; margin-top:2px; }
+
+        #ong {
+            position:absolute; top:80px; right:16px;
+            z-index:20; display:flex; flex-direction:column; gap:7px;
+        }
+        #ong button {
+            background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);
+            color:#fff; padding:8px 15px; border-radius:12px; cursor:pointer;
+            font-size:0.7rem; font-family:inherit; transition:all 0.25s;
+            text-align:left; min-width:130px;
+        }
+        #ong button:hover { background:rgba(255,170,0,0.14); border-color:#ffaa00; transform:translateX(-3px); }
+        #ong button.faol  { background:rgba(255,170,0,0.18); border-color:#ffaa00; }
+
+        #pastki {
+            position:absolute; bottom:18px; left:50%; transform:translateX(-50%);
+            z-index:20; pointer-events:none; display:flex; gap:0;
+            border-radius:18px; overflow:hidden;
+            border:1px solid rgba(255,255,255,0.08);
+            background:rgba(0,0,0,0.92); backdrop-filter:blur(16px);
+            box-shadow:0 8px 40px rgba(0,0,0,0.7);
+        }
+        .pblok { padding:13px 20px; text-align:center; border-right:1px solid rgba(255,255,255,0.06); }
+        .pblok:last-child { border-right:none; }
+        .pnom { font-size:0.5rem; text-transform:uppercase; letter-spacing:1px; opacity:0.35; color:#fff; }
+        .pson { font-size:0.95rem; font-weight:700; margin-top:4px; font-variant-numeric:tabular-nums; }
+        .rs { color:#ff8844; } .rk { color:#66ccff; } .ry { color:#88ff88; }
+
+        #afsonalar {
+            position:absolute; bottom:90px; right:16px;
+            z-index:20; pointer-events:none;
+            background:rgba(0,0,0,0.58); border-radius:10px;
+            padding:9px 13px; font-size:0.6rem;
+            line-height:2; color:rgba(255,255,255,0.42);
+        }
+        .af { display:flex; align-items:center; gap:8px; }
+        .dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+
+        @media(max-width:700px) {
+            #chap,#sozlamalar,#afsonalar { display:none !important; }
+            #ong button { min-width:86px; font-size:0.62rem; }
+            #chips { display:none; }
+            #pastki .pblok { padding:8px 12px; font-size:0.7rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- SARLAVHA -->
+<div id="sarlavha">
+    <h1>📐 <span class="s">Chiziqli</span> + <span class="k">Kvadrat</span> Tenglamalar Sistemasi</h1>
+    <div class="t">3D INTERAKTIV LABORATORIYA · REAL VAQT</div>
+</div>
+
+<!-- YUQORI CHIPLAR -->
+<div id="chips">
+    <div class="chip chip-s" id="chip-s">1.0x + 1.0y + 1.0z = 2.0</div>
+    <div class="chip chip-k" id="chip-k">x² + y² + z² = 3.0²</div>
+</div>
+
+<!-- CHAP: Tushuntirish paneli -->
+<div id="chap">
+    <div class="karta karta-s">
+        <div class="kbosh kbosh-s">🟠 Chiziqli Tenglama</div>
+        <div class="formula formula-s">ax + by + cz = d</div>
+        <div class="qator"><span class="b">📌</span><span class="m">Bu tenglama <b class="qs">tekislikni</b> ifodalaydi — 3D fazodagi yassi yuzani</span></div>
+        <div class="qator"><span class="b">⬡</span><span class="m"><b class="qs">a, b, c</b> — tekislikning yo'nalishi (normal vektori)</span></div>
+        <div class="qator"><span class="b">📏</span><span class="m"><b class="qs">d</b> — tekislik markazdan qancha uzoqda joylashgan</span></div>
+    </div>
+
+    <div class="karta karta-k">
+        <div class="kbosh kbosh-k">🔵 Kvadrat Tenglama</div>
+        <div class="formula formula-k">x² + y² + z² = R²</div>
+        <div class="qator"><span class="b">⚽</span><span class="m">Bu tenglama <b class="qk">sferani</b> ifodalaydi — to'p shaklidagi yuzani</span></div>
+        <div class="qator"><span class="b">📐</span><span class="m">Har bir nuqtaning markazdan masofasi: <b class="qk">√(x²+y²+z²) = R</b></span></div>
+        <div class="qator"><span class="b">🎚️</span><span class="m"><b class="qk">R</b> — sferaning radiusi (katta R = katta to'p)</span></div>
+    </div>
+
+    <div class="karta karta-y">
+        <div class="kbosh kbosh-y">🟢 Sistemaning Yechimi</div>
+        <div id="holat" class="d">✅ Doira bo'ylab kesishadi</div>
+        <div id="mazmun">Tekislik sferani <b>doira</b> bo'ylab kesib o'tadi</div>
+    </div>
+
+    <div class="karta karta-g">
+        <div class="kbosh" style="opacity:0.5">💡 Uch holat mavjud</div>
+        <div class="qator"><span class="b">🔴</span><span class="m"><b>Kesishmaydi</b> — tekislik sferadan tashqarida</span></div>
+        <div class="qator"><span class="b">🟡</span><span class="m"><b>Urinadi</b> — bitta umumiy nuqta (urinma)</span></div>
+        <div class="qator"><span class="b">🟢</span><span class="m"><b>Doira</b> — tekislik sferni kesib doira hosil qiladi</span></div>
+    </div>
+</div>
+
+<!-- SOZLAMALAR -->
+<div id="sozlamalar">
+    <div class="skarta skarta-s">
+        <div class="snom snom-s">🟠 Tekislik koeffitsientlari</div>
+        <div class="shint" style="margin-bottom:8px;opacity:0.4">ax + by + cz = d</div>
+        <div class="slayder"><label>a</label><input type="range" id="aS" min="-3" max="3" step="0.1" value="1"><span class="qiymat" id="aV">1.0</span></div>
+        <div class="slayder"><label>b</label><input type="range" id="bS" min="-3" max="3" step="0.1" value="1"><span class="qiymat" id="bV">1.0</span></div>
+        <div class="slayder"><label>c</label><input type="range" id="cS" min="-3" max="3" step="0.1" value="1"><span class="qiymat" id="cV">1.0</span></div>
+        <div class="slayder"><label>d</label><input type="range" id="dS" min="-5" max="5" step="0.1" value="2"><span class="qiymat" id="dV">2.0</span></div>
+        <div class="shint">a,b,c → yo'nalish · d → uzoqlik</div>
+    </div>
+    <div class="skarta skarta-k">
+        <div class="snom snom-k">🔵 Sfera radiusi</div>
+        <div class="shint" style="margin-bottom:8px;opacity:0.4">x² + y² + z² = R²</div>
+        <div class="slayder"><label>R</label><input type="range" id="rS" min="0.5" max="6" step="0.1" value="3"><span class="qiymat" id="rV">3.0</span></div>
+        <div class="shint">katta R = katta sfera</div>
+    </div>
+</div>
+
+<!-- O'NG: Tugmalar -->
+<div id="ong">
+    <button id="bAy" class="faol">🔄 Aylanish</button>
+    <button id="bTo" class="faol">📐 To'r</button>
+    <button id="bOq" class="faol">🎯 O'qlar</button>
+    <button id="bKo">🏠 Ko'rinish</button>
+    <button id="bSo">⚙️ Sozlamalar</button>
+    <button id="bTu" class="faol">📖 Tushuntirish</button>
+</div>
+
+<!-- PASTKI STATISTIKA -->
+<div id="pastki">
+    <div class="pblok"><div class="pnom">Tekislik</div><div class="pson rs" id="ps">1.0x+1.0y+1.0z=2.0</div></div>
+    <div class="pblok"><div class="pnom">Sfera</div><div class="pson rk" id="pk">x²+y²+z²=3²</div></div>
+    <div class="pblok"><div class="pnom">Yechim</div><div class="pson ry" id="py">36 ta (doira)</div></div>
+</div>
+
+<!-- AFSONALAR -->
+<div id="afsonalar">
+    <div class="af"><div class="dot" style="background:#ff8844"></div> Tekislik (chiziqli tenglama)</div>
+    <div class="af"><div class="dot" style="background:#66ccff"></div> Sfera (kvadrat tenglama)</div>
+    <div class="af"><div class="dot" style="background:#88ff88"></div> Yechim (kesishish)</div>
+</div>
+
+<!-- Three.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS2DRenderer.js"></script>
+
+<script>
+// ═══════════════════════════════════════
+// 1. SAHNA, KAMERA, RENDERER
+// ═══════════════════════════════════════
+const sahna = new THREE.Scene();
+sahna.background = new THREE.Color(0x0a0a1a);
+
+const kamera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+kamera.position.set(8, 6, 10);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+document.body.prepend(renderer.domElement);
+
+const yorliqR = new THREE.CSS2DRenderer();
+yorliqR.setSize(window.innerWidth, window.innerHeight);
+yorliqR.domElement.style.cssText = 'position:absolute;top:0;left:0;pointer-events:none;';
+document.body.prepend(yorliqR.domElement);
+
+const orbit = new THREE.OrbitControls(kamera, renderer.domElement);
+orbit.enableDamping = true;
+orbit.dampingFactor = 0.08;
+orbit.minDistance = 3;
+orbit.maxDistance = 30;
+orbit.autoRotate = true;
+orbit.autoRotateSpeed = 2.0;
+
+// ═══════════════════════════════════════
+// 2. YORUG'LIK
+// ═══════════════════════════════════════
+sahna.add(new THREE.AmbientLight(0x223366, 0.5));
+
+const asosiy = new THREE.DirectionalLight(0xffffff, 1.2);
+asosiy.position.set(8, 15, 10);
+asosiy.castShadow = true;
+sahna.add(asosiy);
+
+sahna.add(new THREE.DirectionalLight(0x4488ff, 0.3).position.set(-5, 0, -10));
+sahna.add(new THREE.PointLight(0xff6633, 0.2).position.set(0, -3, 5));
+
+// ═══════════════════════════════════════
+// 3. TO'R VA O'QLAR
+// ═══════════════════════════════════════
+const torH = new THREE.GridHelper(20, 20, 0x4466aa, 0x224488);
+torH.position.y = -3.5;
+sahna.add(torH);
+let torKor = true;
+
+const oqH = new THREE.AxesHelper(7);
+sahna.add(oqH);
+let oqKor = true;
+
+// ═══════════════════════════════════════
+// 4. PARAMETRLAR
+// ═══════════════════════════════════════
+let a = 1, b = 1, c = 1, d = 2, R = 3;
+
+// ═══════════════════════════════════════
+// 5. GURUHLAR
+// ═══════════════════════════════════════
+const tekislikG = new THREE.Group();
+sahna.add(tekislikG);
+
+const sferaG = new THREE.Group();
+sahna.add(sferaG);
+
+const yechimG = new THREE.Group();
+sahna.add(yechimG);
+
+let tengYorliqlari = [];
+let tengKor = true;
+
+// ═══════════════════════════════════════
+// 6. TENGLAMALAR YORLIQLARI
+// ═══════════════════════════════════════
+function tenglamaMatni() {
+    const bs = b >= 0 ? '+' : '-';
+    const cs = c >= 0 ? '+' : '-';
+    return `${a.toFixed(1)}x ${bs} ${Math.abs(b).toFixed(1)}y ${cs} ${Math.abs(c).toFixed(1)}z = ${d.toFixed(1)}`;
+}
+
+function tengYorliqlariYarat() {
+    tengYorliqlari.forEach(l => sahna.remove(l));
+    tengYorliqlari = [];
+
+    function yorliq(matn, rang, chegara, x, y = 5) {
+        const div = document.createElement('div');
+        div.textContent = matn;
+        div.style.cssText = `
+            color:${rang}; font-size:13px; font-weight:bold; font-family:monospace;
+            text-shadow:0 0 16px rgba(0,0,0,0.9);
+            background:rgba(0,0,0,0.65); padding:4px 12px;
+            border-radius:8px; border:1px solid ${chegara};
+            backdrop-filter:blur(4px);
+        `;
+        const obj = new THREE.CSS2DObject(div);
+        obj.position.set(x, y, 0);
+        obj.visible = tengKor;
+        sahna.add(obj);
+        tengYorliqlari.push(obj);
+    }
+
+    yorliq(tenglamaMatni(), '#ff8844', 'rgba(255,136,68,0.3)', -4);
+    yorliq(`x² + y² + z² = ${R.toFixed(1)}²`, '#66ccff', 'rgba(102,204,255,0.3)', 4);
+}
+
+// ═══════════════════════════════════════
+// 7. TEKISLIK YARATISH
+// ═══════════════════════════════════════
+function tekislikYarat() {
+    while (tekislikG.children.length) tekislikG.remove(tekislikG.children[0]);
+
+    const HAJM = 8, SEG = 40;
+    const normal = new THREE.Vector3(a, b, c).normalize();
+    const dNorm = d / new THREE.Vector3(a, b, c).length();
+
+    const yuqori = new THREE.Vector3(0, 1, 0);
+    if (Math.abs(normal.dot(yuqori)) > 0.99) yuqori.set(1, 0, 0);
+    const u = new THREE.Vector3().crossVectors(normal, yuqori).normalize();
+    const v = new THREE.Vector3().crossVectors(normal, u).normalize();
+
+    const uchlar = [], ind = [], yarm = HAJM / 2;
+    for (let i = 0; i <= SEG; i++) {
+        for (let j = 0; j <= SEG; j++) {
+            const x = -yarm + (i / SEG) * HAJM;
+            const y = -yarm + (j / SEG) * HAJM;
+            const p = new THREE.Vector3()
+                .addScaledVector(u, x)
+                .addScaledVector(v, y)
+                .addScaledVector(normal, dNorm);
+            uchlar.push(p.x, p.y, p.z);
+        }
+    }
+    for (let i = 0; i < SEG; i++) {
+        for (let j = 0; j < SEG; j++) {
+            const a0 = i * (SEG + 1) + j;
+            const a1 = a0 + 1;
+            const b0 = (i + 1) * (SEG + 1) + j;
+            const b1 = b0 + 1;
+            ind.push(a0, a1, b1);
+            ind.push(a0, b1, b0);
+        }
+    }
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(uchlar, 3));
+    geo.setIndex(ind);
+    geo.computeVertexNormals();
+
+    tekislikG.add(new THREE.Mesh(geo, new THREE.MeshPhysicalMaterial({
+        color: 0xff8844,
+        transparent: true,
+        opacity: 0.2,
+        side: THREE.DoubleSide,
+        roughness: 0.3,
+        metalness: 0.1,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending
+    })));
+
+    tekislikG.add(new THREE.LineSegments(
+        new THREE.EdgesGeometry(geo),
+        new THREE.LineBasicMaterial({ color: 0xff8844, transparent: true, opacity: 0.3 })
+    ));
+
+    const markaz = normal.clone().multiplyScalar(dNorm);
+    if (markaz.length() < 6) {
+        tekislikG.add(new THREE.ArrowHelper(normal, markaz, 1.5, 0xff8844, 0.4, 0.3));
+    }
+}
+
+// ═══════════════════════════════════════
+// 8. SFERA YARATISH
+// ═══════════════════════════════════════
+function sferaYarat() {
+    while (sferaG.children.length) sferaG.remove(sferaG.children[0]);
+    if (R < 0.1) return;
+
+    sferaG.add(new THREE.Mesh(
+        new THREE.SphereGeometry(R, 48, 48),
+        new THREE.MeshPhysicalMaterial({
+            color: 0x66ccff,
+            transparent: true,
+            opacity: 0.13,
+            roughness: 0.1,
+            metalness: 0.2,
+            side: THREE.DoubleSide,
+            depthWrite: false,
+            blending: THREE.AdditiveBlending
+        })
+    ));
+
+    const chiziqM = new THREE.LineBasicMaterial({ color: 0x66ccff, transparent: true, opacity: 0.18 });
+    const N = 12;
+
+    for (let i = 0; i <= N; i++) {
+        const phi = (i / N) * Math.PI;
+        const pts = [];
+        for (let j = 0; j <= 32; j++) {
+            const t = (j / 32) * Math.PI * 2;
+            pts.push(new THREE.Vector3(
+                R * Math.sin(phi) * Math.cos(t),
+                R * Math.cos(phi),
+                R * Math.sin(phi) * Math.sin(t)
+            ));
+        }
+        sferaG.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), chiziqM));
+    }
+    for (let i = 0; i <= N; i++) {
+        const t = (i / N) * Math.PI * 2;
+        const pts = [];
+        for (let j = 0; j <= 32; j++) {
+            const phi = (j / 32) * Math.PI;
+            pts.push(new THREE.Vector3(
+                R * Math.sin(phi) * Math.cos(t),
+                R * Math.cos(phi),
+                R * Math.sin(phi) * Math.sin(t)
+            ));
+        }
+        sferaG.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), chiziqM));
+    }
+}
+
+// ═══════════════════════════════════════
+// 9. YECHIM TOPISH
+// ═══════════════════════════════════════
+function holatYangilanish(klass, holat, son, mazmun) {
+    const el = document.getElementById('holat');
+    el.className = klass;
+    el.textContent = holat;
+    document.getElementById('mazmun').innerHTML = `<b>${mazmun}</b>`;
+    document.getElementById('py').textContent = son;
+}
+
+function nuqtaQosh(nuqta, katta) {
+    const r = katta ? 0.27 : 0.12;
+    const shar = new THREE.Mesh(
+        new THREE.SphereGeometry(r, 16, 16),
+        new THREE.MeshPhysicalMaterial({
+            color: 0x88ff88,
+            emissive: 0x44ff44,
+            emissiveIntensity: 0.5,
+            roughness: 0.1,
+            metalness: 0.3
+        })
+    );
+    shar.position.copy(nuqta);
+    yechimG.add(shar);
+
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = 64;
+    const ctx = cv.getContext('2d');
+    const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+    g.addColorStop(0, 'rgba(136,255,136,1)');
+    g.addColorStop(0.3, 'rgba(136,255,136,0.5)');
+    g.addColorStop(1, 'rgba(136,255,136,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 64, 64);
+
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: new THREE.CanvasTexture(cv),
+        blending: THREE.AdditiveBlending,
+        transparent: true,
+        depthWrite: false,
+        opacity: 0.4
+    }));
+    const sc = katta ? 2 : 0.85;
+    sp.scale.set(sc, sc, 1);
+    sp.position.copy(nuqta);
+    yechimG.add(sp);
+}
+
+function yechimTopish() {
+    while (yechimG.children.length) yechimG.remove(yechimG.children[0]);
+
+    const nvec = new THREE.Vector3(a, b, c);
+    const nlen = nvec.length();
+    if (nlen < 0.001) return;
+
+    const n = nvec.clone().normalize();
+    const dNorm = d / nlen;
+
+    const yuqori = new THREE.Vector3(0, 1, 0);
+    if (Math.abs(n.dot(yuqori)) > 0.99) yuqori.set(1, 0, 0);
+    const u = new THREE.Vector3().crossVectors(n, yuqori).normalize();
+    const v = new THREE.Vector3().crossVectors(n, u).normalize();
+
+    const markaz = n.clone().multiplyScalar(dNorm);
+    const distKv = markaz.lengthSq();
+    const rKv = R * R - distKv;
+
+    if (rKv < -0.01) {
+        holatYangilanish('x', '❌ Kesishmaydi', '0 ta (kesishmaydi)', 'Tekislik sferadan tashqarida — markazdan masofasi R dan katta');
+        return;
+    }
+
+    if (Math.abs(rKv) <= 0.01) {
+        nuqtaQosh(markaz, true);
+        holatYangilanish('u', '🟡 Urinadi — 1 ta nuqta', '1 ta (urinma)', 'Tekislik sfera sirtiga "tegilib o\'tadi" — faqat bitta umumiy nuqta');
+        return;
+    }
+
+    const doiraR = Math.sqrt(rKv);
+    const N = 60;
+    const doiraNuqtalar = [];
+
+    for (let i = 0; i < N; i++) {
+        const t = (i / N) * Math.PI * 2;
+        const p = markaz.clone()
+            .addScaledVector(u, doiraR * Math.cos(t))
+            .addScaledVector(v, doiraR * Math.sin(t));
+        doiraNuqtalar.push(p);
+    }
+
+    const doiraGeo = new THREE.BufferGeometry().setFromPoints([...doiraNuqtalar, doiraNuqtalar[0]]);
+    yechimG.add(new THREE.Line(doiraGeo,
+        new THREE.LineBasicMaterial({ color: 0x88ff88, transparent: true, opacity: 0.7 })
+    ));
+
+    doiraNuqtalar.forEach((p, i) => { if (i % 3 === 0) nuqtaQosh(p, false); });
+
+    holatYangilanish('d',
+        `✅ Doira bo'ylab kesishadi`,
+        `${N} ta nuqta (doira)`,
+        `Kesishish doirasi radiusi ≈ ${doiraR.toFixed(2)} birlik`
+    );
+}
+
+// ═══════════════════════════════════════
+// 10. HAMMANI YANGILASH
+// ═══════════════════════════════════════
+function hammaniYangilanish() {
+    const tm = tenglamaMatni();
+    const km = `x²+y²+z²=${R.toFixed(1)}²`;
+    document.getElementById('chip-s').textContent = tm;
+    document.getElementById('chip-k').textContent = `x² + y² + z² = ${R.toFixed(1)}²`;
+    document.getElementById('ps').textContent = tm;
+    document.getElementById('pk').textContent = km;
+
+    tekislikYarat();
+    sferaYarat();
+    yechimTopish();
+    tengYorliqlariYarat();
+}
+
+// ═══════════════════════════════════════
+// 11. TUGMALAR
+// ═══════════════════════════════════════
+document.getElementById('bAy').addEventListener('click', () => {
+    orbit.autoRotate = !orbit.autoRotate;
+    document.getElementById('bAy').classList.toggle('faol', orbit.autoRotate);
+});
+
+document.getElementById('bTo').addEventListener('click', () => {
+    torKor = !torKor;
+    torH.visible = torKor;
+    document.getElementById('bTo').classList.toggle('faol', torKor);
+});
+
+document.getElementById('bOq').addEventListener('click', () => {
+    oqKor = !oqKor;
+    oqH.visible = oqKor;
+    document.getElementById('bOq').classList.toggle('faol', oqKor);
+});
+
+document.getElementById('bKo').addEventListener('click', () => {
+    kamera.position.set(8, 6, 10);
+    orbit.target.set(0, 0, 0);
+    orbit.update();
+});
+
+document.getElementById('bSo').addEventListener('click', () => {
+    const soz = document.getElementById('sozlamalar');
+    const tush = document.getElementById('chap');
+    const ochiq = soz.classList.toggle('ochiq');
+    tush.style.display = ochiq ? 'none' : 'flex';
+    document.getElementById('bSo').classList.toggle('faol', ochiq);
+    if (ochiq) document.getElementById('bTu').classList.remove('faol');
+});
+
+document.getElementById('bTu').addEventListener('click', () => {
+    const tush = document.getElementById('chap');
+    const soz = document.getElementById('sozlamalar');
+    const kor = tush.style.display === 'none';
+    tush.style.display = kor ? 'flex' : 'none';
+    if (kor) {
+        soz.classList.remove('ochiq');
+        document.getElementById('bSo').classList.remove('faol');
+    }
+    document.getElementById('bTu').classList.toggle('faol', kor);
+});
+
+// ═══════════════════════════════════════
+// 12. SLAYDERLAR
+// ═══════════════════════════════════════
+function slBogla(id, valId, ozgarish, kasrlar = 1) {
+    document.getElementById(id).addEventListener('input', e => {
+        const q = parseFloat(e.target.value);
+        ozgarish(q);
+        document.getElementById(valId).textContent = q.toFixed(kasrlar);
+        hammaniYangilanish();
+    });
+}
+
+slBogla('aS', 'aV', q => a = q);
+slBogla('bS', 'bV', q => b = q);
+slBogla('cS', 'cV', q => c = q);
+slBogla('dS', 'dV', q => d = q);
+slBogla('rS', 'rV', q => R = q);
+
+// ═══════════════════════════════════════
+// 13. ANIMATSIYA
+// ═══════════════════════════════════════
+function animatsiya() {
+    requestAnimationFrame(animatsiya);
+
+    const vaqt = Date.now() * 0.001;
+    yechimG.children.forEach((ch, i) => {
+        if (ch.isSprite) {
+            const s = 0.78 + 0.22 * Math.sin(vaqt * 1.5 + i);
+            ch.scale.set(s, s, 1);
+        }
+    });
+
+    orbit.update();
+    renderer.render(sahna, kamera);
+    yorliqR.render(sahna, kamera);
+}
+
+// ═══════════════════════════════════════
+// 14. EKRAN O'LCHAMIGA MOSLASHISH
+// ═══════════════════════════════════════
+window.addEventListener('resize', () => {
+    kamera.aspect = window.innerWidth / window.innerHeight;
+    kamera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    yorliqR.setSize(window.innerWidth, window.innerHeight);
+});
+
+// ═══════════════════════════════════════
+// 15. ISHGA TUSHIRISH
+// ═══════════════════════════════════════
+hammaniYangilanish();
+animatsiya();
+
+console.log('✅ Chiziqli + Kvadrat tenglamalar sistemasi 3D');
+console.log('📐 Slayderlar yordamida koeffitsientlarni o\'zgartiring');
+console.log('🔄 Yechim nuqtalari real vaqtda yangilanadi');
+</script>
+</body>
+</html>
+HTMLEOF
+
+echo "✅ Fayl yaratildi: /mnt/user-data/outputs/tenglamalar_sistemasi.html"

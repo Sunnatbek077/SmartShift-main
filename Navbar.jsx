@@ -55,7 +55,7 @@ const NAV_ITEMS = [
   { id: "profile", icon: "👤", name: "Profil" },
 ];
 
-export default function Navbar({ currentPage, onNavigate, currentUser, onLogout }) {
+export default function Navbar({ currentPage, onNavigate, currentUser, onLogout, streak = 0 }) {
   const name = currentUser?.full_name || USER_PROFILE.name;
   const initials = name.split(" ").map(w => w[0] || "").join("").slice(0, 2).toUpperCase() || "AT";
   const [showMenu, setShowMenu] = useState(false);
@@ -132,7 +132,7 @@ export default function Navbar({ currentPage, onNavigate, currentUser, onLogout 
             <div style={styles.avatar}>{initials}</div>
             <div className="nav-links-desktop">
               <div style={styles.userName}>{name}</div>
-              <div style={styles.userLevel}>🔥 {USER_PROFILE.streak} kunlik streak</div>
+              <div style={styles.userLevel}>🔥 {streak} kunlik streak</div>
             </div>
             <span style={{ marginLeft: 4, color: "var(--muted)", fontSize: 12 }}>▾</span>
           </div>

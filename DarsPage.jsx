@@ -19,6 +19,7 @@ import AIChat from "./AIChat";
 import Quiz from "./Quiz";
 import TopshirishModal from "./TopshirishModal";
 import { storage } from "./supabase";
+import { getLabLibraryForFan } from "./labLibrary";
 import Lesson3DIntro from "./Lesson3DIntro";
 import mammoth from "mammoth";
 import localforage from "localforage";
@@ -2079,12 +2080,7 @@ Izoh: 'actions' massividagi 'time' (sekundda) ovozning tegishli qismiga mos bo'l
           `lab_html_${fanId}_${currentTopic.id}`
         ) || currentTopic.labHtml;
 
-        const handleFileUpload = async (e) => {
-          const file = e.target.files[0];
-          if (!file) return;
-          const reader = new FileReader();
-          reader.onload = async (evt) => {
-            const content = evt.target.result;
+        const applyLabHtmlContent = async (content) => {
             storage.set(`lab_html_${fanId}_${currentTopic.id}`, content);
             setVideoUpdate((v) => v + 1);
             setLabFullscreen(true); // To'liq ekranda ochish
@@ -2170,8 +2166,31 @@ Izoh: 'actions' massividagi 'time' (sekundda) ovozning tegishli qismiga mos bo'l
                 setIsGeneratingLab(false);
               }
             }
-          };
+        };
+
+        const handleFileUpload = async (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = (evt) => applyLabHtmlContent(evt.target.result);
           reader.readAsText(file);
+        };
+
+        const handleSelectLibraryLab = async (e) => {
+          const path = e.target.value;
+          if (!path) return;
+          try {
+            setIsGeneratingLab(true);
+            addLog("Tayyor dars yuklanmoqda...");
+            const resp = await fetch(path);
+            const content = await resp.text();
+            await applyLabHtmlContent(content);
+          } catch (err) {
+            addLog("Tayyor darsni yuklashda xato: " + err.message);
+          } finally {
+            setIsGeneratingLab(false);
+          }
+          e.target.value = "";
         };
 
         const handleRemoveHtml = () => {
@@ -2591,6 +2610,41 @@ Izoh: 'actions' massividagi 'time' (sekundda) ovozning tegishli qismiga mos bo'l
                   </strong>{" "}
                   laboratoriyani tushuntiradi 🔊
                 </div>
+
+                {getLabLibraryForFan(fanId).length > 0 && (
+                  <div style={{ marginBottom: 18, maxWidth: 360, marginLeft: "auto", marginRight: "auto" }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", marginBottom: 8, textAlign: "left" }}>
+                      📚 Tayyor darslardan tanlash
+                    </div>
+                    <select
+                      defaultValue=""
+                      onChange={handleSelectLibraryLab}
+                      disabled={isGeneratingLab}
+                      style={{
+                        width: "100%",
+                        padding: "11px 14px",
+                        borderRadius: 12,
+                        border: "1px solid var(--border)",
+                        background: "var(--input-bg)",
+                        color: "var(--text)",
+                        fontSize: 14,
+                        fontWeight: 600,
+                        cursor: isGeneratingLab ? "wait" : "pointer",
+                      }}
+                    >
+                      <option value="">— Tayyor dars tanlang —</option>
+                      {getLabLibraryForFan(fanId).map((lab) => (
+                        <option key={lab.id} value={lab.path}>{lab.name}</option>
+                      ))}
+                    </select>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "16px 0" }}>
+                      <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
+                      <span style={{ fontSize: 12, color: "var(--dim)", fontWeight: 600 }}>YOKI</span>
+                      <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
+                    </div>
+                  </div>
+                )}
+
                 <label
                   style={{
                     display: "inline-block",
