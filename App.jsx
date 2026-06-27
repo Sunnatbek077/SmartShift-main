@@ -166,6 +166,11 @@ export default function App() {
     adminLogout();
     setIsAdmin(false);
   };
+  const handleMinistryLogin = () => setIsMinistry(true);
+  const handleMinistryLogout = () => {
+    ministryLogout();
+    setIsMinistry(false);
+  };
 
   // ===== SUPABASE SYNC — sahifa ochilganda bulutdan yuklab olish =====
   useEffect(() => {
@@ -258,6 +263,9 @@ export default function App() {
   // Admin panel
   if (isAdmin) return <AdminPanel onLogout={handleAdminLogout} />;
 
+  // Vazirlik hisobot paneli
+  if (isMinistry) return <MinistryPanel onLogout={handleMinistryLogout} />;
+
   // O'qituvchi paneli
   if (currentUser?.role === "teacher")
     return <TeacherPanel teacher={currentUser} onLogout={handleLogout} />;
@@ -268,7 +276,13 @@ export default function App() {
 
   // Login sahifasi
   if (!currentUser)
-    return <LoginPage onLogin={handleLogin} onAdminLogin={handleAdminLogin} />;
+    return (
+      <LoginPage
+        onLogin={handleLogin}
+        onAdminLogin={handleAdminLogin}
+        onMinistryLogin={handleMinistryLogin}
+      />
+    );
 
   const saveSupabaseSettings = async () => {
     localStorage.setItem("supabase_url", sbUrl.trim());
